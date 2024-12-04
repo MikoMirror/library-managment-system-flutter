@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/user_service.dart';
-import '../widgets/custom_text_field.dart';
+import '../../../core/services/database/user_service.dart';
+import '../../../core/widgets/custom_text_field.dart';
 
 class InitialAdminSetupScreen extends StatefulWidget {
   const InitialAdminSetupScreen({super.key});

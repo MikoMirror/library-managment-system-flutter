@@ -6,7 +6,7 @@ import '../models/book.dart';
 
 class GoogleBooksService {
   static const String _baseUrl = 'https://www.googleapis.com/books/v1/volumes';
-  static const String _apiKey = ''; 
+  static const String _apiKey = 'AIzaSyDYdzcHQvTCSLxmFpEwH9Gpp6FQ_fJvloY'; 
 
   static Future<Book?> findBookByIsbn(String isbn) async {
     final service = GoogleBooksService();

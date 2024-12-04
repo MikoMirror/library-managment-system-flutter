@@ -6,16 +6,18 @@ class BookCard extends StatelessWidget {
   final Book book;
   final VoidCallback onTap;
   final VoidCallback? onDelete;
-  final VoidCallback? onToggleFavorite;
-  final String? userId;
+  final bool isAdmin;
+  final String userId;
+  final VoidCallback onFavoriteToggle;
 
   const BookCard({
+    super.key,
     required this.book,
     required this.onTap,
     this.onDelete,
-    this.onToggleFavorite,
-    this.userId,
-    super.key,
+    required this.isAdmin,
+    required this.userId,
+    required this.onFavoriteToggle,
   });
 
   @override
@@ -72,32 +74,27 @@ class BookCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                        if (onDelete != null)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 4),
-                            child: GestureDetector(
-                              onTap: onDelete,
-                              child: const Icon(
-                                Icons.delete,
-                                color: Colors.red,
-                                size: 20,
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: isAdmin 
+                            ? IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: onDelete,
+                              )
+                            : StreamBuilder<bool>(
+                                stream: FirestoreService().isBookFavorited(userId, book.id!),
+                                builder: (context, snapshot) {
+                                  final isFavorited = snapshot.data ?? false;
+                                  return IconButton(
+                                    icon: Icon(
+                                      isFavorited ? Icons.favorite : Icons.favorite_border,
+                                      color: isFavorited ? Colors.red : null,
+                                    ),
+                                    onPressed: onFavoriteToggle,
+                                  );
+                                },
                               ),
-                            ),
-                          ),
-                        if (onToggleFavorite != null && userId != null)
-                          StreamBuilder<bool>(
-                            stream: FirestoreService().isBookFavorited(userId!, book.id!),
-                            builder: (context, snapshot) {
-                              final isFavorite = snapshot.data ?? false;
-                              return IconButton(
-                                icon: Icon(
-                                  isFavorite ? Icons.favorite : Icons.favorite_border,
-                                  color: Colors.red,
-                                ),
-                                onPressed: onToggleFavorite,
-                              );
-                            },
-                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),

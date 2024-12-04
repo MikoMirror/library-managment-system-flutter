@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:rxdart/rxdart.dart';
 import 'dart:async';
-import '../models/user_model.dart';
+import '../../../users/models/user_model.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';

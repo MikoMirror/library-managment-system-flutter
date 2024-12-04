@@ -6,6 +6,7 @@ import '../models/book.dart';
 import '../widgets/book_card.dart';
 import '../services/firestore_service.dart';
 import 'book_info_screen.dart';
+import '../widgets/delete_book_dialog.dart';
 
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
@@ -73,21 +74,33 @@ class FavoritesScreen extends StatelessWidget {
                         itemCount: books.length,
                         itemBuilder: (context, index) {
                           final book = books[index];
-                          return BookCard(
-                            book: book,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => BookInfoScreen(book: book),
-                              ),
-                            ),
-                            onToggleFavorite: () async {
-                              await FirestoreService().toggleFavorite(
-                                state.user.userId,
-                                book.id!,
+                          return BlocBuilder<AuthBloc, AuthState>(
+                            builder: (context, state) {
+                              if (state is! AuthSuccess) {
+                                return const SizedBox.shrink();
+                              }
+
+                              return BookCard(
+                                book: book,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BookInfoScreen(book: book),
+                                  ),
+                                ),
+                                isAdmin: state.user.role == 'admin',
+                                userId: state.user.userId,
+                                onFavoriteToggle: () async {
+                                  await FirestoreService().toggleFavorite(
+                                    state.user.userId,
+                                    book.id!,
+                                  );
+                                },
+                                onDelete: state.user.role == 'admin' 
+                                    ? () => _showDeleteBookDialog(context, book)
+                                    : null,
                               );
                             },
-                            userId: state.user.userId,
                           );
                         },
                       );
@@ -99,6 +112,13 @@ class FavoritesScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  void _showDeleteBookDialog(BuildContext context, Book book) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => DeleteBookDialog(book: book),
     );
   }
 } 

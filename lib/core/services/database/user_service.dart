@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/user_model.dart';
+import '../../../features/users/models/user_model.dart';
 
 class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -14,13 +14,10 @@ class UserService {
     String password,
     String role,
   ) async {
-    // Create auth user without signing in
     final userCredential = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
-
-    // Create user document (without password)
     final user = UserModel(
       userId: userCredential.user!.uid,
       name: name,
@@ -31,14 +28,10 @@ class UserService {
       createdAt: DateTime.now(),
       libraryNumber: _generateLibraryNumber(),
     );
-
-    // Save to Firestore
     await _firestore
         .collection('users')
         .doc(userCredential.user!.uid)
         .set(user.toMap());
-
-    // Sign out the newly created user to keep the admin signed in
     await _auth.signOut();
   }
 

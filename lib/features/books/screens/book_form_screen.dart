@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/firestore_service.dart';
+import '../../../core/services/database/firestore_service.dart';
 import '../models/book.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
