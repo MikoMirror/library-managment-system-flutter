@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import '../models/user_model.dart';
-import '../services/firestore_service.dart';
-import '../models/book.dart';
+import '../../users/models/user_model.dart';
+import '../../../core/services/database/firestore_service.dart';
+import '../../books/models/book.dart';
 
 class BookReservationDialog extends StatefulWidget {
   final String bookId;

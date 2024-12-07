@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/book.dart';
-import '../widgets/add_book_dialog.dart';
-import '../widgets/book_card.dart';
-import 'dart:async';
-import '../screens/book_info_screen.dart';
-import '../widgets/custom_app_bar.dart';
-import '../services/firestore_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/auth_bloc.dart';
-import 'book_form_screen.dart';
-import '../widgets/delete_book_dialog.dart';
+import 'package:provider/provider.dart';
+import '../models/book.dart';
+import '../../auth/bloc/auth/auth_bloc.dart';
+import '../widgets/add_book_dialog.dart';
+import '../bloc/books_bloc.dart';
+import '../bloc/books_state.dart';
+import '../bloc/books_event.dart';
+import '../widgets/book card/mobile_books_grid.dart';
+import '../widgets/book card/desktop_books_grid.dart';
+import '../widgets/book card/book_card.dart';
+import '../repositories/books_repository.dart';
+import '../enums/book_view_type.dart';
+import '../widgets/book card/table_books_view.dart';
+import '../../../../core/widgets/custom_app_bar.dart';
+import '../../../features/users/models/user_model.dart';
+
 
 class BooksScreen extends StatefulWidget {
   const BooksScreen({super.key});
@@ -20,331 +26,175 @@ class BooksScreen extends StatefulWidget {
 }
 
 class _BooksScreenState extends State<BooksScreen> {
-  String _searchQuery = '';
-  final ScrollController _scrollController = ScrollController();
-  Timer? _debounce;
-  bool _isTableView = false;
+  final _firestore = FirebaseFirestore.instance;
+  BookViewType _viewType = BookViewType.desktop;
 
-  void _handleSearch(String query) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      setState(() {
-        _searchQuery = query.toLowerCase();
-      });
-    });
-  }
-
-  void _toggleViewMode() {
-    setState(() {
-      _isTableView = !_isTableView;
-    });
+  @override
+  void initState() {
+    super.initState();
+    context.read<BooksBloc>().add(LoadBooks());
   }
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    
     return Scaffold(
       appBar: CustomAppBar(
         title: const Text('Books'),
         actions: [
-          IconButton(
-            icon: Icon(_isTableView ? Icons.grid_view : Icons.table_rows),
-            onPressed: _toggleViewMode,
-            tooltip: _isTableView ? 'Switch to Cards' : 'Switch to Table',
-          ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              // TODO: Implement search
+          if (!isMobile) _buildViewSwitcher(context),
+          BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              if (state is! AuthSuccess) return const SizedBox.shrink();
+
+              return FutureBuilder<DocumentSnapshot>(
+                future: _firestore.collection('users').doc(state.user.uid).get(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const SizedBox.shrink();
+
+                  final userData = snapshot.data!.data() as Map<String, dynamic>;
+                  final userModel = UserModel.fromMap(userData);
+                  
+                  if (userModel.role != 'admin') return const SizedBox.shrink();
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 16.0),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return const AddBookDialog();
+                          },
+                        );
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Book'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  );
+                },
+              );
             },
           ),
         ],
       ),
-      body: _buildBookList(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddBookDialog(context),
-        child: const Icon(Icons.add),
+      body: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, authState) {
+          return BlocBuilder<BooksBloc, BooksState>(
+            builder: (context, state) {
+              if (state is BooksLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (state is BooksError) {
+                return Center(child: Text(state.message));
+              }
+
+              if (state is BooksLoaded && authState is AuthSuccess) {
+                if (isMobile) {
+                  return MobileBooksGrid(
+                    books: state.books,
+                    user: authState.user,
+                    onDeleteBook: _showDeleteConfirmationDialog,
+                  );
+                }
+                
+                return _buildBooksList(state.books, authState.user);
+              }
+
+              return const Center(child: Text('No books found'));
+            },
+          );
+        },
       ),
     );
   }
 
-  Widget _buildBookList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('books').snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Text(
-              'No books available.',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          );
-        }
-
-        var books = snapshot.data!.docs
-            .map((doc) => Book.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-            .where((book) =>
-                book.title.toLowerCase().contains(_searchQuery) ||
-                book.author.toLowerCase().contains(_searchQuery))
-            .toList();
-
-        return _isTableView
-            ? _buildTableView(books)
-            : _buildCardsView(books);
-      },
-    );
-  }
-
-  Widget _buildTableView(List<Book> books) {
-    return SingleChildScrollView(
-      controller: _scrollController,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Table Header
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey.shade300),
-                ),
-              ),
-              child: const Row(
+  Widget _buildViewSwitcher(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<BookViewType>(
+          value: _viewType,
+          icon: const Icon(Icons.arrow_drop_down),
+          iconSize: 20,
+          items: BookViewType.values.map((type) {
+            return DropdownMenuItem(
+              value: type,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(width: 60), // Cover space
-                  SizedBox(width: 16),
-                  Expanded(
-                    flex: 3,
-                    child: Text(
-                      'Title',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'Author',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Pages',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  SizedBox(width: 100), // Actions space
+                  Icon(type.icon, size: 20),
+                  const SizedBox(width: 8),
+                  Text(type.label),
                 ],
               ),
-            ),
-            // Table Rows
-            ...books.map((book) => Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey.shade200),
-                ),
-              ),
-              child: InkWell(
-                onTap: () => _navigateToBookDetail(context, book),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    children: [
-                      // Book Cover
-                      SizedBox(
-                        width: 60,
-                        height: 80,
-                        child: book.externalImageUrl != null
-                            ? Image.network(
-                                book.externalImageUrl!,
-                                fit: BoxFit.cover,
-                              )
-                            : Container(
-                                color: Colors.grey[200],
-                                child: const Icon(Icons.book),
-                              ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Title
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          book.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      // Author
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          book.author,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      // Pages
-                      Expanded(
-                        child: Text(
-                          book.pageCount.toString(),
-                        ),
-                      ),
-                      // Actions
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            BlocBuilder<AuthBloc, AuthState>(
-                              builder: (context, state) {
-                                if (state is AuthSuccess) {
-                                  if (state.user.role == 'admin') {
-                                    // Admin sees edit and delete buttons
-                                    return Row(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit),
-                                          onPressed: () => _navigateToEditBook(context, book),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.delete),
-                                          onPressed: () => _showDeleteBookDialog(context, book),
-                                        ),
-                                      ],
-                                    );
-                                  } else {
-                                    // Library member sees favorite button
-                                    return StreamBuilder<bool>(
-                                      stream: FirestoreService().isBookFavorited(
-                                        state.user.userId,
-                                        book.id!,
-                                      ),
-                                      builder: (context, snapshot) {
-                                        final isFavorited = snapshot.data ?? false;
-                                        return IconButton(
-                                          icon: Icon(
-                                            isFavorited ? Icons.favorite : Icons.favorite_border,
-                                            color: isFavorited ? Colors.red : null,
-                                          ),
-                                          onPressed: () async {
-                                            await FirestoreService().toggleFavorite(
-                                              state.user.userId,
-                                              book.id!,
-                                            );
-                                          },
-                                        );
-                                      },
-                                    );
-                                  }
-                                }
-                                return const SizedBox.shrink();
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCardsView(List<Book> books) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        int crossAxisCount = 1;
-        if (constraints.maxWidth > 1600) {
-          crossAxisCount = 3;
-        } else if (constraints.maxWidth > 800) {
-          crossAxisCount = 2;
-        }
-
-        return BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            if (state is! AuthSuccess) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            return GridView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                childAspectRatio: (constraints.maxWidth / crossAxisCount) / 200,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: books.length,
-              itemBuilder: (context, index) {
-                final book = books[index];
-                return BookCard(
-                  book: book,
-                  onTap: () => _navigateToBookDetail(context, book),
-                  onDelete: state.user.role == 'admin' 
-                      ? () => _showDeleteBookDialog(context, book) 
-                      : null,
-                  isAdmin: state.user.role == 'admin',
-                  userId: state.user.userId,
-                  onFavoriteToggle: () async {
-                    await FirestoreService().toggleFavorite(
-                      state.user.userId,
-                      book.id!,
-                    );
-                  },
-                );
-              },
             );
+          }).toList(),
+          onChanged: (type) {
+            if (type != null) {
+              setState(() => _viewType = type);
+            }
           },
-        );
-      },
-    );
-  }
-
-  void _showAddBookDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return const AddBookDialog();
-      },
-    );
-  }
-
-  void _showDeleteBookDialog(BuildContext context, Book book) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) => DeleteBookDialog(book: book),
-    );
-  }
-
-  void _navigateToBookDetail(BuildContext context, Book book) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BookInfoScreen(book: book),
-      ),
-    );
-  }
-
-  void _navigateToEditBook(BuildContext context, Book book) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BookFormScreen(
-          collectionId: 'books',
-          book: book,
-          mode: FormMode.edit,
         ),
       ),
     );
   }
-} 
+
+  Widget _buildBooksList(List<Book> books, dynamic user) {
+    switch (_viewType) {
+      case BookViewType.desktop:
+        return DesktopBooksGrid(
+          books: books,
+          user: user,
+          onDeleteBook: _showDeleteConfirmationDialog,
+        );
+      case BookViewType.mobile:
+        return MobileBooksGrid(
+          books: books,
+          user: user,
+          onDeleteBook: _showDeleteConfirmationDialog,
+        );
+      case BookViewType.table:
+        return TableBooksView(
+          books: books,
+          user: user,
+          onDeleteBook: _showDeleteConfirmationDialog,
+        );
+    }
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, Book book) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Book'),
+        content: const Text('Are you sure you want to delete this book? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              context.read<BooksBloc>().add(DeleteBook(book.id!));
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                const SnackBar(content: Text('Book deletion in progress...')),
+              );
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+}

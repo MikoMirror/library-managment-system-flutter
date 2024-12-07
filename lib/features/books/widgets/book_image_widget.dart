@@ -1,67 +1,68 @@
 import 'package:flutter/material.dart';
 import '../models/book.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class BookImageWidget extends StatelessWidget {
   final Book book;
   final bool isDetailView;
   final double? maxHeight;
+  final VoidCallback? onTap;
+  final bool isAdmin;
+  final String userId;
+  final Function(bool)? onFavoriteToggle;
 
   const BookImageWidget({
     super.key,
     required this.book,
     this.isDetailView = false,
     this.maxHeight,
+    this.onTap,
+    required this.isAdmin,
+    required this.userId,
+    required this.onFavoriteToggle,
   });
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Calculate the maximum height based on screen size
-        final screenHeight = MediaQuery.of(context).size.height;
-        final defaultMaxHeight = isDetailView ? screenHeight * 0.4 : screenHeight * 0.25;
-        
-        return ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: maxHeight ?? defaultMaxHeight,
-            maxWidth: isDetailView ? 350 : 250,
-          ),
-          child: AspectRatio(
-            aspectRatio: 0.7, // Standard book cover ratio
-            child: Image.network(
-              _getHighResImageUrl(),
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Center(
-                  child: CircularProgressIndicator(
-                    value: loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded / 
-                          loadingProgress.expectedTotalBytes!
-                        : null,
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.book, size: 40),
-                );
-              },
+    final imageWidget = book.externalImageUrl != null
+        ? CachedNetworkImage(
+            imageUrl: book.externalImageUrl!,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => const Center(
+              child: CircularProgressIndicator(),
             ),
-          ),
-        );
-      },
-    );
-  }
+            errorWidget: (context, url, error) => const Icon(Icons.error),
+          )
+        : Image.asset(
+            'assets/images/book_placeholder.png',
+            fit: BoxFit.cover,
+          );
 
-  String _getHighResImageUrl() {
-    if (book.externalImageUrl != null && book.externalImageUrl!.isNotEmpty) {
-      if (book.externalImageUrl!.contains('googleusercontent.com')) {
-        return book.externalImageUrl!.replaceAll('zoom=1', 'zoom=3');
-      }
-      return book.externalImageUrl!;
-    }
-    return 'https://via.placeholder.com/128x192.png?text=No+Cover';
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        constraints: maxHeight != null
+            ? BoxConstraints(maxHeight: maxHeight!)
+            : null,
+        child: AspectRatio(
+          aspectRatio: isDetailView ? 3 / 4 : 2 / 3,
+          child: Stack(
+            children: [
+              imageWidget,
+              if (onFavoriteToggle != null)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    icon: const Icon(Icons.favorite_border),
+                    onPressed: () => onFavoriteToggle!(true),
+                    color: Colors.white,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 } 

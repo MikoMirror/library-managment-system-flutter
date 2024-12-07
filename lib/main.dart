@@ -5,13 +5,37 @@ import 'firebase_options.dart';
 import 'features/auth/bloc/auth/auth_bloc.dart';
 import 'core/theme/app_theme.dart';
 import 'core/navigation/app_router.dart';
+import 'features/books/repositories/books_repository.dart';
+import 'features/books/bloc/books_bloc.dart';
+import 'features/books/cubit/view/view_cubit.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        RepositoryProvider(
+          create: (context) => BooksRepository(),
+        ),
+      ],
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(create: (context) => AuthBloc()),
+          BlocProvider(
+            create: (context) => BooksBloc(
+              repository: context.read<BooksRepository>(),
+            ),
+          ),
+          BlocProvider(create: (context) => ViewCubit()),
+        ],
+        child: const MyApp(),
+      ),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -19,16 +43,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => AuthBloc(),
-      child: MaterialApp(
-        title: 'Library Management System',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        initialRoute: '/',
-        routes: AppRouter.routes,
-        onUnknownRoute: AppRouter.onUnknownRoute,
-      ),
+    return MaterialApp(
+      title: 'Library Management System',
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      initialRoute: '/',
+      routes: AppRouter.routes,
+      onUnknownRoute: AppRouter.onUnknownRoute,
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/book_image_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../widgets/book_cover_selector_widget.dart';
 
 enum FormMode { add, edit }
 
@@ -40,11 +41,13 @@ class _BookFormScreenState extends State<BookFormScreen> {
 
   Timestamp? _selectedDate;
   String? _imageUrl;
+  late String _selectedLanguage;
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
+    _selectedLanguage = widget.book?.language ?? 'en';
   }
 
   @override
@@ -98,64 +101,55 @@ class _BookFormScreenState extends State<BookFormScreen> {
 
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-      setState(() => _isLoading = true);
+      setState(() {
+        _isLoading = true;
+      });
 
       try {
-        Book bookData = Book(
-          id: widget.mode == FormMode.edit ? widget.book!.id : null,
+        final bookData = Book(
+          id: widget.book?.id,
           title: _titleController.text,
           author: _authorController.text,
           isbn: _isbnController.text,
           description: _descriptionController.text,
           categories: _categoriesController.text,
           pageCount: int.tryParse(_pageCountController.text) ?? 0,
-          publishedDate: _selectedDate,
           externalImageUrl: _imageUrl,
+          publishedDate: _selectedDate,
           booksQuantity: int.tryParse(_quantityController.text) ?? 0,
-          averageScore: widget.mode == FormMode.edit 
-              ? widget.book!.averageScore 
-              : 0,
+          language: _selectedLanguage,
+          ratings: widget.book?.ratings ?? {},
         );
 
-        if (widget.mode == FormMode.edit) {
-          await _firestoreService.updateBook(widget.collectionId, bookData);
-        } else {
+        if (widget.mode == FormMode.add) {
           await _firestoreService.addBook(widget.collectionId, bookData);
+        } else {
+          await _firestoreService.updateBook(widget.collectionId, bookData);
         }
 
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.mode == FormMode.edit
-                  ? 'Book updated successfully'
-                  : 'Book added successfully',
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Book saved successfully'),
+              backgroundColor: Colors.green,
             ),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // Pop twice if editing (form screen and details screen)
-        if (widget.mode == FormMode.edit) {
-          Navigator.of(context)
-            ..pop() // Pop form screen
-            ..pop(); // Pop details screen
-        } else {
-          Navigator.of(context).pop(); // Just pop form screen
+          );
         }
       } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error saving book: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       } finally {
         if (mounted) {
-          setState(() => _isLoading = false);
+          setState(() {
+            _isLoading = false;
+          });
         }
       }
     }
@@ -184,25 +178,24 @@ class _BookFormScreenState extends State<BookFormScreen> {
                   Card(
                     elevation: 4,
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(24.0),
                       child: Column(
                         children: [
-                          BookImageWidget(
-                            book: Book(
-                              title: _titleController.text,
-                              author: _authorController.text,
-                              description: _descriptionController.text,
-                              categories: _categoriesController.text,
-                              pageCount: int.tryParse(_pageCountController.text) ?? 0,
-                              externalImageUrl: _imageUrl,
-                            ),
-                            isDetailView: true,
-                            maxHeight: isDesktop ? 300 : 200,
+                          BookCoverSelector(
+                            initialUrl: _imageUrl,
+                            isbn: _isbnController.text,
+                            onCoverSelected: (String url) {
+                              setState(() {
+                                _imageUrl = url;
+                              });
+                            },
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 16),
                           Text(
                             'Book Cover',
-                            style: Theme.of(context).textTheme.titleMedium,
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
@@ -293,6 +286,10 @@ class _BookFormScreenState extends State<BookFormScreen> {
           child: _buildTextField(_descriptionController, 'Description', 
               maxLines: 3),
         ),
+        SizedBox(
+          width: 350,
+          child: _buildLanguageDropdown(),
+        ),
       ],
     );
   }
@@ -317,6 +314,8 @@ class _BookFormScreenState extends State<BookFormScreen> {
         _buildDatePicker(),
         const SizedBox(height: 16),
         _buildTextField(_descriptionController, 'Description', maxLines: 3),
+        const SizedBox(height: 16),
+        _buildLanguageDropdown(),
       ],
     );
   }
@@ -360,6 +359,28 @@ class _BookFormScreenState extends State<BookFormScreen> {
           enabled: false,
         ),
       ),
+    );
+  }
+
+  Widget _buildLanguageDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedLanguage,
+      decoration: const InputDecoration(
+        labelText: 'Language',
+        border: OutlineInputBorder(),
+        filled: true,
+      ),
+      items: ['en', 'es', 'fr', 'de', 'zh', 'ja', 'ru', 'it', 'pt']
+          .map((lang) => DropdownMenuItem(
+                value: lang,
+                child: Text(lang.toUpperCase()),
+              ))
+          .toList(),
+      onChanged: (value) {
+        setState(() {
+          _selectedLanguage = value!;
+        });
+      },
     );
   }
 } 

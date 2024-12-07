@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/auth_bloc.dart';
-import '../services/settings_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../auth/bloc/auth/auth_bloc.dart';
+import '../../../core/services/settings/settings_service.dart';
+import '../../../features/users/models/user_model.dart';
 
 class SettingsScreen extends StatelessWidget {
+  static final _firestore = FirebaseFirestore.instance;
   const SettingsScreen({super.key});
 
   @override
@@ -16,133 +19,148 @@ class SettingsScreen extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final isAdmin = state.user.role == 'admin';
+        return FutureBuilder<DocumentSnapshot>(
+          future: _firestore.collection('users').doc(state.user.uid).get(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        return Scaffold(
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (isAdmin) ...[
-                  const Text(
-                    'Email Settings',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  StreamBuilder(
-                    stream: settingsService.watchEmailSettings(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+            final userData = snapshot.data!.data() as Map<String, dynamic>;
+            final userModel = UserModel.fromMap(userData);
+            final isAdmin = userModel.role == 'admin';
 
-                      final hasEmailConfig = snapshot.hasData && snapshot.data!.exists;
-                      final emailSettings = hasEmailConfig 
-                          ? AppEmailSettings.fromMap(snapshot.data!.data() as Map<String, dynamic>)
-                          : null;
+            return Scaffold(
+              appBar: AppBar(
+                title: const Text('Settings'),
+              ),
+              body: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (isAdmin) ...[
+                      const Text(
+                        'Email Settings',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      FutureBuilder<DocumentSnapshot>(
+                        future: settingsService.getEmailSettings(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const CircularProgressIndicator();
+                          }
 
-                      return Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (hasEmailConfig) ...[
-                                ListTile(
-                                  leading: const Icon(Icons.email),
-                                  title: const Text('Connected Email'),
-                                  subtitle: Text(emailSettings!.email),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.logout),
-                                    onPressed: () => settingsService.disconnectGoogleAccount(),
-                                  ),
-                                ),
-                              ] else ...[
-                                ListTile(
-                                  leading: const Icon(Icons.email_outlined),
-                                  title: const Text('Connect Email Account'),
-                                  subtitle: const Text('Set up email notifications'),
-                                  trailing: const Icon(Icons.arrow_forward_ios),
-                                  onTap: () => settingsService.connectGoogleAccount(),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 32),
-                ],
-                // User Info Section
-                const Text(
-                  'Account Information',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.person),
-                          title: const Text('Name'),
-                          subtitle: Text(state.user.name),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.email),
-                          title: const Text('Email'),
-                          subtitle: Text(state.user.email),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.badge),
-                          title: const Text('Library Number'),
-                          subtitle: Text(state.user.libraryNumber),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.admin_panel_settings),
-                          title: const Text('Role'),
-                          subtitle: Text(state.user.role.toUpperCase()),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                // Logout Button
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      context.read<AuthBloc>().add(LogoutRequested());
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                          if (!snapshot.hasData || !snapshot.data!.exists) {
+                            return const Text('No email settings found');
+                          }
+
+                          final data = snapshot.data!.data() as Map<String, dynamic>;
+                          return _buildEmailSettings(context, data, settingsService);
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    const Text(
+                      'App Settings',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    child: const Text(
-                      'Logout',
-                      style: TextStyle(fontSize: 16),
+                    const SizedBox(height: 16),
+                    FutureBuilder<DocumentSnapshot>(
+                      future: settingsService.getAppSettings(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const CircularProgressIndicator();
+                        }
+
+                        if (!snapshot.hasData || !snapshot.data!.exists) {
+                          return const Text('No app settings found');
+                        }
+
+                        final data = snapshot.data!.data() as Map<String, dynamic>;
+                        return _buildAppSettings(context, data, settingsService);
+                      },
                     ),
-                  ),
+                    const SizedBox(height: 32),
+                    Center(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Logout'),
+                              content: const Text('Are you sure you want to logout?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    context.read<AuthBloc>().add(LogoutRequested());
+                                  },
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                  ),
+                                  child: const Text('Logout'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
+                        icon: const Icon(Icons.logout),
+                        label: const Text('Logout'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildEmailSettings(
+    BuildContext context,
+    Map<String, dynamic> settings,
+    SettingsService service,
+  ) {
+    return const Card(
+      child: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Text('Email settings coming soon'),
+      ),
+    );
+  }
+
+  Widget _buildAppSettings(
+    BuildContext context,
+    Map<String, dynamic> settings,
+    SettingsService service,
+  ) {
+    return const Card(
+      child: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Text('App settings coming soon'),
+      ),
     );
   }
 } 

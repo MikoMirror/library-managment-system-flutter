@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/auth_bloc.dart';
-import '../screens/login_screen.dart';
-import '../screens/users_screen.dart';
-import '../widgets/custom_navigation_bar.dart';
-import '../screens/settings_screen.dart';
-import '../widgets/add_book_dialog.dart';
-import '../screens/books_screen.dart';
-import 'favorites_screen.dart';
-import 'my_bookings_screen.dart';
-import 'bookings_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../auth/bloc/auth/auth_bloc.dart';
+import '../../auth/screens/login_screen.dart';
+import '../../users/screens/users_screen.dart';
+import '../../../core/widgets/custom_navigation_bar.dart';
+import '../../settings/screens/settings_screen.dart';
+import '../../books/widgets/add_book_dialog.dart';
+import '../../books/screens/books_screen.dart';
+import '../../favorites/screens/favorites_screen.dart';
+import '../../booking/screens/my_bookings_screen.dart';
+import '../../booking/screens/bookings_screen.dart';
+import '../../../features/users/models/user_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  final _firestore = FirebaseFirestore.instance;
 
   List<NavigationItem> _getNavigationItems(String role) {
     if (role == 'admin') {
@@ -98,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
         case 0:
           return const BooksScreen();
         case 1:
-          return const FavoritesScreen();
+          return FavoritesScreen();
         case 2:
           return const MyBookingsScreen();
         case 3:
@@ -122,68 +125,78 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        if (state is AuthSuccess) {
-          final userRole = state.user.role;
-          final navigationItems = _getNavigationItems(userRole);
-
-          return Scaffold(
-            backgroundColor: Colors.grey[100],
-            appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(0),
-              child: AppBar(
-                backgroundColor: Colors.grey[100],
-                elevation: 0,
-                toolbarHeight: 0,
-                automaticallyImplyLeading: false,
-              ),
-            ),
-            body: LayoutBuilder(
-              builder: (context, constraints) {
-                return Row(
-                  children: [
-                    if (constraints.maxWidth >= 600)
-                      Container(
-                        width: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          border: Border(
-                            right: BorderSide(
-                              color: Colors.grey[200]!,
-                              width: 1,
-                            ),
-                          ),
-                        ),
-                        child: CustomNavigationBar(
-                          selectedIndex: _selectedIndex,
-                          onItemSelected: (index) => setState(() => _selectedIndex = index),
-                          isHorizontal: true,
-                          items: navigationItems,
-                        ),
-                      ),
-                    Expanded(
-                      child: _getScreenForIndex(_selectedIndex, userRole),
-                    ),
-                  ],
-                );
-              },
-            ),
-            bottomNavigationBar: LayoutBuilder(
-              builder: (context, constraints) {
-                final isHorizontal = constraints.maxWidth >= 600;
-                return isHorizontal
-                    ? const SizedBox.shrink()
-                    : CustomNavigationBar(
-                        selectedIndex: _selectedIndex,
-                        onItemSelected: (index) => setState(() => _selectedIndex = index),
-                        isHorizontal: false,
-                        items: navigationItems,
-                      );
-              },
-            ),
-          );
-        } else {
+        if (state is! AuthSuccess) {
           return const LoginScreen();
         }
+
+        return FutureBuilder<DocumentSnapshot>(
+          future: _firestore.collection('users').doc(state.user.uid).get(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final userData = snapshot.data!.data() as Map<String, dynamic>;
+            final userModel = UserModel.fromMap(userData);
+            final navigationItems = _getNavigationItems(userModel.role);
+
+            return Scaffold(
+              backgroundColor: Colors.grey[100],
+              appBar: PreferredSize(
+                preferredSize: const Size.fromHeight(0),
+                child: AppBar(
+                  backgroundColor: Colors.grey[100],
+                  elevation: 0,
+                  toolbarHeight: 0,
+                  automaticallyImplyLeading: false,
+                ),
+              ),
+              body: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Row(
+                    children: [
+                      if (constraints.maxWidth >= 600)
+                        Container(
+                          width: 80,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            border: Border(
+                              right: BorderSide(
+                                color: Colors.grey[200]!,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: CustomNavigationBar(
+                            selectedIndex: _selectedIndex,
+                            onItemSelected: (index) => setState(() => _selectedIndex = index),
+                            isHorizontal: true,
+                            items: navigationItems,
+                          ),
+                        ),
+                      Expanded(
+                        child: _getScreenForIndex(_selectedIndex, userModel.role),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              bottomNavigationBar: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isHorizontal = constraints.maxWidth >= 600;
+                  return isHorizontal
+                      ? const SizedBox.shrink()
+                      : CustomNavigationBar(
+                          selectedIndex: _selectedIndex,
+                          onItemSelected: (index) => setState(() => _selectedIndex = index),
+                          isHorizontal: false,
+                          items: navigationItems,
+                        );
+                },
+              ),
+            );
+          },
+        );
       },
     );
   }

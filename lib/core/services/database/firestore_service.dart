@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../domain/models/book.dart';
+import '../../../features/books/models/book.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -42,19 +42,17 @@ class FirestoreService {
   }
 
   Future<void> toggleFavorite(String userId, String bookId) async {
-    final userFavRef = _firestore
+    final docRef = FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
         .collection('favorites')
         .doc(bookId);
 
-    final doc = await userFavRef.get();
+    final doc = await docRef.get();
     if (doc.exists) {
-      await userFavRef.delete();
+      await docRef.delete();
     } else {
-      await userFavRef.set({
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      await docRef.set({'favorite': true});
     }
   }
 
@@ -133,5 +131,35 @@ class FirestoreService {
         'availableQuantity': currentQuantity - quantity,
       });
     });
+  }
+
+  Stream<bool> getFavoriteStatus(String userId, String bookId) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('favorites')
+        .doc(bookId)
+        .snapshots()
+        .map((doc) => doc.exists);
+  }
+
+  Future<void> updateBookRating(String bookId, String userId, double rating) async {
+    final bookRef = _firestore.collection('books').doc(bookId);
+    
+    await bookRef.update({
+      'ratings.$userId': rating,
+    });
+  }
+
+  Future<Map<String, double>> getBookRatings(String bookId) async {
+    final bookDoc = await _firestore.collection('books').doc(bookId).get();
+    final data = bookDoc.data();
+    
+    if (data == null || !data.containsKey('ratings')) {
+      return {};
+    }
+
+    final ratings = Map<String, double>.from(data['ratings'] as Map);
+    return ratings;
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/book_form_screen.dart';
-import '../services/google_books_service.dart';
+import '../../../core/services/api/google_books_service.dart';
 
 class AddBookDialog extends StatefulWidget {
   const AddBookDialog({super.key});

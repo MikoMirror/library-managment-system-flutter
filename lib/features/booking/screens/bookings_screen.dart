@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/booking.dart';
-import '../services/firestore_service.dart';
+import '../../../core/services/database/firestore_service.dart';
 import 'package:intl/intl.dart';
 
 class BookingsScreen extends StatelessWidget {

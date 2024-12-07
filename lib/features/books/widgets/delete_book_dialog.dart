@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/book.dart';
-import '../services/firestore_service.dart';
+import '../../../core/services/database/firestore_service.dart';
 
 class DeleteBookDialog extends StatelessWidget {
   final Book book;
