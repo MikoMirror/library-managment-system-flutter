@@ -32,8 +32,16 @@ class BooksRepository implements BaseRepository {
     }
   }
 
-  Stream<QuerySnapshot> getAllBooks() {
-    return _firestore.collection('books').snapshots();
+  Stream<List<Book>> getAllBooks() {
+    return _firestore
+        .collection('books')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Book.fromMap(
+                  doc.data() as Map<String, dynamic>,
+                  doc.id,
+                ))
+            .toList());
   }
 
   Future<void> updateBookQuantity(String bookId, int quantity) async {

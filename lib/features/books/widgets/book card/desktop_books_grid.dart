@@ -32,6 +32,24 @@ class _DesktopBooksGridState extends State<DesktopBooksGrid> with BookCardMixin 
   Timer? _debounceTimer;
   Size? _lastSize;
   SliverGridDelegateWithFixedCrossAxisCount? _cachedGridDelegate;
+  
+  // Add stream controller to manage layout changes
+  bool _isLayouting = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_cachedGridDelegate == null) {
+      _cachedGridDelegate = _createGridDelegate(
+        BoxConstraints(maxWidth: MediaQuery.of(context).size.width),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -54,12 +72,27 @@ class _DesktopBooksGridState extends State<DesktopBooksGrid> with BookCardMixin 
   }
 
   SliverGridDelegateWithFixedCrossAxisCount _calculateGridLayout(BoxConstraints constraints) {
-    final currentSize = Size(constraints.maxWidth, constraints.maxHeight);
+    if (_isLayouting) return _cachedGridDelegate ?? _createGridDelegate(constraints);
     
+    final currentSize = Size(constraints.maxWidth, constraints.maxHeight);
     if (_cachedGridDelegate != null && _lastSize == currentSize) {
       return _cachedGridDelegate!;
     }
 
+    _isLayouting = true;
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        _isLayouting = false;
+        _cachedGridDelegate = _createGridDelegate(constraints);
+        handleLayoutChange();
+      }
+    });
+
+    return _cachedGridDelegate ?? _createGridDelegate(constraints);
+  }
+
+  SliverGridDelegateWithFixedCrossAxisCount _createGridDelegate(BoxConstraints constraints) {
     final availableWidth = constraints.maxWidth - (DesktopBooksGrid.minGridPadding * 2);
     final columnCount = (availableWidth / BookCard.desktopCardWidth).floor();
     final columns = columnCount.clamp(2, 6);
@@ -68,26 +101,20 @@ class _DesktopBooksGridState extends State<DesktopBooksGrid> with BookCardMixin 
     final dynamicSpacing = (remainingSpace / (columns - 1))
         .clamp(DesktopBooksGrid.minGridSpacing, DesktopBooksGrid.maxGridSpacing);
 
-    _lastSize = currentSize;
-    _cachedGridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
+    _lastSize = Size(constraints.maxWidth, constraints.maxHeight);
+    
+    return SliverGridDelegateWithFixedCrossAxisCount(
       crossAxisCount: columns,
       childAspectRatio: BookCard.desktopCardWidth / BookCard.desktopCardHeight,
       crossAxisSpacing: dynamicSpacing,
       mainAxisSpacing: dynamicSpacing,
     );
-
-    return _cachedGridDelegate!;
   }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        _debounceTimer?.cancel();
-        _debounceTimer = Timer(const Duration(milliseconds: 150), () {
-          if (mounted) setState(() {});
-        });
-
         final gridLayout = _calculateGridLayout(constraints);
         
         return SingleChildScrollView(
@@ -96,7 +123,7 @@ class _DesktopBooksGridState extends State<DesktopBooksGrid> with BookCardMixin 
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: DesktopBooksGrid.maxWidth),
               child: GridView.builder(
-                key: const ValueKey('desktop-grid'),
+                key: ValueKey('desktop-grid-${_lastSize?.width ?? 0}'),
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: gridLayout,

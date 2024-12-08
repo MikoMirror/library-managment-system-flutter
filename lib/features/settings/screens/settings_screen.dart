@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
 import '../../../core/services/settings/settings_service.dart';
 import '../../../features/users/models/user_model.dart';
+import '../widgets/cache_management_widget.dart';
 
 class SettingsScreen extends StatelessWidget {
   static final _firestore = FirebaseFirestore.instance;
@@ -73,21 +74,7 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    FutureBuilder<DocumentSnapshot>(
-                      future: settingsService.getAppSettings(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const CircularProgressIndicator();
-                        }
-
-                        if (!snapshot.hasData || !snapshot.data!.exists) {
-                          return const Text('No app settings found');
-                        }
-
-                        final data = snapshot.data!.data() as Map<String, dynamic>;
-                        return _buildAppSettings(context, data, settingsService);
-                      },
-                    ),
+                    const CacheManagementWidget(),
                     const SizedBox(height: 32),
                     Center(
                       child: ElevatedButton.icon(
@@ -147,19 +134,6 @@ class SettingsScreen extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.all(16.0),
         child: Text('Email settings coming soon'),
-      ),
-    );
-  }
-
-  Widget _buildAppSettings(
-    BuildContext context,
-    Map<String, dynamic> settings,
-    SettingsService service,
-  ) {
-    return const Card(
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Text('App settings coming soon'),
       ),
     );
   }

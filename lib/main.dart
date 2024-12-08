@@ -9,9 +9,14 @@ import 'features/books/repositories/books_repository.dart';
 import 'features/books/bloc/books_bloc.dart';
 import 'features/books/cubit/view/view_cubit.dart';
 import 'package:provider/provider.dart';
+import 'core/services/image/image_cache_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize image cache settings
+  await ImageCacheService().initializeCacheSettings();
+  
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

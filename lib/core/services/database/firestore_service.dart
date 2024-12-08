@@ -4,6 +4,8 @@ import '../../../features/books/models/book.dart';
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  final _favoriteCache = <String, Stream<bool>>{};
+
   Future<void> addBook(String collectionId, Book book) async {
     await _firestore.collection(collectionId).add(book.toMap());
   }
@@ -134,13 +136,25 @@ class FirestoreService {
   }
 
   Stream<bool> getFavoriteStatus(String userId, String bookId) {
-    return FirebaseFirestore.instance
+    final cacheKey = '$userId-$bookId';
+    
+    // Return cached stream if it exists
+    if (_favoriteCache.containsKey(cacheKey)) {
+      return _favoriteCache[cacheKey]!;
+    }
+
+    // Create and cache new stream
+    final stream = _firestore
         .collection('users')
         .doc(userId)
         .collection('favorites')
         .doc(bookId)
         .snapshots()
-        .map((doc) => doc.exists);
+        .map((snapshot) => snapshot.exists)
+        .distinct(); // Only emit when value changes
+
+    _favoriteCache[cacheKey] = stream;
+    return stream;
   }
 
   Future<void> updateBookRating(String bookId, String userId, double rating) async {

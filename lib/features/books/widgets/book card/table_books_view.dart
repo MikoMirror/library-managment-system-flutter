@@ -7,30 +7,40 @@ import 'book_card_mixin.dart';
 import '../../../../core/services/database/firestore_service.dart';
 import '../../../../features/users/models/user_model.dart';
 
-class TableBooksView extends StatelessWidget with BookCardMixin {
+class TableBooksView extends StatefulWidget {
   final List<Book> books;
-  final dynamic user;  // This will be either UserModel or Firebase User
+  final dynamic user;
   final Function(BuildContext, Book) onDeleteBook;
 
-  const TableBooksView({
+  TableBooksView({
     super.key,
     required this.books,
     required this.user,
     required this.onDeleteBook,
   });
 
+  @override
+  State<TableBooksView> createState() => _TableBooksViewState();
+}
+
+class _TableBooksViewState extends State<TableBooksView> with BookCardMixin {
   String? get userId {
-    if (user is UserModel) {
-      return (user as UserModel).userId;
+    if (widget.user is UserModel) {
+      return (widget.user as UserModel).userId;
     }
-    return user.uid;
+    return widget.user.uid;
   }
 
   bool get isAdmin {
-    if (user is UserModel) {
-      return (user as UserModel).role == 'admin';
+    if (widget.user is UserModel) {
+      return (widget.user as UserModel).role == 'admin';
     }
     return false;
+  }
+
+  @override
+  void initState() {
+    super.initState();
   }
 
   @override
@@ -48,7 +58,7 @@ class TableBooksView extends StatelessWidget with BookCardMixin {
             DataColumn(label: Text('Rating')),
             DataColumn(label: Text('Actions')),
           ],
-          rows: books.map((book) => _buildBookRow(context, book)).toList(),
+          rows: widget.books.map((book) => _buildBookRow(context, book)).toList(),
         ),
       ),
     );
@@ -114,12 +124,18 @@ class TableBooksView extends StatelessWidget with BookCardMixin {
               if (isAdmin)
                 IconButton(
                   icon: const Icon(Icons.delete),
-                  onPressed: () => onDeleteBook(context, book),
+                  onPressed: () => widget.onDeleteBook(context, book),
                 ),
             ],
           ),
         ),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    // Clean up the mixin streams
+    super.dispose();
   }
 } 

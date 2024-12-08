@@ -6,50 +6,57 @@ import '../../../../core/services/database/firestore_service.dart';
 import 'book_card_mixin.dart';
 import '../../../../features/users/models/user_model.dart';
 
-class MobileBooksGrid extends StatelessWidget with BookCardMixin {
+class MobileBooksGrid extends StatefulWidget {
   final List<Book> books;
-  final dynamic user;  // This will be either UserModel or Firebase User
+  final dynamic user;
   final Function(BuildContext, Book) onDeleteBook;
 
-  const MobileBooksGrid({
+  MobileBooksGrid({
     super.key,
     required this.books,
     required this.user,
     required this.onDeleteBook,
   });
 
+  @override
+  State<MobileBooksGrid> createState() => _MobileBooksGridState();
+}
+
+class _MobileBooksGridState extends State<MobileBooksGrid> with BookCardMixin {
   String? get userId {
-    if (user is UserModel) {
-      return (user as UserModel).userId;
+    if (widget.user is UserModel) {
+      return (widget.user as UserModel).userId;
     }
-    return user.uid;
+    return widget.user.uid;
   }
 
   bool get isAdmin {
-    if (user is UserModel) {
-      return (user as UserModel).role == 'admin';
+    if (widget.user is UserModel) {
+      return (widget.user as UserModel).role == 'admin';
     }
     return false;
   }
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      itemCount: books.length,
+      itemCount: widget.books.length,
       addRepaintBoundaries: true,
       itemBuilder: (context, index) {
-        final book = books[index];
+        final book = widget.books[index];
         return RepaintBoundary(
-          child: KeyedSubtree(
-            key: ValueKey('book-${book.id}'),
-            child: buildBookCard(
-              book: book,
-              isMobile: true,
-              isAdmin: isAdmin,
-              userId: userId ?? '',
-              onDeleteBook: onDeleteBook,
-              context: context,
-            ),
+          child: buildBookCard(
+            book: book,
+            isMobile: true,
+            isAdmin: isAdmin,
+            userId: userId ?? '',
+            onDeleteBook: widget.onDeleteBook,
+            context: context,
           ),
         );
       },

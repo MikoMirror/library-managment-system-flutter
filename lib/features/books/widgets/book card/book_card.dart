@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../models/book.dart';
 import 'book_card_styles.dart';
+import '../../../../core/services/image/image_cache_service.dart';
 
 class BookCard extends StatefulWidget {
   final Book book;
@@ -129,15 +130,10 @@ class _BookCardState extends State<BookCard> {
 
   Widget _buildBackgroundImage() {
     return Positioned.fill(
-      child: Image.network(
-        widget.book.externalImageUrl ?? 'placeholder_url',
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            color: Colors.grey[200],
-            child: const Icon(Icons.book, size: 40),
-          );
-        },
+      child: ImageCacheService().buildCachedImage(
+        imageUrl: widget.book.externalImageUrl ?? 'placeholder_url',
+        width: BookCard.desktopCardWidth,
+        height: BookCard.desktopCardHeight,
       ),
     );
   }
@@ -168,15 +164,10 @@ class _BookCardState extends State<BookCard> {
     return SizedBox(
       width: BookCard.mobileImageWidth,
       height: double.infinity,
-      child: Image.network(
-        widget.book.externalImageUrl ?? 'placeholder_url',
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            color: Colors.grey[300],
-            child: const Icon(Icons.book, size: 40),
-          );
-        },
+      child: ImageCacheService().buildCachedImage(
+        imageUrl: widget.book.externalImageUrl ?? 'placeholder_url',
+        width: BookCard.mobileImageWidth,
+        height: BookCard.mobileCardHeight,
       ),
     );
   }
@@ -222,23 +213,28 @@ class _BookCardState extends State<BookCard> {
     );
   }
 
+  Widget _buildFavoriteButton() {
+    if (widget.onFavoriteToggle == null) return const SizedBox.shrink();
+    
+    return IconButton(
+      icon: Icon(
+        _isFavorite ? Icons.favorite : Icons.favorite_border,
+        color: Colors.red,
+      ),
+      onPressed: () {
+        setState(() {
+          _isFavorite = !_isFavorite;
+        });
+        widget.onFavoriteToggle!(_isFavorite);
+      },
+      color: Colors.red,
+    );
+  }
+
   Widget _buildActionButtons() {
     return Column(
       children: [
-        if (widget.onFavoriteToggle != null)
-          IconButton(
-            icon: Icon(
-              _isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: Colors.red,
-            ),
-            onPressed: () {
-              setState(() {
-                _isFavorite = !_isFavorite;
-              });
-              widget.onFavoriteToggle!(_isFavorite);
-            },
-            color: Colors.red,
-          ),
+        _buildFavoriteButton(),
         if (widget.isAdmin && widget.onDelete != null)
           Padding(
             padding: const EdgeInsets.only(top: 8),

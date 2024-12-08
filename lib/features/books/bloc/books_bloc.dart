@@ -20,15 +20,7 @@ class BooksBloc extends Bloc<BooksEvent, BooksState> {
     try {
       await emit.forEach(
         _repository.getAllBooks(),
-        onData: (snapshot) {
-          final books = snapshot.docs
-              .map((doc) => Book.fromMap(
-                    doc.data() as Map<String, dynamic>,
-                    doc.id,
-                  ))
-              .toList();
-          return BooksLoaded(books);
-        },
+        onData: (List<Book> books) => BooksLoaded(books),
         onError: (error, stackTrace) => BooksError(error.toString()),
       );
     } catch (e) {
