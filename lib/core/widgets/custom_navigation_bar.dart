@@ -49,7 +49,7 @@ class CustomNavigationBar extends StatelessWidget {
   Widget _buildVerticalItem(BuildContext context, NavigationItem item) {
     final isSelected = selectedIndex == item.index;
     final theme = Theme.of(context);
-    final selectedColor = AppTheme.primaryLight;
+    const selectedColor = AppTheme.primaryLight;
     
     return InkWell(
       onTap: () => onItemSelected(item.index),
@@ -82,7 +82,7 @@ class CustomNavigationBar extends StatelessWidget {
   Widget _buildHorizontalItem(BuildContext context, NavigationItem item) {
     final isSelected = selectedIndex == item.index;
     final theme = Theme.of(context);
-    final selectedColor = AppTheme.primaryLight;
+    const selectedColor = AppTheme.primaryLight;
     
     return Expanded(
       child: InkWell(

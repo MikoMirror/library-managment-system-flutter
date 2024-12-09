@@ -1,35 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/book.dart';
-import '../widgets/book_image_widget.dart';
 import '../widgets/rating_bottom_sheet.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
 import '../cubit/rating/rating_cubit.dart';
 import '../cubit/rating/rating_state.dart';
-import '../repositories/books_repository.dart';
-import '../../../core/theme/app_theme.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../features/users/models/user_model.dart';
+import '../../../core/services/database/firestore_service.dart';
+import '../../../core/services/image/image_cache_service.dart';
 
-class BookInfoScreen extends StatelessWidget {
-  final Book book;
-  static final _firestore = FirebaseFirestore.instance;
+class BookDetailsScreen extends StatelessWidget {
+  final String? bookId;
+  final Book? book;
+  final FirestoreService _firestoreService;
+  final ImageCacheService _imageCacheService;
 
-  const BookInfoScreen({
+  BookDetailsScreen({
     super.key,
-    required this.book,
-  });
+    this.bookId,
+    this.book,
+  })  : assert(bookId != null || book != null, 'Either bookId or book must be provided'),
+        _firestoreService = FirestoreService(),
+        _imageCacheService = ImageCacheService();
 
   @override
   Widget build(BuildContext context) {
+    if (book != null) {
+      _imageCacheService.preCacheBookImages(context, [book!]);
+      return Scaffold(
+        body: _buildScreenContent(context, book!),
+      );
+    }
+
+    return Scaffold(
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: _firestoreService.getBookStream(bookId!),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final bookData = snapshot.data!.data() as Map<String, dynamic>?;
+          if (bookData == null) {
+            return const Center(child: Text('Book not found'));
+          }
+
+          final book = Book.fromMap(bookData, snapshot.data!.id);
+          return _buildScreenContent(context, book);
+        },
+      ),
+    );
+  }
+
+  Widget _buildScreenContent(BuildContext context, Book currentBook) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state is! AuthSuccess) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        return FutureBuilder<DocumentSnapshot>(
-          future: _firestore.collection('users').doc(state.user.uid).get(),
+        return StreamBuilder<DocumentSnapshot>(
+          stream: _firestoreService.getUserStream(state.user.uid),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
@@ -49,7 +85,9 @@ class BookInfoScreen extends StatelessWidget {
                     Icons.arrow_back_ios_new,
                     color: Colors.white,
                   ),
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
                 ),
                 actions: [
                   if (!isAdmin)
@@ -61,9 +99,9 @@ class BookInfoScreen extends StatelessWidget {
               ),
               body: Stack(
                 children: [
-                  _buildBackgroundImage(),
+                  _buildBackgroundImage(currentBook),
                   _buildGradientOverlay(context),
-                  _buildContent(context, state),
+                  _buildBookContent(context, currentBook),
                 ],
               ),
             );
@@ -73,13 +111,22 @@ class BookInfoScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBackgroundImage() {
+  Widget _buildBackgroundImage(Book currentBook) {
     return Positioned.fill(
-      child: Image.network(
-        book.coverUrl,
-        fit: BoxFit.cover,
-        color: Colors.black.withOpacity(0.5),
-        colorBlendMode: BlendMode.darken,
+      child: _imageCacheService.buildCachedImage(
+        imageUrl: currentBook.coverUrl,
+        imageBuilder: (context, imageProvider) => Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: imageProvider,
+              fit: BoxFit.cover,
+              colorFilter: ColorFilter.mode(
+                Colors.black.withOpacity(0.5),
+                BlendMode.darken,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -89,26 +136,24 @@ class BookInfoScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final overlayColor = isDark ? Colors.black : Colors.white;
 
-    return Positioned.fill(
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.transparent,
-              overlayColor.withOpacity(0.7),
-              overlayColor.withOpacity(0.9),
-              overlayColor,
-            ],
-            stops: const [0.0, 0.4, 0.75, 1.0],
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            overlayColor.withOpacity(0.1),
+            overlayColor.withOpacity(0.3),
+            overlayColor.withOpacity(0.7),
+            overlayColor.withOpacity(0.95),
+          ],
+          stops: const [0.0, 0.3, 0.6, 1.0],
         ),
       ),
     );
   }
 
-  Widget _buildContent(BuildContext context, AuthSuccess state) {
+  Widget _buildBookContent(BuildContext context, Book currentBook) {
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -116,26 +161,27 @@ class BookInfoScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 40),
-            _buildBookImage(),
+            _buildBookImage(currentBook),
             const SizedBox(height: 24),
-            _buildBookHeader(context),
+            _buildBookHeader(context, currentBook),
             const SizedBox(height: 24),
-            _buildInfoRow(context),
+            _buildInfoRow(context, currentBook),
             const SizedBox(height: 24),
-            _buildDescription(context),
+            _buildDescription(context, currentBook),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBookImage() {
+  Widget _buildBookImage(Book currentBook) {
     return Hero(
-      tag: 'book-${book.id}',
+      tag: 'book-${currentBook.id}',
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          book.coverUrl,
+        child: _imageCacheService.buildCachedImage(
+          imageUrl: currentBook.coverUrl,
+          width: 150,
           height: 200,
           fit: BoxFit.cover,
         ),
@@ -143,12 +189,12 @@ class BookInfoScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBookHeader(BuildContext context) {
+  Widget _buildBookHeader(BuildContext context, Book currentBook) {
     final theme = Theme.of(context);
     return Column(
       children: [
         Text(
-          book.title,
+          currentBook.title,
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -156,21 +202,21 @@ class BookInfoScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'by ${book.author}',
+          'by ${currentBook.author}',
           style: theme.textTheme.titleMedium,
         ),
       ],
     );
   }
 
-  Widget _buildInfoRow(BuildContext context) {
+  Widget _buildInfoRow(BuildContext context, Book currentBook) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _buildInfoCard(
-          context, 
-          'Rating', 
-          '${book.averageRating.toStringAsFixed(1)}/5',
+          context,
+          'Rating',
+          '${currentBook.averageRating.toStringAsFixed(1)}/5',
           icon: const Icon(
             Icons.star,
             color: Colors.amber,
@@ -178,9 +224,9 @@ class BookInfoScreen extends StatelessWidget {
           ),
         ),
         _buildInfoCard(
-          context, 
-          'Pages', 
-          '${book.pageCount}',
+          context,
+          'Pages',
+          '${currentBook.pageCount}',
           icon: const Icon(
             Icons.menu_book,
             color: Colors.blue,
@@ -188,9 +234,9 @@ class BookInfoScreen extends StatelessWidget {
           ),
         ),
         _buildInfoCard(
-          context, 
-          'Language', 
-          book.language.toUpperCase(),
+          context,
+          'Language',
+          currentBook.language.toUpperCase(),
           icon: const Icon(
             Icons.language,
             color: Colors.green,
@@ -224,11 +270,12 @@ class BookInfoScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDescription(BuildContext context) {
+  Widget _buildDescription(BuildContext context, Book currentBook) {
     final theme = Theme.of(context);
     return Card(
       color: theme.cardTheme.color?.withOpacity(0.8),
       elevation: theme.cardTheme.elevation,
+      shadowColor: Colors.black,
       shape: theme.cardTheme.shape,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -243,7 +290,7 @@ class BookInfoScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              book.description,
+              currentBook.description,
               style: theme.textTheme.bodyMedium,
             ),
           ],
@@ -253,41 +300,41 @@ class BookInfoScreen extends StatelessWidget {
   }
 
   Widget _buildRateButton(BuildContext context, String userId) {
-    return BlocProvider(
-      create: (context) => RatingCubit(
-        bookId: book.id!,
-        userId: userId,
-        repository: context.read<BooksRepository>(),
-      )..loadRating(),
-      child: BlocBuilder<RatingCubit, RatingState>(
-        builder: (context, state) {
-          return TextButton.icon(
-            icon: Icon(
-              state is RatingSuccess && state.userRating > 0
-                  ? Icons.star
-                  : Icons.star_border,
-              color: Colors.white,
-            ),
-            label: Text(
-              'Rate',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Colors.white,
-                  ),
-            ),
-            onPressed: () => _showRatingBottomSheet(context, userId),
-          );
-        },
-      ),
+    if (book?.id == null) return const SizedBox.shrink();
+    
+    return BlocBuilder<RatingCubit, RatingState>(
+      builder: (context, state) {
+        return TextButton.icon(
+          icon: Icon(
+            state is RatingSuccess && state.userRating > 0
+                ? Icons.star
+                : Icons.star_border,
+            color: Colors.white,
+          ),
+          label: Text(
+            'Rate',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Colors.white,
+                ),
+          ),
+          onPressed: () => _showRatingBottomSheet(context, userId),
+        );
+      },
     );
   }
 
   void _showRatingBottomSheet(BuildContext context, String userId) {
+    if (book == null) return;
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => RatingBottomSheet(
-        book: book,
-        userId: userId,
+      builder: (context) => BlocProvider.value(
+        value: context.read<RatingCubit>(),
+        child: RatingBottomSheet(
+          book: book!,
+          userId: userId,
+        ),
       ),
     );
   }

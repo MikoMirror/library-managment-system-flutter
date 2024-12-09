@@ -12,30 +12,34 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final settingsService = SettingsService();
-
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state is! AuthSuccess) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        return FutureBuilder<DocumentSnapshot>(
-          future: _firestore.collection('users').doc(state.user.uid).get(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Settings'),
+          ),
+          body: StreamBuilder<DocumentSnapshot>(
+            stream: _firestore.collection('users')
+                .doc(state.user.uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            final userData = snapshot.data!.data() as Map<String, dynamic>;
-            final userModel = UserModel.fromMap(userData);
-            final isAdmin = userModel.role == 'admin';
+              if (!snapshot.hasData || !snapshot.data!.exists) {
+                return const Center(child: Text('User data not found'));
+              }
 
-            return Scaffold(
-              appBar: AppBar(
-                title: const Text('Settings'),
-              ),
-              body: SingleChildScrollView(
+              final userData = snapshot.data!.data() as Map<String, dynamic>;
+              final userModel = UserModel.fromMap(userData);
+              final isAdmin = userModel.role == 'admin';
+
+              return SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,20 +53,10 @@ class SettingsScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      FutureBuilder<DocumentSnapshot>(
-                        future: settingsService.getEmailSettings(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const CircularProgressIndicator();
-                          }
-
-                          if (!snapshot.hasData || !snapshot.data!.exists) {
-                            return const Text('No email settings found');
-                          }
-
-                          final data = snapshot.data!.data() as Map<String, dynamic>;
-                          return _buildEmailSettings(context, data, settingsService);
-                        },
+                      _buildEmailSettings(
+                        context, 
+                        userData,
+                        SettingsService(),
                       ),
                     ],
                     const SizedBox(height: 24),
@@ -117,9 +111,9 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         );
       },
     );

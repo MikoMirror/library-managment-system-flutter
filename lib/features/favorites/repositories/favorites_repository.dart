@@ -1,60 +1,62 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../core/repositories/base_repository.dart';
+import '../../books/models/book.dart';
+import 'dart:async';
 
-class FavoritesRepository implements BaseRepository {
-  final FirebaseFirestore _firestore;
+class FavoritesRepository {
+  final _firestore = FirebaseFirestore.instance;
+  final _cache = <String, List<Book>>{};
+  StreamController<List<Book>>? _controller;
 
-  FavoritesRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
-
-  Stream<bool> isBookFavorited(String userId, String bookId) {
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('favorites')
-        .doc(bookId)
-        .snapshots()
-        .map((doc) => doc.exists);
-  }
-
-  Future<void> toggleFavorite(String userId, String bookId) async {
-    final userFavRef = _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('favorites')
-        .doc(bookId);
-
-    final doc = await userFavRef.get();
-    if (doc.exists) {
-      await userFavRef.delete();
-    } else {
-      await userFavRef.set({
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-    }
-  }
-
-  Stream<List<String>> getUserFavoriteIds(String userId) {
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('favorites')
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.id).toList());
-  }
-
-  Stream<List<QueryDocumentSnapshot>> getFavoriteBooks(List<String> bookIds) {
-    if (bookIds.isEmpty) return Stream.value([]);
+  Stream<List<Book>> getFavoriteBooks(String userId) {
+    // Return cached stream if exists
+    _controller ??= StreamController<List<Book>>.broadcast();
     
-    return _firestore
-        .collection('books')
-        .where(FieldPath.documentId, whereIn: bookIds)
-        .snapshots()
-        .map((snapshot) => snapshot.docs);
+    // Return cached data immediately if available
+    if (_cache.containsKey(userId)) {
+      _controller!.add(_cache[userId]!);
+    }
+
+    // Listen to favorites collection
+    _firestore.collection('users').doc(userId).collection('favorites')
+      .snapshots()
+      .listen((snapshot) async {
+        if (snapshot.docs.isEmpty) {
+          _cache[userId] = [];
+          _controller!.add([]);
+          return;
+        }
+
+        // Batch fetch books
+        final bookIds = snapshot.docs.map((doc) => doc.id).toList();
+        final batchSize = 10;
+        final books = <Book>[];
+
+        for (var i = 0; i < bookIds.length; i += batchSize) {
+          final end = (i + batchSize < bookIds.length) ? i + batchSize : bookIds.length;
+          final batch = bookIds.sublist(i, end);
+          
+          final booksSnapshot = await _firestore.collection('books')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+
+          books.addAll(
+            booksSnapshot.docs.map((doc) => Book.fromMap(
+              doc.data(), 
+              doc.id,
+            )),
+          );
+        }
+
+        _cache[userId] = books;
+        _controller!.add(books);
+    });
+
+    return _controller!.stream;
   }
 
-  @override
   void dispose() {
-    // Clean up any resources if needed
+    _controller?.close();
+    _controller = null;
+    _cache.clear();
   }
 } 

@@ -7,6 +7,8 @@ abstract class AuthEvent extends Equatable {
   List<Object?> get props => [];
 }
 
+class CheckAuthStatus extends AuthEvent {}
+
 class LoginRequested extends AuthEvent {
   final String email;
   final String password;

@@ -3,7 +3,12 @@ import '../../../core/services/database/user_service.dart';
 import '../../../core/widgets/custom_text_field.dart';
 
 class AddUserScreen extends StatefulWidget {
-  const AddUserScreen({super.key});
+  final bool isAdmin;
+
+  const AddUserScreen({
+    super.key,
+    required this.isAdmin,
+  });
 
   @override
   State<AddUserScreen> createState() => _AddUserScreenState();
@@ -20,6 +25,12 @@ class _AddUserScreenState extends State<AddUserScreen> {
   String _selectedRole = 'member';
   bool _isLoading = false;
   bool _showPassword = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRole = widget.isAdmin ? 'admin' : 'member';
+  }
 
   @override
   void dispose() {
@@ -74,7 +85,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New User'),
+        title: Text(widget.isAdmin ? 'Add Admin' : 'Add User'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -162,59 +173,36 @@ class _AddUserScreenState extends State<AddUserScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedRole,
-                decoration: const InputDecoration(
-                  labelText: 'Role',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.admin_panel_settings),
+              if (!widget.isAdmin) // Only show role dropdown if not adding an admin
+                DropdownButtonFormField<String>(
+                  value: _selectedRole,
+                  decoration: const InputDecoration(
+                    labelText: 'Role',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.admin_panel_settings),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'member',
+                      child: Text('Member'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'admin',
+                      child: Text('Admin'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedRole = value!;
+                    });
+                  },
                 ),
-                items: const [
-                  DropdownMenuItem(
-                    value: 'member',
-                    child: Text('Member'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'admin',
-                    child: Text('Admin'),
-                  ),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedRole = value ?? 'member';
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select a role';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _isLoading ? null : _createUser,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                ),
                 child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text(
-                        'Create User',
-                        style: TextStyle(fontSize: 16),
-                      ),
+                    ? const CircularProgressIndicator()
+                    : Text('Add ${widget.isAdmin ? 'Admin' : 'User'}'),
               ),
             ],
           ),

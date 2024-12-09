@@ -104,17 +104,23 @@ class ImageCacheService {
   // Build cached image widget with preloading
   Widget buildCachedImage({
     required String imageUrl,
-    required double width,
-    required double height,
+    double? width,
+    double? height,
     BoxFit fit = BoxFit.cover,
+    ImageWidgetBuilder? imageBuilder,
   }) {
     return CachedNetworkImage(
       imageUrl: imageUrl,
       cacheManager: _cacheManager,
-      imageBuilder: (context, imageProvider) {
+      width: width,
+      height: height,
+      fit: fit,
+      imageBuilder: imageBuilder ?? (context, imageProvider) {
         // Preload the next few images when this one is displayed
         _preloadNextImages();
         return Container(
+          width: width,
+          height: height,
           decoration: BoxDecoration(
             image: DecorationImage(
               image: imageProvider,

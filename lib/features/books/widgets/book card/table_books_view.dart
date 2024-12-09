@@ -1,65 +1,39 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:provider/provider.dart';
 import '../../models/book.dart';
-import 'book_card_mixin.dart';
-import '../../../../core/services/database/firestore_service.dart';
-import '../../../../features/users/models/user_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../bloc/book_card_bloc.dart';
+import '../../repositories/books_repository.dart';
+import '../../screens/book_details_screen.dart';
+import '../../../../core/services/image/image_cache_service.dart';
 
-class TableBooksView extends StatefulWidget {
+class TableBooksView extends StatelessWidget {
   final List<Book> books;
-  final dynamic user;
-  final Function(BuildContext, Book) onDeleteBook;
+  final bool isAdmin;
+  final String? userId;
+  final Function(BuildContext, Book)? onDeleteBook;
 
-  TableBooksView({
+  const TableBooksView({
     super.key,
     required this.books,
-    required this.user,
-    required this.onDeleteBook,
+    this.isAdmin = false,
+    this.userId,
+    this.onDeleteBook,
   });
-
-  @override
-  State<TableBooksView> createState() => _TableBooksViewState();
-}
-
-class _TableBooksViewState extends State<TableBooksView> with BookCardMixin {
-  String? get userId {
-    if (widget.user is UserModel) {
-      return (widget.user as UserModel).userId;
-    }
-    return widget.user.uid;
-  }
-
-  bool get isAdmin {
-    if (widget.user is UserModel) {
-      return (widget.user as UserModel).role == 'admin';
-    }
-    return false;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        child: DataTable(
-          dataRowHeight: 100,
-          columnSpacing: 24,
-          columns: const [
-            DataColumn(label: Text('Cover')),
-            DataColumn(label: Text('Title')),
-            DataColumn(label: Text('Author')),
-            DataColumn(label: Text('Rating')),
-            DataColumn(label: Text('Actions')),
-          ],
-          rows: widget.books.map((book) => _buildBookRow(context, book)).toList(),
-        ),
+      child: DataTable(
+        columns: const [
+          DataColumn(label: Text('Cover')),
+          DataColumn(label: Text('Title')),
+          DataColumn(label: Text('Author')),
+          DataColumn(label: Text('Language')),
+          DataColumn(label: Text('Rating')),
+          DataColumn(label: Text('Actions')),
+        ],
+        rows: books.map((book) => _buildBookRow(context, book)).toList(),
       ),
     );
   }
@@ -69,73 +43,76 @@ class _TableBooksViewState extends State<TableBooksView> with BookCardMixin {
       cells: [
         DataCell(
           SizedBox(
-            width: 70,
-            height: 90,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: Image.network(
-                book.coverUrl,
-                fit: BoxFit.cover,
-              ),
+            width: 50,
+            height: 70,
+            child: ImageCacheService().buildCachedImage(
+              imageUrl: book.externalImageUrl ?? 'placeholder_url',
+              fit: BoxFit.cover,
+              width: 50,
+              height: 70,
             ),
           ),
-          onTap: () => handleBookTap(context, book),
         ),
         DataCell(
           Text(
             book.title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
           ),
-          onTap: () => handleBookTap(context, book),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BookDetailsScreen(bookId: book.id),
+              ),
+            );
+          },
         ),
-        DataCell(
-          Text(book.author),
-          onTap: () => handleBookTap(context, book),
-        ),
-        DataCell(
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.star, color: Colors.amber, size: 16),
-              const SizedBox(width: 4),
-              Text(book.averageRating.toStringAsFixed(1)),
-            ],
-          ),
-          onTap: () => handleBookTap(context, book),
-        ),
+        DataCell(Text(book.author)),
+        DataCell(Text(book.language.toUpperCase())),
+        DataCell(Row(
+          children: [
+            const Icon(Icons.star, color: Colors.amber, size: 16),
+            const SizedBox(width: 4),
+            Text(book.averageRating.toStringAsFixed(1)),
+          ],
+        )),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (!isAdmin)
-                StreamBuilder<bool>(
-                  stream: FirestoreService().getFavoriteStatus(userId ?? '', book.id!),
-                  builder: (context, snapshot) {
-                    final isFavorite = snapshot.data ?? false;
+                BlocBuilder<BookCardBloc, BookCardState>(
+                  bloc: BookCardBloc(context.read<BooksRepository>())
+                    ..add(LoadFavoriteStatus(userId!, book.id!)),
+                  builder: (context, state) {
+                    bool isFavorite = false;
+                    if (state is FavoriteStatusLoaded) {
+                      isFavorite = state.isFavorite;
+                    }
                     return IconButton(
                       icon: Icon(
                         isFavorite ? Icons.favorite : Icons.favorite_border,
                         color: Colors.red,
                       ),
-                      onPressed: () => handleFavoriteToggle(userId ?? '', book.id!),
+                      onPressed: () {
+                        context.read<BookCardBloc>().add(
+                              ToggleFavorite(userId!, book.id!),
+                            );
+                      },
                     );
                   },
                 ),
-              if (isAdmin)
+              if (isAdmin && onDeleteBook != null)
                 IconButton(
                   icon: const Icon(Icons.delete),
-                  onPressed: () => widget.onDeleteBook(context, book),
+                  onPressed: () => onDeleteBook?.call(context, book),
+                  color: Colors.grey[800],
                 ),
             ],
           ),
         ),
       ],
     );
-  }
-
-  @override
-  void dispose() {
-    // Clean up the mixin streams
-    super.dispose();
   }
 } 

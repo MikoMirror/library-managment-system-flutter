@@ -18,12 +18,12 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     Emitter<LoginState> emit,
   ) {
     if (!_validateEmail(event.email)) {
-      emit(LoginValidationError('Please enter a valid email'));
+      emit(const LoginValidationError('Please enter a valid email'));
       return;
     }
 
     if (!_validatePassword(event.password)) {
-      emit(LoginValidationError('Password must be at least 6 characters'));
+      emit(const LoginValidationError('Password must be at least 6 characters'));
       return;
     }
 
@@ -38,7 +38,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     if (currentState is LoginFormState) {
       emit(currentState.copyWith(showPassword: !currentState.showPassword));
     } else {
-      emit(LoginFormState(showPassword: true));
+      emit(const LoginFormState(showPassword: true));
     }
   }
 

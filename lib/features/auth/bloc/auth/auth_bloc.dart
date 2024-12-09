@@ -11,47 +11,45 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   StreamSubscription<User?>? _authStateSubscription;
 
   AuthBloc() : super(AuthInitial()) {
-    _authStateSubscription = _auth.authStateChanges().listen(
-      (User? user) {
-        if (user != null) {
-          add(AuthStateChanged());
-        } else {
-          add(AuthStateChanged());
-        }
-      },
-      onError: (error) {
-        add(AuthErrorEvent(error.toString()));
-      },
-    );
-
-    on<LoginRequested>((event, emit) async {
-      try {
-        emit(AuthLoading());
-        await _auth.signInWithEmailAndPassword(
-          email: event.email,
-          password: event.password,
-        );
-      } catch (e) {
-        emit(AuthError(e.toString()));
-      }
-    });
-
-    on<LogoutRequested>((event, emit) async {
-      try {
-        await _auth.signOut();
-      } catch (e) {
-        emit(AuthError(e.toString()));
-      }
-    });
-
-    on<AuthStateChanged>((event, emit) {
+    on<CheckAuthStatus>((event, emit) async {
+      emit(AuthLoading());
       final user = _auth.currentUser;
       if (user != null) {
         emit(AuthSuccess(user));
       } else {
-        emit(AuthInitial());
+        emit(const AuthUnauthenticated());
       }
     });
+
+    on<LoginRequested>((event, emit) async {
+      emit(AuthLoading());
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: event.email,
+        password: event.password,
+      );
+      if (userCredential.user != null) {
+        emit(AuthSuccess(userCredential.user!));
+      } else {
+        emit(const AuthUnauthenticated());
+      }
+    });
+
+    on<LogoutRequested>((event, emit) async {
+      await _auth.signOut();
+      emit(const AuthUnauthenticated());
+    });
+
+    _authStateSubscription = _auth.authStateChanges().listen(
+      (User? user) {
+        if (user != null) {
+          emit(AuthSuccess(user));
+        } else {
+          emit(const AuthUnauthenticated());
+        }
+      },
+    );
+
+    add(CheckAuthStatus());
   }
 
   @override

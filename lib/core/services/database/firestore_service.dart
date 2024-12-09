@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../../../features/books/models/book.dart';
 
 class FirestoreService {
@@ -175,5 +176,50 @@ class FirestoreService {
 
     final ratings = Map<String, double>.from(data['ratings'] as Map);
     return ratings;
+  }
+
+  // Get user data stream
+  Stream<DocumentSnapshot> getUserStream(String userId) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .snapshots()
+        .handleError((error) {
+      debugPrint('Error getting user data: $error');
+      return error;
+    });
+  }
+
+  // Get user data future
+  Future<DocumentSnapshot> getUserData(String userId) async {
+    try {
+      return await _firestore.collection('users').doc(userId).get();
+    } catch (e) {
+      debugPrint('Error getting user data: $e');
+      rethrow;
+    }
+  }
+
+  // Get books stream
+  Stream<QuerySnapshot> getBooksStream() {
+    return _firestore
+        .collection('books')
+        .snapshots()
+        .handleError((error) {
+      debugPrint('Error getting books: $error');
+      return error;
+    });
+  }
+
+  // Get single book stream
+  Stream<DocumentSnapshot> getBookStream(String bookId) {
+    return _firestore
+        .collection('books')
+        .doc(bookId)
+        .snapshots()
+        .handleError((error) {
+      debugPrint('Error getting book: $error');
+      return error;
+    });
   }
 }

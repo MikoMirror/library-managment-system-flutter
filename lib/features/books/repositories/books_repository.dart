@@ -5,8 +5,7 @@ import '../../../core/repositories/base_repository.dart';
 class BooksRepository implements BaseRepository {
   final FirebaseFirestore _firestore;
 
-  BooksRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  BooksRepository({required FirebaseFirestore firestore}) : _firestore = firestore;
 
   Future<void> addBook(Book book) async {
     await _firestore.collection('books').add(book.toMap());
@@ -73,6 +72,41 @@ class BooksRepository implements BaseRepository {
   Future<Map<String, double>> getBookRatings(String bookId) async {
     final doc = await _firestore.collection('books').doc(bookId).get();
     return Map<String, double>.from(doc.data()?['ratings'] ?? {});
+  }
+
+  Future<bool> getFavoriteStatus(String userId, String bookId) async {
+    try {
+      final doc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('favorites')
+          .doc(bookId)
+          .get();
+      return doc.exists;
+    } catch (e) {
+      print('Error getting favorite status: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> toggleFavorite(String userId, String bookId) async {
+    try {
+      final docRef = _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('favorites')
+          .doc(bookId);
+      
+      final doc = await docRef.get();
+      if (doc.exists) {
+        await docRef.delete();
+      } else {
+        await docRef.set({'timestamp': FieldValue.serverTimestamp()});
+      }
+    } catch (e) {
+      print('Error toggling favorite: $e');
+      rethrow;
+    }
   }
 
   @override

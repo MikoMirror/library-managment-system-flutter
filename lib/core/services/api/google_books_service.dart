@@ -9,7 +9,9 @@ class GoogleBooksService {
   static const String _apiKey = 'AIzaSyDYdzcHQvTCSLxmFpEwH9Gpp6FQ_fJvloY'; 
 
   static Future<Book?> findBookByIsbn(String isbn) async {
-    final response = await http.get(Uri.parse('https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn'));
+    final response = await http.get(
+      Uri.parse('$_baseUrl?q=isbn:$isbn&key=$_apiKey')
+    );
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -24,7 +26,7 @@ class GoogleBooksService {
           pageCount: bookData['pageCount'] ?? 0,
           externalImageUrl: bookData['imageLinks']?['thumbnail'],
           publishedDate: bookData['publishedDate'] != null
-              ? Timestamp.fromDate(DateTime.parse(bookData['publishedDate']))
+              ? Timestamp.fromDate(_parseDate(bookData['publishedDate']))
               : null,
           language: bookData['language'] ?? 'en',
           ratings: {}, // Initialize with an empty map
@@ -32,5 +34,16 @@ class GoogleBooksService {
       }
     }
     return null;
+  }
+
+  static DateTime _parseDate(String date) {
+    try {
+      return DateTime.parse(date);
+    } catch (e) {
+      if (date.length == 4) {
+        return DateTime.parse('$date-01-01');
+      }
+      return DateTime.now();
+    }
   }
 }

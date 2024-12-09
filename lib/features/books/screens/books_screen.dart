@@ -10,8 +10,6 @@ import '../bloc/books_state.dart';
 import '../bloc/books_event.dart';
 import '../widgets/book card/mobile_books_grid.dart';
 import '../widgets/book card/desktop_books_grid.dart';
-import '../widgets/book card/book_card.dart';
-import '../repositories/books_repository.dart';
 import '../enums/book_view_type.dart';
 import '../widgets/book card/table_books_view.dart';
 import '../../../../core/widgets/custom_app_bar.dart';
@@ -37,7 +35,8 @@ class _BooksScreenState extends State<BooksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
     
     return Scaffold(
       appBar: CustomAppBar(
@@ -85,29 +84,50 @@ class _BooksScreenState extends State<BooksScreen> {
       ),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
-          return BlocBuilder<BooksBloc, BooksState>(
-            builder: (context, state) {
-              if (state is BooksLoading) {
+          if (authState is! AuthSuccess) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return FutureBuilder<DocumentSnapshot>(
+            future: _firestore.collection('users').doc(authState.user.uid).get(),
+            builder: (context, userSnapshot) {
+              if (!userSnapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (state is BooksError) {
-                return Center(child: Text(state.message));
-              }
+              final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+              final userModel = UserModel.fromMap(userData);
 
-              if (state is BooksLoaded && authState is AuthSuccess) {
-                if (isMobile) {
-                  return MobileBooksGrid(
-                    books: state.books,
-                    user: authState.user,
-                    onDeleteBook: _showDeleteConfirmationDialog,
-                  );
-                }
-                
-                return _buildBooksList(state.books, authState.user);
-              }
+              return BlocBuilder<BooksBloc, BooksState>(
+                builder: (context, state) {
+                  if (state is BooksLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-              return const Center(child: Text('No books found'));
+                  if (state is BooksError) {
+                    return Center(child: Text(state.message));
+                  }
+
+                  if (state is BooksLoaded) {
+                    if (isMobile || _viewType == BookViewType.mobile) {
+                      return MobileBooksGrid(
+                        books: state.books,
+                        userId: authState.user.uid,
+                        isAdmin: userModel.role == 'admin',
+                        onDeleteBook: _showDeleteConfirmationDialog,
+                      );
+                    }
+                    
+                    return _buildBooksList(
+                      state.books, 
+                      authState.user.uid, 
+                      userModel.role == 'admin'
+                    );
+                  }
+
+                  return const Center(child: Text('No books found'));
+                },
+              );
             },
           );
         },
@@ -146,24 +166,27 @@ class _BooksScreenState extends State<BooksScreen> {
     );
   }
 
-  Widget _buildBooksList(List<Book> books, dynamic user) {
+  Widget _buildBooksList(List<Book> books, String userId, bool isAdmin) {
     switch (_viewType) {
       case BookViewType.desktop:
         return DesktopBooksGrid(
           books: books,
-          user: user,
+          userId: userId,
+          isAdmin: isAdmin,
           onDeleteBook: _showDeleteConfirmationDialog,
         );
       case BookViewType.mobile:
         return MobileBooksGrid(
           books: books,
-          user: user,
+          userId: userId,
+          isAdmin: isAdmin,
           onDeleteBook: _showDeleteConfirmationDialog,
         );
       case BookViewType.table:
         return TableBooksView(
           books: books,
-          user: user,
+          userId: userId,
+          isAdmin: isAdmin,
           onDeleteBook: _showDeleteConfirmationDialog,
         );
     }

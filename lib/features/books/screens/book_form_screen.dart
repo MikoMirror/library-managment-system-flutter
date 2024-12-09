@@ -3,8 +3,6 @@ import '../../../core/services/database/firestore_service.dart';
 import '../models/book.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../widgets/book_image_widget.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/book_cover_selector_widget.dart';
 
 enum FormMode { add, edit }
