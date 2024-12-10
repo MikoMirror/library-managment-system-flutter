@@ -11,6 +11,8 @@ import 'core/navigation/cubit/navigation_cubit.dart';
 import 'core/navigation/navigation_handler.dart';
 import 'features/books/repositories/books_repository.dart';
 import 'core/services/database/firestore_service.dart';
+import 'core/services/auth/admin_check_service.dart';
+import 'features/auth/screens/initial_admin_setup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,21 +46,38 @@ class MyApp extends StatelessWidget {
         title: 'Library Management System',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
-        home: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            if (state is AuthInitial || state is AuthLoading) {
+        home: FutureBuilder<bool>(
+          future: AdminCheckService().hasAdminUser(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               );
             }
 
-            if (state is AuthSuccess) {
+            if (snapshot.data == false) {
               return const NavigationHandler(
-                child: HomeScreen(),
+                child: InitialAdminSetupScreen(),
               );
             }
 
-            return const LoginScreen();
+            return BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, state) {
+                if (state is AuthInitial || state is AuthLoading) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                if (state is AuthSuccess) {
+                  return const NavigationHandler(
+                    child: HomeScreen(),
+                  );
+                }
+
+                return const LoginScreen();
+              },
+            );
           },
         ),
       ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/services/database/user_service.dart';
 import '../../../core/widgets/custom_text_field.dart';
+import '../../../core/navigation/cubit/navigation_cubit.dart';
 
 class InitialAdminSetupScreen extends StatefulWidget {
   const InitialAdminSetupScreen({super.key});
@@ -71,9 +73,9 @@ class _InitialAdminSetupScreenState extends State<InitialAdminSetupScreen> {
     }
   }
 
-  void _proceedToLogin() {
-    Navigator.of(context).pushReplacementNamed('/login');
-  }
+ void _proceedToLogin() {
+  context.read<NavigationCubit>().navigateToLogin();
+}
 
   @override
   Widget build(BuildContext context) {

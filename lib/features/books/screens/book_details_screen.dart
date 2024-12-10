@@ -9,6 +9,10 @@ import '../cubit/rating/rating_state.dart';
 import '../../../features/users/models/user_model.dart';
 import '../../../core/services/database/firestore_service.dart';
 import '../../../core/services/image/image_cache_service.dart';
+import '../../booking/widgets/book_booking_dialog.dart';
+import '../../booking/bloc/booking_bloc.dart';
+import '../../booking/repositories/bookings_repository.dart';
+import 'dart:ui';
 
 class BookDetailsScreen extends StatelessWidget {
   final String? bookId;
@@ -85,9 +89,7 @@ class BookDetailsScreen extends StatelessWidget {
                     Icons.arrow_back_ios_new,
                     color: Colors.white,
                   ),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
                 actions: [
                   if (!isAdmin)
@@ -121,9 +123,18 @@ class BookDetailsScreen extends StatelessWidget {
               image: imageProvider,
               fit: BoxFit.cover,
               colorFilter: ColorFilter.mode(
-                Colors.black.withOpacity(0.5),
+                Colors.black.withOpacity(0.1),
                 BlendMode.darken,
               ),
+            ),
+          ),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: 5.0,
+              sigmaY: 5.0,
+            ),
+            child: Container(
+              color: Colors.black.withOpacity(0.1),
             ),
           ),
         ),
@@ -142,33 +153,12 @@ class BookDetailsScreen extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            overlayColor.withOpacity(0.1),
-            overlayColor.withOpacity(0.3),
-            overlayColor.withOpacity(0.7),
+            overlayColor.withOpacity(0.2),
+            overlayColor.withOpacity(0.4),
+            overlayColor.withOpacity(0.8),
             overlayColor.withOpacity(0.95),
           ],
           stops: const [0.0, 0.3, 0.6, 1.0],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBookContent(BuildContext context, Book currentBook) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 40),
-            _buildBookImage(currentBook),
-            const SizedBox(height: 24),
-            _buildBookHeader(context, currentBook),
-            const SizedBox(height: 24),
-            _buildInfoRow(context, currentBook),
-            const SizedBox(height: 24),
-            _buildDescription(context, currentBook),
-          ],
         ),
       ),
     );
@@ -334,6 +324,122 @@ class BookDetailsScreen extends StatelessWidget {
         child: RatingBottomSheet(
           book: book!,
           userId: userId,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context, Book book, bool isAdmin, String userId) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.book),
+            label: const Text('Reserve Book'),
+            onPressed: book.booksQuantity > 0
+                ? () => _showBookingDialog(context, book, isAdmin, userId)
+                : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+          ),
+        ),
+        if (!isAdmin) ...[
+          const SizedBox(width: 16),
+          _buildRateButton(context, userId),
+        ],
+      ],
+    );
+  }
+
+  void _showBookingDialog(BuildContext context, Book book, bool isAdmin, String userId) {
+    showDialog(
+      context: context,
+      builder: (context) => BlocProvider(
+        create: (context) => BookingBloc(
+          repository: BookingsRepository(firestore: FirebaseFirestore.instance),
+        ),
+        child: BookBookingDialog(
+          book: book,
+          isAdmin: isAdmin,
+          userId: userId,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBookContent(BuildContext context, Book currentBook) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 100), // Extra padding for AppBar
+            _buildBookImage(currentBook),
+            const SizedBox(height: 24),
+            _buildBookHeader(context, currentBook),
+            const SizedBox(height: 24),
+            _buildInfoRow(context, currentBook),
+            const SizedBox(height: 24),
+            _buildDescription(context, currentBook),
+            const SizedBox(height: 24),
+            // Book quantity display
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Books available in library: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    '${currentBook.booksQuantity}',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: currentBook.booksQuantity > 0 
+                          ? Colors.green 
+                          : Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Reserve button
+            BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, state) {
+                if (state is AuthSuccess) {
+                  return StreamBuilder<DocumentSnapshot>(
+                    stream: _firestoreService.getUserStream(state.user.uid),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const CircularProgressIndicator();
+                      }
+                      final userData = snapshot.data!.data() as Map<String, dynamic>;
+                      final userModel = UserModel.fromMap(userData);
+                      return _buildActionButtons(
+                        context, 
+                        currentBook, 
+                        userModel.role == 'admin',
+                        userModel.userId,
+                      );
+                    },
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            const SizedBox(height: 24),
+          ],
         ),
       ),
     );

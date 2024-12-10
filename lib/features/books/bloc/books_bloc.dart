@@ -31,7 +31,7 @@ class BooksBloc extends Bloc<BooksEvent, BooksState> {
   Future<void> _onSearchBooks(SearchBooks event, Emitter<BooksState> emit) async {
     emit(BooksLoading());
     try {
-      // Implement search logic using repository
+     
     } catch (e) {
       emit(BooksError(e.toString()));
     }

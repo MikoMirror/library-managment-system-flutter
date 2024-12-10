@@ -17,6 +17,8 @@ import '../../users/models/user_model.dart';
 import '../../books/bloc/books_bloc.dart';
 import '../../books/repositories/books_repository.dart';
 import '../../../core/navigation/cubit/navigation_state.dart';
+import '../../booking/bloc/booking_bloc.dart';
+import '../../booking/repositories/bookings_repository.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -90,7 +92,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: const BooksScreen(),
                 ),
             1: () => const UsersScreen(),
-            2: () => const BookingsScreen(),
+            2: () => BlocProvider(
+                  create: (context) => BookingBloc(
+                    repository: BookingsRepository(firestore: _firestore),
+                  ),
+                  child: BookingsScreen(),
+                ),
             3: () => const SettingsScreen(),
           }
         : {
@@ -101,7 +108,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: const BooksScreen(),
                 ),
             1: () => const FavoritesScreen(),
-            2: () => const MyBookingsScreen(),
+            2: () => BlocProvider(
+                  create: (context) => BookingBloc(
+                    repository: BookingsRepository(firestore: _firestore),
+                  ),
+                  child: const MyBookingsScreen(),
+                ),
             3: () => const SettingsScreen(),
           };
 
