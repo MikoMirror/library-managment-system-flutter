@@ -9,8 +9,9 @@ class LoadBooks extends BooksEvent {}
 
 class SearchBooks extends BooksEvent {
   final String query;
+
   SearchBooks(this.query);
-  
+
   @override
   List<Object?> get props => [query];
 }

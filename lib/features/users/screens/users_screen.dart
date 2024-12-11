@@ -1,42 +1,97 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/users_bloc.dart';
+import '../bloc/users_event.dart';
+import '../bloc/users_state.dart';
+import '../../../core/widgets/custom_app_bar.dart';
+import '../../../core/theme/app_theme.dart';
 import '../widgets/users_table.dart';
-import 'add_user_screen.dart';
+import '../../../core/widgets/custom_search_bar.dart';
 
-class UsersScreen extends StatelessWidget {
+class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
 
   @override
+  State<UsersScreen> createState() => _UsersScreenState();
+}
+
+class _UsersScreenState extends State<UsersScreen> {
+  final _searchController = TextEditingController();
+ 
+
+  @override
+  void initState() {
+    super.initState();
+    // Load users when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UsersBloc>().add(LoadUsers());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Users Management'),
+      appBar: CustomAppBar(
+        title: Text(
+          'Users',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AddUserScreen(isAdmin: false),
-                  ),
-                );
+          SizedBox(
+            width: MediaQuery.of(context).size.width * 0.4, // Adjust width as needed
+            child: CustomSearchBar(
+              hintText: 'Search users...',
+              onChanged: (query) {
+                if (query.isEmpty) {
+                  context.read<UsersBloc>().add(LoadUsers());
+                } else {
+                  context.read<UsersBloc>().add(SearchUsers(query));
+                }
               },
-              icon: const Icon(Icons.add),
-              label: const Text('Add User'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
             ),
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: const SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: UsersTable(),
-        ),
+      body: BlocBuilder<UsersBloc, UsersState>(
+        builder: (context, state) {
+          if (state is UsersLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state is UsersError) {
+            return Center(child: Text('Error: ${state.message}'));
+          }
+
+          if (state is UsersLoaded) {
+            if (state.users.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No users found',
+                  style: TextStyle(fontSize: 18),
+                ),
+              );
+            }
+
+            return UsersTable(users: state.users);
+          }
+
+          return const Center(child: Text('No users available'));
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.pushNamed(context, '/add-user'),
+        child: const Icon(Icons.add),
       ),
     );
   }

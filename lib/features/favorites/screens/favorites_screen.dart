@@ -10,6 +10,8 @@ import '../../books/widgets/book card/mobile_books_grid.dart';
 import '../../books/widgets/book card/table_books_view.dart';
 import '../../../features/users/models/user_model.dart';
 import '../repositories/favorites_repository.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/custom_search_bar.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -21,12 +23,15 @@ class FavoritesScreen extends StatefulWidget {
 class _FavoritesScreenState extends State<FavoritesScreen> {
   final _firestore = FirebaseFirestore.instance;
   final _favoritesRepository = FavoritesRepository();
+  final _searchController = TextEditingController();
   BookViewType _viewType = BookViewType.desktop;
   UserModel? _cachedUserModel;
   Map<String, Book> _bookCache = {};
+  String _searchQuery = '';
 
   @override
   void dispose() {
+    _searchController.dispose();
     _favoritesRepository.dispose();
     super.dispose();
   }
@@ -34,12 +39,36 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
+    final isDesktop = MediaQuery.of(context).size.width >= 1024;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
       appBar: CustomAppBar(
         title: const Text('Favorites'),
         actions: [
-          if (!isMobile) _buildViewSwitcher(context),
+          SizedBox(
+            width: MediaQuery.of(context).size.width * 0.4,
+            child: CustomSearchBar(
+              hintText: 'Search favorites...',
+              onChanged: (query) {
+                setState(() {
+                  _searchQuery = query;
+                });
+              },
+            ),
+          ),
+          if (isDesktop)
+            IconButton(
+              icon: Icon(_viewType.icon),
+              onPressed: () {
+                setState(() {
+                  _viewType = BookViewType.values[
+                    (_viewType.index + 1) % BookViewType.values.length
+                  ];
+                });
+              },
+            ),
+          const SizedBox(width: 8),
         ],
       ),
       body: BlocBuilder<AuthBloc, AuthState>(

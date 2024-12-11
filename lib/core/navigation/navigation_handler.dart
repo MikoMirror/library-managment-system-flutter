@@ -8,6 +8,7 @@ import '../../features/books/cubit/rating/rating_cubit.dart';
 import '../../features/auth/bloc/auth/auth_bloc.dart';
 import '../../features/books/repositories/books_repository.dart';
 import '../../features/auth/screens/login_screen.dart';
+import '../../features/home/screens/home_screen.dart';
 
 class NavigationHandler extends StatelessWidget {
   final Widget child;
@@ -23,13 +24,26 @@ class NavigationHandler extends StatelessWidget {
       listenWhen: (previous, current) => previous.route != current.route,
       listener: (context, navigationState) {
         switch (navigationState.route) {
-          case RouteNames.login:
-            Navigator.of(context).pushReplacement(
+          case RouteNames.home:
+            Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
-                builder: (context) => const LoginScreen(),
+                settings: const RouteSettings(name: RouteNames.home),
+                builder: (context) => const HomeScreen(),
               ),
+              (route) => false, // This removes all previous routes
             );
             break;
+            
+          case RouteNames.login:
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                settings: const RouteSettings(name: RouteNames.login),
+                builder: (context) => const LoginScreen(),
+              ),
+              (route) => false,
+            );
+            break;
+            
           case RouteNames.bookDetails:
             // Remove any existing book details screens from the stack
             Navigator.of(context).popUntil(

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
-class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+class SimpleAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final Widget? title;
   final bool automaticallyImplyLeading;
   final Widget? leading;
 
-  const CustomAppBar({
+  const SimpleAppBar({
     super.key,
     this.actions,
     this.title,
@@ -16,20 +16,16 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(48.0);
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final isDesktop = MediaQuery.of(context).size.width >= 1024;
-    
+
     return AppBar(
       leading: leading,
       title: title,
-      actions: [
-        if (actions != null) ...actions!,
-        if (isDesktop && actions != null) const SizedBox(width: 8),
-      ],
+      actions: actions,
       automaticallyImplyLeading: automaticallyImplyLeading,
       centerTitle: false,
       elevation: 0,

@@ -5,11 +5,15 @@ import '../widgets/booking_table.dart';
 import '../widgets/booking_filter_section.dart';
 import '../models/booking.dart';
 import '../bloc/booking_bloc.dart';
+import '../cubit/booking_filter_cubit.dart';
 import '../../../core/services/database/firestore_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/custom_app_bar.dart';
+import '../../../core/widgets/custom_search_bar.dart';
+import '../../../core/models/search_filter.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
 import '../../users/models/user_model.dart';
-import '../cubit/booking_filter_cubit.dart';
+import '../repositories/bookings_repository.dart';
 
 class BookingsScreen extends StatelessWidget {
   final FirestoreService firestoreService = FirestoreService();
@@ -18,8 +22,15 @@ class BookingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => BookingFilterCubit(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => BookingFilterCubit()),
+        BlocProvider(
+          create: (context) => BookingBloc(
+            repository: BookingsRepository(firestore: FirebaseFirestore.instance),
+          )..add(LoadBookings()),
+        ),
+      ],
       child: _BookingsScreenContent(firestoreService: firestoreService),
     );
   }
@@ -61,9 +72,7 @@ class _BookingsScreenContent extends StatelessWidget {
 
             return Scaffold(
               backgroundColor: Theme.of(context).colorScheme.background,
-              appBar: AppBar(
-                elevation: 0,
-                backgroundColor: Colors.transparent,
+              appBar: CustomAppBar(
                 title: Text(
                   'Bookings Management',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -101,79 +110,43 @@ class _BookingsScreenContent extends StatelessWidget {
   }
 
   Widget _buildBookingsList(BuildContext context, bool isAdmin) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return BlocBuilder<BookingBloc, BookingState>(
+      builder: (context, state) {
+        if (state is BookingLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: firestoreService.getAllBookings(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: CircularProgressIndicator(
-              color: isDarkMode ? AppTheme.accentDark : AppTheme.primaryLight,
-            ),
+        if (state is BookingError) {
+          return Center(child: Text('Error: ${state.message}'));
+        }
+
+        if (state is BookingsLoaded) {
+          return BlocBuilder<BookingFilterCubit, BookingFilter>(
+            builder: (context, filter) {
+              final filteredBookings = _filterBookings(state.bookings, filter);
+              
+              return BookingTable(
+                bookings: filteredBookings,
+                isAdmin: isAdmin,
+                onStatusChange: (bookingId, newStatus) {
+                  context.read<BookingBloc>().add(
+                    UpdateBookingStatus(
+                      bookingId: bookingId,
+                      newStatus: newStatus,
+                    ),
+                  );
+                },
+                onDelete: (bookingId) {
+                  context.read<BookingBloc>().add(
+                    DeleteBooking(bookingId: bookingId),
+                  );
+                },
+              );
+            },
           );
         }
 
-        if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Error: ${snapshot.error}',
-              style: const TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          );
-        }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Text(
-              'No bookings found',
-              style: TextStyle(
-                color: isDarkMode ? Colors.white70 : Colors.black54,
-                fontSize: 16,
-              ),
-            ),
-          );
-        }
-
-        final bookings = snapshot.data!.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return Booking.fromMap(data, doc.id);
-        }).toList();
-
-        return BlocBuilder<BookingFilterCubit, BookingFilter>(
-          builder: (context, filter) {
-            final filteredBookings = _filterBookings(bookings, filter);
-
-            return FutureBuilder<List<Booking>>(
-              future: Future.wait(
-                filteredBookings.map((booking) => _fetchBookingDetails(booking)),
-              ),
-              builder: (context, bookingsSnapshot) {
-                if (!bookingsSnapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final updatedBookings = bookingsSnapshot.data!;
-
-                return BookingTable(
-                  bookings: updatedBookings,
-                  isAdmin: isAdmin,
-                  onStatusChange: (bookingId, newStatus) {
-                    context.read<BookingBloc>().add(
-                      UpdateBookingStatus(
-                        bookingId: bookingId,
-                        newStatus: newStatus,
-                      ),
-                    );
-                  },
-                );
-              },
-            );
-          },
-        );
+        return const SizedBox.shrink();
       },
     );
   }
@@ -190,30 +163,6 @@ class _BookingsScreenContent extends StatelessWidget {
       default:
         return bookings;
     }
-  }
-
-  Future<Booking> _fetchBookingDetails(Booking booking) async {
-    if (booking.bookTitle == null || booking.userName == null) {
-      final futures = await Future.wait([
-        FirebaseFirestore.instance
-            .collection('books')
-            .doc(booking.bookId)
-            .get(),
-        FirebaseFirestore.instance
-            .collection('users')
-            .doc(booking.userId)
-            .get(),
-      ]);
-
-      final bookDoc = futures[0];
-      final userDoc = futures[1];
-
-      return booking.copyWith(
-        bookTitle: bookDoc.exists ? (bookDoc.data()?['title'] as String?) : 'Unknown Book',
-        userName: userDoc.exists ? (userDoc.data()?['name'] as String?) : 'Unknown User',
-      );
-    }
-    return booking;
   }
 }
   

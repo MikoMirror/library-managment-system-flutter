@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import '../models/booking.dart';
 import 'booking_card.dart';
+import '../../../core/theme/app_theme.dart';
 
 class BookingTable extends StatelessWidget {
   final List<Booking> bookings;
   final bool isAdmin;
   final Function(String, String) onStatusChange;
+  final Function(String)? onDelete;
 
   const BookingTable({
     super.key,
     required this.bookings,
     required this.isAdmin,
     required this.onStatusChange,
+    this.onDelete,
   });
 
   @override
@@ -20,9 +23,15 @@ class BookingTable extends StatelessWidget {
       builder: (context, constraints) {
         final crossAxisCount = _calculateCrossAxisCount(constraints.maxWidth);
         final isSmallScreen = constraints.maxWidth < 600;
+        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
         
-        return Padding(
+        return Container(
           padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: isDarkMode 
+                ? AppTheme.primaryDark.withOpacity(0.05)
+                : AppTheme.primaryLight.withOpacity(0.05),
+          ),
           child: GridView.builder(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
@@ -36,6 +45,7 @@ class BookingTable extends StatelessWidget {
                 booking: bookings[index],
                 isAdmin: isAdmin,
                 onStatusChange: onStatusChange,
+                onDelete: onDelete,
               );
             },
           ),

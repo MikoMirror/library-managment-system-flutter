@@ -3,39 +3,27 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 
 class UsersTable extends StatelessWidget {
-  const UsersTable({super.key});
+  final List<UserModel> users;
+
+  const UsersTable({
+    super.key,
+    required this.users,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth > 1000) {
+          return _buildWideTable(context);
+        } else {
+          return _buildMobileList(context);
         }
-
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-
-        final users = snapshot.data?.docs ?? [];
-
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth > 1000) {
-              // Desktop/Tablet view
-              return _buildWideTable(context, users);
-            } else {
-              // Mobile view
-              return _buildMobileList(context, users);
-            }
-          },
-        );
       },
     );
   }
 
-  Widget _buildWideTable(BuildContext context, List<QueryDocumentSnapshot> users) {
+  Widget _buildWideTable(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
@@ -48,10 +36,7 @@ class UsersTable extends StatelessWidget {
             DataColumn(label: Text('Library Number')),
             DataColumn(label: Text('Actions')),
           ],
-          rows: users.map((doc) {
-            final userData = doc.data() as Map<String, dynamic>;
-            final user = UserModel.fromMap(userData);
-
+          rows: users.map((user) {
             return DataRow(
               cells: [
                 DataCell(Text(user.name)),
@@ -59,7 +44,7 @@ class UsersTable extends StatelessWidget {
                 DataCell(Text(user.role)),
                 DataCell(Text(user.phoneNumber)),
                 DataCell(Text(user.libraryNumber)),
-                DataCell(_buildActionButtons(context, doc.id, user)),
+                DataCell(_buildActionButtons(context, user.userId, user)),
               ],
             );
           }).toList(),
@@ -68,14 +53,13 @@ class UsersTable extends StatelessWidget {
     );
   }
 
-  Widget _buildMobileList(BuildContext context, List<QueryDocumentSnapshot> users) {
+  Widget _buildMobileList(BuildContext context) {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: users.length,
       itemBuilder: (context, index) {
-        final userData = users[index].data() as Map<String, dynamic>;
-        final user = UserModel.fromMap(userData);
+        final user = users[index];
 
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -95,7 +79,7 @@ class UsersTable extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        _buildActionButtons(context, users[index].id, user),
+                        _buildActionButtons(context, user.userId, user),
                       ],
                     ),
                   ],

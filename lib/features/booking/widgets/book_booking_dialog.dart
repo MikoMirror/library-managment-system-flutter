@@ -5,6 +5,8 @@ import '../bloc/booking_bloc.dart';
 import '../../users/models/user_model.dart';
 import '../../books/models/book.dart';
 import '../../../core/services/database/firestore_service.dart';
+import 'package:intl/intl.dart';
+
 
 class BookBookingDialog extends StatefulWidget {
   final Book book;
@@ -27,6 +29,30 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
   final _quantityController = TextEditingController(text: '1');
   String? _selectedUserId;
   bool _isLoading = false;
+  final _borrowedDateController = TextEditingController();
+  final _dueDateController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    // Set default dates
+    final now = DateTime.now();
+    _borrowedDateController.text = DateFormat('dd/MM/yyyy').format(now);
+    _dueDateController.text = DateFormat('dd/MM/yyyy').format(now.add(const Duration(days: 14)));
+  }
+
+  Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      controller.text = DateFormat('dd/MM/yyyy').format(picked);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,43 +100,106 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
               ),
               const SizedBox(height: 16),
 
-              // User Selection for Admin
+              // Add Date Selection Fields after quantity
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _borrowedDateController,
+                      decoration: InputDecoration(
+                        labelText: 'Borrow Date',
+                        border: OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(Icons.calendar_today),
+                          onPressed: () => _selectDate(context, _borrowedDateController),
+                        ),
+                      ),
+                      readOnly: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Please select borrow date';
+                        return null;
+                      },
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _dueDateController,
+                      decoration: InputDecoration(
+                        labelText: 'Due Date',
+                        border: OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(Icons.calendar_today),
+                          onPressed: () => _selectDate(context, _dueDateController),
+                        ),
+                      ),
+                      readOnly: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Please select due date';
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+
+              // Replace the existing user selection with searchable dropdown
               if (widget.isAdmin) ...[
                 StreamBuilder<QuerySnapshot>(
                   stream: FirestoreService().getUsers(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
-                      return const CircularProgressIndicator();
+                      return CircularProgressIndicator();
                     }
 
                     final users = snapshot.data!.docs
                         .map((doc) => UserModel.fromMap(doc.data() as Map<String, dynamic>))
                         .where((user) => user.role != 'admin')
+                        .where((user) => 
+                          user.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                          user.libraryNumber.toLowerCase().contains(_searchQuery.toLowerCase())
+                        )
                         .toList();
 
-                    return DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Select User',
-                        border: OutlineInputBorder(),
-                      ),
-                      value: _selectedUserId,
-                      items: users.map((user) {
-                        return DropdownMenuItem(
-                          value: user.userId,
-                          child: Text(user.name),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() => _selectedUserId = value);
-                      },
-                      validator: (value) {
-                        if (value == null) return 'Please select a user';
-                        return null;
-                      },
+                    return Column(
+                      children: [
+                        TextFormField(
+                          decoration: InputDecoration(
+                            labelText: 'Search User',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.search),
+                          ),
+                          onChanged: (value) {
+                            setState(() => _searchQuery = value);
+                          },
+                        ),
+                        SizedBox(height: 8),
+                        Container(
+                          constraints: BoxConstraints(maxHeight: 200),
+                          child: Card(
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: users.length,
+                              itemBuilder: (context, index) {
+                                final user = users[index];
+                                return ListTile(
+                                  title: Text(user.name),
+                                  subtitle: Text('Library #: ${user.libraryNumber}'),
+                                  selected: _selectedUserId == user.userId,
+                                  onTap: () {
+                                    setState(() => _selectedUserId = user.userId);
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
               ],
 
               BlocConsumer<BookingBloc, BookingState>(
@@ -134,12 +223,17 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
                           ? null
                           : () {
                               if (_formKey.currentState?.validate() ?? false) {
+                                final borrowedDate = DateFormat('dd/MM/yyyy').parse(_borrowedDateController.text);
+                                final dueDate = DateFormat('dd/MM/yyyy').parse(_dueDateController.text);
+                                
                                 context.read<BookingBloc>().add(
                                       CreateBooking(
                                         userId: widget.userId,
                                         bookId: widget.book.id!,
                                         quantity: int.parse(_quantityController.text),
                                         selectedUserId: widget.isAdmin ? _selectedUserId : null,
+                                        borrowedDate: Timestamp.fromDate(borrowedDate),
+                                        dueDate: Timestamp.fromDate(dueDate),
                                       ),
                                     );
                               }

@@ -24,7 +24,7 @@ class BookingFilterButton extends StatelessWidget {
         final isSelected = currentFilter == filter;
         return ElevatedButton.icon(
           onPressed: () {
-            context.read<BookingFilterCubit>().changeFilter(filter);
+            context.read<BookingFilterCubit>().updateFilter(filter);
           },
           icon: Icon(
             icon,

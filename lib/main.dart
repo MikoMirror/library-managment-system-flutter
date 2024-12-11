@@ -13,14 +13,24 @@ import 'features/books/repositories/books_repository.dart';
 import 'core/services/database/firestore_service.dart';
 import 'core/services/auth/admin_check_service.dart';
 import 'features/auth/screens/initial_admin_setup_screen.dart';
+import 'features/booking/bloc/booking_bloc.dart';
+import 'features/booking/repositories/bookings_repository.dart';
+import 'features/books/bloc/books_bloc.dart';
+import 'features/users/bloc/users_bloc.dart';
+import 'features/users/repositories/users_repository.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
   runApp(const MyApp());
 }
+
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -33,6 +43,13 @@ class MyApp extends StatelessWidget {
           create: (context) => AuthBloc()..add(CheckAuthStatus()),
         ),
         BlocProvider(create: (context) => NavigationCubit()),
+        BlocProvider(
+          create: (context) => BookingBloc(
+            repository: BookingsRepository(
+              firestore: FirebaseFirestore.instance,
+            ),
+          ),
+        ),
         RepositoryProvider<FirestoreService>(
           create: (context) => FirestoreService(),
         ),
@@ -41,44 +58,35 @@ class MyApp extends StatelessWidget {
             firestore: FirebaseFirestore.instance,
           ),
         ),
+        BlocProvider(
+          create: (context) => BooksBloc(
+            repository: context.read<BooksRepository>(),
+          ),
+        ),
+        RepositoryProvider<UsersRepository>(
+          create: (context) => UsersRepository(
+            firestore: FirebaseFirestore.instance,
+          ),
+        ),
+        BlocProvider(
+          create: (context) => UsersBloc(
+            repository: context.read<UsersRepository>(),
+          ),
+        ),
       ],
       child: MaterialApp(
         title: 'Library Management System',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
-        home: FutureBuilder<bool>(
-          future: AdminCheckService().hasAdminUser(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
-
-            if (snapshot.data == false) {
-              return const NavigationHandler(
-                child: InitialAdminSetupScreen(),
-              );
-            }
-
-            return BlocBuilder<AuthBloc, AuthState>(
-              builder: (context, state) {
-                if (state is AuthInitial || state is AuthLoading) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  );
-                }
-
-                if (state is AuthSuccess) {
-                  return const NavigationHandler(
-                    child: HomeScreen(),
-                  );
-                }
-
-                return const LoginScreen();
-              },
-            );
-          },
+        home: NavigationHandler(
+          child: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              if (state is AuthSuccess) {
+                return const HomeScreen();
+              }
+              return const LoginScreen();
+            },
+          ),
         ),
       ),
     );

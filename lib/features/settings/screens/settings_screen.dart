@@ -5,6 +5,9 @@ import '../../auth/bloc/auth/auth_bloc.dart';
 import '../../../core/services/settings/settings_service.dart';
 import '../../../features/users/models/user_model.dart';
 import '../widgets/cache_management_widget.dart';
+import '../../../core/widgets/simple_app_bar.dart';
+import '../../../core/theme/app_theme.dart';
+
 
 class SettingsScreen extends StatelessWidget {
   static final _firestore = FirebaseFirestore.instance;
@@ -12,6 +15,8 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state is! AuthSuccess) {
@@ -19,8 +24,13 @@ class SettingsScreen extends StatelessWidget {
         }
 
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Settings'),
+          appBar: SimpleAppBar(
+            title: Text(
+              'Settings',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           body: StreamBuilder<DocumentSnapshot>(
             stream: _firestore.collection('users')

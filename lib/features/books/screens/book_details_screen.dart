@@ -358,15 +358,10 @@ class BookDetailsScreen extends StatelessWidget {
   void _showBookingDialog(BuildContext context, Book book, bool isAdmin, String userId) {
     showDialog(
       context: context,
-      builder: (context) => BlocProvider(
-        create: (context) => BookingBloc(
-          repository: BookingsRepository(firestore: FirebaseFirestore.instance),
-        ),
-        child: BookBookingDialog(
-          book: book,
-          isAdmin: isAdmin,
-          userId: userId,
-        ),
+      builder: (context) => BookBookingDialog(
+        book: book,
+        isAdmin: isAdmin,
+        userId: userId,
       ),
     );
   }

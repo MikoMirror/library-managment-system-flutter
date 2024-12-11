@@ -1,21 +1,28 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/booking.dart';
 import '../repositories/bookings_repository.dart';
 
 // Events
 abstract class BookingEvent {}
 
+class LoadBookings extends BookingEvent {}
+
 class CreateBooking extends BookingEvent {
   final String userId;
   final String bookId;
   final int quantity;
-  final String? selectedUserId; // For admin use
+  final String? selectedUserId;
+  final Timestamp borrowedDate;
+  final Timestamp dueDate;
 
   CreateBooking({
     required this.userId,
     required this.bookId,
     required this.quantity,
     this.selectedUserId,
+    required this.borrowedDate,
+    required this.dueDate,
   });
 }
 
@@ -29,6 +36,12 @@ class UpdateBookingStatus extends BookingEvent {
   });
 }
 
+class DeleteBooking extends BookingEvent {
+  final String bookingId;
+
+  DeleteBooking({required this.bookingId});
+}
+
 // States
 abstract class BookingState {}
 
@@ -40,25 +53,38 @@ class BookingError extends BookingState {
   BookingError(this.message);
 }
 
-class BookingBloc extends Bloc<BookingEvent, BookingState> {
-  final BookingsRepository _repository;
+class BookingsLoaded extends BookingState {
+  final List<Booking> bookings;
+  BookingsLoaded(this.bookings);
+}
 
-  BookingBloc({required BookingsRepository repository})
-      : _repository = repository,
-        super(BookingInitial()) {
+class BookingBloc extends Bloc<BookingEvent, BookingState> {
+  final BookingsRepository repository;
+
+  BookingBloc({required this.repository}) : super(BookingInitial()) {
+    on<LoadBookings>((event, emit) async {
+      try {
+        emit(BookingLoading());
+        final bookings = await repository.getBookings();
+        emit(BookingsLoaded(bookings));
+      } catch (e) {
+        emit(BookingError(e.toString()));
+      }
+    });
     on<CreateBooking>(_onCreateBooking);
     on<UpdateBookingStatus>(_onUpdateBookingStatus);
+    on<DeleteBooking>(_onDeleteBooking);
   }
 
   Future<void> _onCreateBooking(CreateBooking event, Emitter<BookingState> emit) async {
     emit(BookingLoading());
     try {
-      await _repository.createBooking(
+      await repository.createBooking(
         userId: event.selectedUserId ?? event.userId,
         bookId: event.bookId,
         status: 'pending',
-        borrowedDate: Timestamp.now(),
-        dueDate: Timestamp.fromDate(DateTime.now().add(const Duration(days: 14))),
+        borrowedDate: event.borrowedDate,
+        dueDate: event.dueDate,
         quantity: event.quantity,
       );
       emit(BookingSuccess());
@@ -67,16 +93,23 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     }
   }
 
-  Future<void> _onUpdateBookingStatus(
-    UpdateBookingStatus event, 
-    Emitter<BookingState> emit
-  ) async {
+  Future<void> _onUpdateBookingStatus(UpdateBookingStatus event, Emitter<BookingState> emit) async {
     emit(BookingLoading());
     try {
-      await _repository.updateBookingStatus(
+      await repository.updateBookingStatus(
         bookingId: event.bookingId,
         status: event.newStatus,
       );
+      emit(BookingSuccess());
+    } catch (e) {
+      emit(BookingError(e.toString()));
+    }
+  }
+
+  Future<void> _onDeleteBooking(DeleteBooking event, Emitter<BookingState> emit) async {
+    emit(BookingLoading());
+    try {
+      await repository.deleteBooking(event.bookingId);
       emit(BookingSuccess());
     } catch (e) {
       emit(BookingError(e.toString()));

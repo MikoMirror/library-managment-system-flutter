@@ -6,12 +6,14 @@ class BookingCard extends StatelessWidget {
   final Booking booking;
   final bool isAdmin;
   final Function(String, String) onStatusChange;
+  final Function(String)? onDelete;
 
   const BookingCard({
     super.key,
     required this.booking,
     required this.isAdmin,
     required this.onStatusChange,
+    this.onDelete,
   });
 
   @override
@@ -58,12 +60,29 @@ class BookingCard extends StatelessWidget {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    booking.userName ?? 'Loading...',
+                    '${booking.userName ?? 'Loading...'} (${booking.userLibraryNumber ?? 'N/A'})',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: isSmallScreen ? 12 : null,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  Icons.date_range,
+                  size: 16,
+                  color: isDarkMode ? AppTheme.accentDark : AppTheme.accentLight,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Borrowed: ${booking.formattedBorrowedDate}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: isSmallScreen ? 12 : null,
                   ),
                 ),
               ],
@@ -125,7 +144,7 @@ class BookingCard extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () {}, // Add delete functionality
+              onPressed: () => onDelete?.call(booking.id!),
               icon: const Icon(Icons.delete_outline),
               label: const Text('Remove'),
               style: ElevatedButton.styleFrom(
@@ -155,7 +174,7 @@ class BookingCard extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () {}, // Add delete functionality
+              onPressed: () => onDelete?.call(booking.id!),
               icon: const Icon(Icons.delete_outline),
               label: const Text('Remove'),
               style: ElevatedButton.styleFrom(
@@ -171,7 +190,7 @@ class BookingCard extends StatelessWidget {
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
-          onPressed: () {}, // Add delete functionality
+          onPressed: () => onDelete?.call(booking.id!),
           icon: const Icon(Icons.delete_outline),
           label: const Text('Remove'),
           style: ElevatedButton.styleFrom(
@@ -232,7 +251,7 @@ class BookingCard extends StatelessWidget {
               size: iconSize,
             ),
             tooltip: 'Delete',
-            onPressed: () {}, // Add delete functionality
+            onPressed: () => onDelete?.call(booking.id!),
             padding: EdgeInsets.zero,
           ),
         ),

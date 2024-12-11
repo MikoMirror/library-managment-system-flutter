@@ -8,10 +8,9 @@ class Booking {
   final Timestamp borrowedDate;
   final Timestamp dueDate;
   final int quantity;
-  final Timestamp createdAt;
-  final Timestamp updatedAt;
-  String? bookTitle; 
-  String? userName;  
+  final String? bookTitle;
+  final String? userName;
+  final String? userLibraryNumber;
 
   Booking({
     this.id,
@@ -21,70 +20,10 @@ class Booking {
     required this.borrowedDate,
     required this.dueDate,
     required this.quantity,
-    required this.createdAt,
-    required this.updatedAt,
     this.bookTitle,
     this.userName,
+    this.userLibraryNumber,
   });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'userId': userId,
-      'bookId': bookId,
-      'status': status,
-      'borrowedDate': borrowedDate,
-      'dueDate': dueDate,
-      'quantity': quantity,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
-    };
-  }
-
-  factory Booking.fromMap(Map<String, dynamic> map, String documentId) {
-    return Booking(
-      id: documentId,
-      userId: map['userId'] ?? '',
-      bookId: map['bookId'] ?? '',
-      status: map['status'] ?? 'pending',
-      borrowedDate: map['borrowedDate'] ?? Timestamp.now(),
-      dueDate: map['dueDate'] ?? Timestamp.now(),
-      quantity: map['quantity'] ?? 1,
-      createdAt: map['createdAt'] ?? Timestamp.now(),
-      updatedAt: map['updatedAt'] ?? Timestamp.now(),
-    );
-  }
-
-  Booking copyWith({
-    String? id,
-    String? userId,
-    String? bookId,
-    String? status,
-    Timestamp? borrowedDate,
-    Timestamp? dueDate,
-    int? quantity,
-    Timestamp? createdAt,
-    Timestamp? updatedAt,
-    String? bookTitle,
-    String? userName,
-  }) {
-    return Booking(
-      id: id ?? this.id,
-      userId: userId ?? this.userId,
-      bookId: bookId ?? this.bookId,
-      status: status ?? this.status,
-      borrowedDate: borrowedDate ?? this.borrowedDate,
-      dueDate: dueDate ?? this.dueDate,
-      quantity: quantity ?? this.quantity,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      bookTitle: bookTitle ?? this.bookTitle,
-      userName: userName ?? this.userName,
-    );
-  }
-
-  bool get isOverdue {
-    return dueDate.toDate().isBefore(DateTime.now()) && status != 'returned';
-  }
 
   String get formattedBorrowedDate {
     return _formatDate(borrowedDate.toDate());
@@ -96,5 +35,65 @@ class Booking {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  bool get isOverdue {
+    final now = DateTime.now();
+    return dueDate.toDate().isBefore(now) && status != 'returned';
+  }
+
+  factory Booking.fromMap(Map<String, dynamic> map, String? id) {
+    return Booking(
+      id: id,
+      userId: map['userId'],
+      bookId: map['bookId'],
+      status: map['status'],
+      borrowedDate: map['borrowedDate'],
+      dueDate: map['dueDate'],
+      quantity: map['quantity'],
+      bookTitle: map['bookTitle'],
+      userName: map['userName'],
+      userLibraryNumber: map['userLibraryNumber'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'userId': userId,
+      'bookId': bookId,
+      'status': status,
+      'borrowedDate': borrowedDate,
+      'dueDate': dueDate,
+      'quantity': quantity,
+      'bookTitle': bookTitle,
+      'userName': userName,
+      'userLibraryNumber': userLibraryNumber,
+    };
+  }
+
+  Booking copyWith({
+    String? id,
+    String? userId,
+    String? bookId,
+    String? status,
+    Timestamp? borrowedDate,
+    Timestamp? dueDate,
+    int? quantity,
+    String? bookTitle,
+    String? userName,
+    String? userLibraryNumber,
+  }) {
+    return Booking(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      bookId: bookId ?? this.bookId,
+      status: status ?? this.status,
+      borrowedDate: borrowedDate ?? this.borrowedDate,
+      dueDate: dueDate ?? this.dueDate,
+      quantity: quantity ?? this.quantity,
+      bookTitle: bookTitle ?? this.bookTitle,
+      userName: userName ?? this.userName,
+      userLibraryNumber: userLibraryNumber ?? this.userLibraryNumber,
+    );
   }
 } 

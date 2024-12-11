@@ -11,33 +11,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   StreamSubscription<User?>? _authStateSubscription;
 
   AuthBloc() : super(AuthInitial()) {
-    on<CheckAuthStatus>((event, emit) async {
-      emit(AuthLoading());
-      final user = _auth.currentUser;
-      if (user != null) {
-        emit(AuthSuccess(user));
-      } else {
-        emit(const AuthUnauthenticated());
-      }
-    });
-
-    on<LoginRequested>((event, emit) async {
-      emit(AuthLoading());
-      final userCredential = await _auth.signInWithEmailAndPassword(
-        email: event.email,
-        password: event.password,
-      );
-      if (userCredential.user != null) {
-        emit(AuthSuccess(userCredential.user!));
-      } else {
-        emit(const AuthUnauthenticated());
-      }
-    });
-
-    on<LogoutRequested>((event, emit) async {
-      await _auth.signOut();
-      emit(const AuthUnauthenticated());
-    });
+    on<CheckAuthStatus>(_onCheckAuthStatus);
+    on<LoginRequested>(_onLoginRequested);
+    on<LogoutRequested>(_onLogoutRequested);
 
     _authStateSubscription = _auth.authStateChanges().listen(
       (User? user) {
@@ -48,8 +24,49 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         }
       },
     );
+  }
 
-    add(CheckAuthStatus());
+  Future<void> _onCheckAuthStatus(
+    CheckAuthStatus event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final user = _auth.currentUser;
+    if (user != null) {
+      emit(AuthSuccess(user));
+    } else {
+      emit(const AuthUnauthenticated());
+    }
+  }
+
+  Future<void> _onLoginRequested(
+    LoginRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    try {
+      emit(AuthLoading());
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: event.email,
+        password: event.password,
+      );
+      if (userCredential.user != null) {
+        emit(AuthSuccess(userCredential.user!));
+      } else {
+        emit(const AuthError('Login failed'));
+      }
+    } on FirebaseAuthException catch (e) {
+      emit(AuthError(e.message ?? 'Authentication failed'));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  Future<void> _onLogoutRequested(
+    LogoutRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    await _auth.signOut();
+    emit(const AuthUnauthenticated());
   }
 
   @override

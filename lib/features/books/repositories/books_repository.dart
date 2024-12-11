@@ -109,6 +109,21 @@ class BooksRepository implements BaseRepository {
     }
   }
 
+  Stream<List<Book>> searchBooks(String query) {
+    query = query.toLowerCase();
+    return _firestore
+        .collection('books')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Book.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+            .where((book) =>
+                book.title.toLowerCase().contains(query) ||
+                book.author.toLowerCase().contains(query) ||
+                book.isbn.toLowerCase().contains(query) ||
+                book.categories.toLowerCase().contains(query))
+            .toList());
+  }
+
   @override
   void dispose() {
     // Clean up any resources if needed
