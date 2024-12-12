@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../models/book.dart';
 import 'book_card_styles.dart';
@@ -7,6 +6,8 @@ import '../../screens/book_details_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/book_card_bloc.dart';
 import '../../repositories/books_repository.dart';
+import 'dart:ui';
+import '../../../../core/theme/app_theme.dart';
 
 
 class BookCard extends StatefulWidget {
@@ -94,6 +95,9 @@ class _BookCardState extends State<BookCard> {
   }
 
   Widget _buildDesktopCard() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 4,
@@ -106,6 +110,27 @@ class _BookCardState extends State<BookCard> {
             fit: BoxFit.cover,
           ),
 
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0.5, 0.7, 1.0],
+                  colors: isDark ? [
+                    Colors.transparent,
+                    AppTheme.darkGradient1.withOpacity(0.7),
+                    AppTheme.darkGradient3.withOpacity(0.95),
+                  ] : [
+                    Colors.transparent,
+                    AppTheme.primaryLight.withOpacity(0.3),
+                    AppTheme.primaryLight.withOpacity(0.9),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
           Positioned(
             top: 8,
             right: 8,
@@ -116,35 +141,56 @@ class _BookCardState extends State<BookCard> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.7),
-                  ],
+            child: ClipRRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: const [0.0, 0.4, 1.0],
+                      colors: isDark ? [
+                        AppTheme.darkGradient1.withOpacity(0.3),
+                        AppTheme.darkGradient2.withOpacity(0.7),
+                        AppTheme.darkGradient3.withOpacity(0.95),
+                      ] : [
+                        AppTheme.primaryLight.withOpacity(0.1),
+                        AppTheme.primaryLight.withOpacity(0.6),
+                        AppTheme.primaryLight.withOpacity(0.9),
+                      ],
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: 48,
+                        child: Text(
+                          widget.book.title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.book.author,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.book.title,
-                    style: BookCardStyles.desktopTitleStyle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.book.author,
-                    style: BookCardStyles.desktopAuthorStyle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
               ),
             ),
           ),
@@ -154,47 +200,86 @@ class _BookCardState extends State<BookCard> {
   }
 
   Widget _buildMobileCard() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 2,
-      child: Row(
+      child: Stack(
         children: [
-          SizedBox(
-            width: 90,
-            height: 120,
-            child: ImageCacheService().buildCachedImage(
-              imageUrl: widget.book.coverUrl,
-              fit: BoxFit.cover,
-            ),
+          Row(
+            children: [
+              SizedBox(
+                width: 90,
+                height: 120,
+                child: ImageCacheService().buildCachedImage(
+                  imageUrl: widget.book.coverUrl,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const Spacer(),
+            ],
           ),
 
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.book.title,
-                    style: BookCardStyles.mobileTitleStyle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.book.author,
-                    style: mobileAuthorStyle(context),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  stops: const [0.0, 0.3, 1.0],
+                  colors: [
+                    Colors.transparent,
+                    (isDark ? AppTheme.primaryDark : AppTheme.primaryLight).withOpacity(0.3),
+                    (isDark ? AppTheme.primaryDark : AppTheme.primaryLight).withOpacity(0.9),
+                  ],
+                ),
               ),
             ),
           ),
 
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: _buildActionButton(),
+          Row(
+            children: [
+              const SizedBox(width: 90), // Space for image
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: 48,
+                        child: Text(
+                          widget.book.title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.book.author,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: _buildActionButton(),
+              ),
+            ],
           ),
         ],
       ),

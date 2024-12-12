@@ -6,7 +6,7 @@ import '../../../core/services/settings/settings_service.dart';
 import '../../../features/users/models/user_model.dart';
 import '../widgets/cache_management_widget.dart';
 import '../../../core/widgets/simple_app_bar.dart';
-import '../../../core/theme/app_theme.dart';
+
 
 
 class SettingsScreen extends StatelessWidget {
@@ -15,8 +15,6 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state is! AuthSuccess) {

@@ -97,10 +97,11 @@ class _AddBookDialogState extends State<AddBookDialog> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => BookFormScreen(
+                  builder: (context) => const BookFormScreen(
                     collectionId: 'books',
                     mode: FormMode.add,
                   ),

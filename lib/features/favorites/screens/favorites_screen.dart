@@ -10,7 +10,6 @@ import '../../books/widgets/book card/mobile_books_grid.dart';
 import '../../books/widgets/book card/table_books_view.dart';
 import '../../../features/users/models/user_model.dart';
 import '../repositories/favorites_repository.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/custom_search_bar.dart';
 
 class FavoritesScreen extends StatefulWidget {
@@ -26,7 +25,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   final _searchController = TextEditingController();
   BookViewType _viewType = BookViewType.desktop;
   UserModel? _cachedUserModel;
-  Map<String, Book> _bookCache = {};
+  final Map<String, Book> _bookCache = {};
   String _searchQuery = '';
 
   @override
@@ -38,9 +37,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
     final isDesktop = MediaQuery.of(context).size.width >= 1024;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     
     return Scaffold(
       appBar: CustomAppBar(
@@ -129,7 +127,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           );
         }
 
-        final booksList = _bookCache.values.toList();
+        final booksList = _bookCache.values
+            .where((book) => 
+                book.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                book.author.toLowerCase().contains(_searchQuery.toLowerCase()))
+            .toList();
 
         if (isMobile) {
           return MobileBooksGrid(
@@ -142,38 +144,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
         return _buildBooksList(booksList, userId, userModel.role == 'admin');
       },
-    );
-  }
-
-  Widget _buildViewSwitcher(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<BookViewType>(
-          value: _viewType,
-          icon: const Icon(Icons.arrow_drop_down),
-          iconSize: 20,
-          elevation: 4,
-          items: BookViewType.values.map((type) {
-            return DropdownMenuItem(
-              value: type,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(type.icon, size: 20),
-                  const SizedBox(width: 8),
-                  Text(type.label),
-                ],
-              ),
-            );
-          }).toList(),
-          onChanged: (type) {
-            if (type != null) {
-              setState(() => _viewType = type);
-            }
-          },
-        ),
-      ),
     );
   }
 

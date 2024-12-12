@@ -28,7 +28,6 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
   final _formKey = GlobalKey<FormState>();
   final _quantityController = TextEditingController(text: '1');
   String? _selectedUserId;
-  bool _isLoading = false;
   final _borrowedDateController = TextEditingController();
   final _dueDateController = TextEditingController();
   String _searchQuery = '';
@@ -108,9 +107,9 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
                       controller: _borrowedDateController,
                       decoration: InputDecoration(
                         labelText: 'Borrow Date',
-                        border: OutlineInputBorder(),
+                        border:const OutlineInputBorder(),
                         suffixIcon: IconButton(
-                          icon: Icon(Icons.calendar_today),
+                          icon: const Icon(Icons.calendar_today),
                           onPressed: () => _selectDate(context, _borrowedDateController),
                         ),
                       ),
@@ -121,15 +120,15 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
                       },
                     ),
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: TextFormField(
                       controller: _dueDateController,
                       decoration: InputDecoration(
                         labelText: 'Due Date',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                         suffixIcon: IconButton(
-                          icon: Icon(Icons.calendar_today),
+                          icon: const Icon(Icons.calendar_today),
                           onPressed: () => _selectDate(context, _dueDateController),
                         ),
                       ),
@@ -142,7 +141,7 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
                   ),
                 ],
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               // Replace the existing user selection with searchable dropdown
               if (widget.isAdmin) ...[
@@ -150,7 +149,7 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
                   stream: FirestoreService().getUsers(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
-                      return CircularProgressIndicator();
+                      return const CircularProgressIndicator();
                     }
 
                     final users = snapshot.data!.docs
@@ -165,7 +164,7 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
                     return Column(
                       children: [
                         TextFormField(
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: 'Search User',
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.search),
@@ -174,9 +173,9 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
                             setState(() => _searchQuery = value);
                           },
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Container(
-                          constraints: BoxConstraints(maxHeight: 200),
+                          constraints: const BoxConstraints(maxHeight: 200),
                           child: Card(
                             child: ListView.builder(
                               shrinkWrap: true,
@@ -199,7 +198,7 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
                     );
                   },
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
               ],
 
               BlocConsumer<BookingBloc, BookingState>(

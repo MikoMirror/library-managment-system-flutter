@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:logger/logger.dart';
 
 class AdminCheckService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _logger = Logger();
 
   Future<bool> hasAdminUser() async {
     try {
@@ -13,7 +15,7 @@ class AdminCheckService {
       
       return query.docs.isNotEmpty;
     } catch (e) {
-      print('Error checking for admin: $e');
+      _logger.e('Error checking for admin:', error: e);
       return false;
     }
   }

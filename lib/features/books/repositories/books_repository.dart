@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/book.dart';
 import '../../../core/repositories/base_repository.dart';
+import 'package:logger/logger.dart';
 
 class BooksRepository implements BaseRepository {
   final FirebaseFirestore _firestore;
+  final _logger = Logger();
 
   BooksRepository({required FirebaseFirestore firestore}) : _firestore = firestore;
 
@@ -37,7 +39,7 @@ class BooksRepository implements BaseRepository {
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Book.fromMap(
-                  doc.data() as Map<String, dynamic>,
+                  doc.data(),
                   doc.id,
                 ))
             .toList());
@@ -84,7 +86,7 @@ class BooksRepository implements BaseRepository {
           .get();
       return doc.exists;
     } catch (e) {
-      print('Error getting favorite status: $e');
+      _logger.e('Error getting favorite status:', error: e);
       rethrow;
     }
   }
@@ -104,7 +106,7 @@ class BooksRepository implements BaseRepository {
         await docRef.set({'timestamp': FieldValue.serverTimestamp()});
       }
     } catch (e) {
-      print('Error toggling favorite: $e');
+      _logger.e('Error toggling favorite:', error: e);
       rethrow;
     }
   }
@@ -115,7 +117,7 @@ class BooksRepository implements BaseRepository {
         .collection('books')
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => Book.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+            .map((doc) => Book.fromMap(doc.data(), doc.id))
             .where((book) =>
                 book.title.toLowerCase().contains(query) ||
                 book.author.toLowerCase().contains(query) ||

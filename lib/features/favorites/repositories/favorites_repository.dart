@@ -42,9 +42,7 @@ class FavoritesRepository {
 
             books.addAll(
               booksSnapshot.docs
-                  .map((doc) => Book.fromMap(doc.data(), doc.id))
-                  .where((book) => book != null) // Filter out null books
-                  .cast<Book>(), // Cast to non-null Book
+                  .map((doc) => Book.fromMap(doc.data(), doc.id)),
             );
           }
 

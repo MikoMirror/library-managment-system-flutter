@@ -29,6 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState?.validate() ?? false) {
       try {
         final result = await InternetAddress.lookup('google.com');
+        if (!mounted) return;
         if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
           context.read<AuthBloc>().add(
             LoginRequested(
@@ -38,6 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
       } catch (_) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('No internet connection'),

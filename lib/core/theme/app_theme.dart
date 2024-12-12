@@ -6,6 +6,10 @@ class AppTheme {
   static const Color accentLight = Color(0xFFACACAC);
   static const Color accentDark = Color(0xFFC8EDFF);
   
+  static const Color darkGradient1 = Color(0xFF2C2C2C);
+  static const Color darkGradient2 = Color(0xFF3A3A3A);
+  static const Color darkGradient3 = Color(0xFF4A4A4A);
+  
   static final lightTheme = ThemeData(
     brightness: Brightness.light,
     primaryColor: primaryLight,

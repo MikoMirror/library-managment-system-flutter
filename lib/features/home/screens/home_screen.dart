@@ -112,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   create: (context) => BookingBloc(
                     repository: BookingsRepository(firestore: _firestore),
                   )..add(LoadBookings()),
-                  child: MyBookingsScreen(),
+                  child: const MyBookingsScreen(),
                 ),
             3: () => const SettingsScreen(),
           };

@@ -21,7 +21,14 @@ class LoginRequested extends AuthEvent {
 
 class LogoutRequested extends AuthEvent {}
 
-class AuthStateChanged extends AuthEvent {}
+class AuthStateChanged extends AuthEvent {
+  final User? user;
+  
+  const AuthStateChanged(this.user);
+  
+  @override
+  List<Object?> get props => [user];
+}
 
 class AuthErrorEvent extends AuthEvent {
   final String message;

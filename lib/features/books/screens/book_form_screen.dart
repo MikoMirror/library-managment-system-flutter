@@ -20,10 +20,10 @@ class BookFormScreen extends StatefulWidget {
   });
 
   @override
-  _BookFormScreenState createState() => _BookFormScreenState();
+  State<BookFormScreen> createState() => BookFormScreenState();
 }
 
-class _BookFormScreenState extends State<BookFormScreen> {
+class BookFormScreenState extends State<BookFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final FirestoreService _firestoreService = FirestoreService();
   bool _isLoading = false;

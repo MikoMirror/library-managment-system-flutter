@@ -9,8 +9,6 @@ import '../cubit/booking_filter_cubit.dart';
 import '../../../core/services/database/firestore_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/widgets/custom_search_bar.dart';
-import '../../../core/models/search_filter.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
 import '../../users/models/user_model.dart';
 import '../repositories/bookings_repository.dart';
@@ -71,7 +69,7 @@ class _BookingsScreenContent extends StatelessWidget {
             final isAdmin = userModel.role == 'admin';
 
             return Scaffold(
-              backgroundColor: Theme.of(context).colorScheme.background,
+              backgroundColor: Theme.of(context).colorScheme.surface,
               appBar: CustomAppBar(
                 title: Text(
                   'Bookings Management',

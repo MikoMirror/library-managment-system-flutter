@@ -4,7 +4,7 @@ import '../bloc/users_bloc.dart';
 import '../bloc/users_event.dart';
 import '../bloc/users_state.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/theme/app_theme.dart';
+
 import '../widgets/users_table.dart';
 import '../../../core/widgets/custom_search_bar.dart';
 
@@ -36,8 +36,6 @@ class _UsersScreenState extends State<UsersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       appBar: CustomAppBar(
         title: Text(

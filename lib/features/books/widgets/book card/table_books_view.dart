@@ -24,22 +24,36 @@ class TableBooksView extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columns: const [
-          DataColumn(label: Text('Cover')),
-          DataColumn(label: Text('Title')),
-          DataColumn(label: Text('Author')),
-          DataColumn(label: Text('Language')),
-          DataColumn(label: Text('Rating')),
-          DataColumn(label: Text('Actions')),
-        ],
-        rows: books.map((book) => _buildBookRow(context, book)).toList(),
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          dataTableTheme: const DataTableThemeData(
+            dataRowMinHeight: 80,
+            dataRowMaxHeight: 80,
+            horizontalMargin: 24,
+            columnSpacing: 24,
+          ),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 800),
+          child: DataTable(
+            columns: const [
+              DataColumn(label: Text('Cover')),
+              DataColumn(label: Text('Title')),
+              DataColumn(label: Text('Author')),
+              DataColumn(label: Text('Language')),
+              DataColumn(label: Text('Rating')),
+              DataColumn(label: Text('Actions')),
+            ],
+            rows: books.map((book) => _buildBookRow(context, book)).toList(),
+          ),
+        ),
       ),
     );
   }
 
   DataRow _buildBookRow(BuildContext context, Book book) {
-    return DataRow(
+    return DataRow.byIndex(
+      index: books.indexOf(book),
       cells: [
         DataCell(
           SizedBox(

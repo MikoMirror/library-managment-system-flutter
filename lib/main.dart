@@ -11,8 +11,6 @@ import 'core/navigation/cubit/navigation_cubit.dart';
 import 'core/navigation/navigation_handler.dart';
 import 'features/books/repositories/books_repository.dart';
 import 'core/services/database/firestore_service.dart';
-import 'core/services/auth/admin_check_service.dart';
-import 'features/auth/screens/initial_admin_setup_screen.dart';
 import 'features/booking/bloc/booking_bloc.dart';
 import 'features/booking/repositories/bookings_repository.dart';
 import 'features/books/bloc/books_bloc.dart';

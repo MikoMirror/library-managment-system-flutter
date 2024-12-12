@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import '../bloc/booking_bloc.dart';
 import '../models/booking.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
+
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -59,8 +58,8 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
         }
 
         return Scaffold(
-          appBar: CustomAppBar(
-            title: const Text('My Bookings'),
+          appBar: const CustomAppBar(
+            title: Text('My Bookings'),
           ),
           body: BlocBuilder<BookingBloc, BookingState>(
             builder: (context, state) {
@@ -96,6 +95,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: DataTable(
+                            // ignore: deprecated_member_use
                             headingRowColor: MaterialStateProperty.all(
                               Theme.of(context).colorScheme.primaryContainer.withOpacity(0.1),
                             ),

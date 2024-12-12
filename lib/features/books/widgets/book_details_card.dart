@@ -23,7 +23,7 @@ class BookDetailsCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            _buildDetailRow('ISBN:', book.isbn ?? 'N/A'),
+            _buildDetailRow('ISBN:', book.isbn),
             _buildDetailRow('Categories:', book.categories),
             _buildDetailRow('Page Count:', book.pageCount.toString()),
             _buildDetailRow(

@@ -35,9 +35,9 @@ class _CacheManagementWidgetState extends State<CacheManagementWidget> {
               children: [
                 const Icon(Icons.storage_outlined, size: 20),
                 const SizedBox(width: 8),
-                Expanded(
+                const Expanded(
                   child: Wrap(
-                    children: const [
+                    children: [
                       Text(
                         'Cache ',
                         style: TextStyle(
@@ -247,7 +247,7 @@ class _CacheManagementWidgetState extends State<CacheManagementWidget> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
