@@ -88,6 +88,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         quantity: event.quantity,
       );
       emit(BookingSuccess());
+      add(LoadBookings());
     } catch (e) {
       emit(BookingError(e.toString()));
     }
@@ -98,9 +99,10 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     try {
       await repository.updateBookingStatus(
         bookingId: event.bookingId,
-        status: event.newStatus,
+        newStatus: event.newStatus,
       );
       emit(BookingSuccess());
+      add(LoadBookings());
     } catch (e) {
       emit(BookingError(e.toString()));
     }
@@ -111,6 +113,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     try {
       await repository.deleteBooking(event.bookingId);
       emit(BookingSuccess());
+      add(LoadBookings());
     } catch (e) {
       emit(BookingError(e.toString()));
     }

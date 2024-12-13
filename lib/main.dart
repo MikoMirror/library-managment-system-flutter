@@ -16,22 +16,28 @@ import 'features/booking/repositories/bookings_repository.dart';
 import 'features/books/bloc/books_bloc.dart';
 import 'features/users/bloc/users_bloc.dart';
 import 'features/users/repositories/users_repository.dart';
-
+import 'features/auth/screens/initial_admin_setup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
-  runApp(const MyApp());
+
+  final usersRepository = UsersRepository(
+    firestore: FirebaseFirestore.instance,
+  );
+
+  final adminExists = await usersRepository.adminExists();
+
+  runApp(MyApp(adminExists: adminExists));
 }
 
-
-
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool adminExists;
+
+  const MyApp({super.key, required this.adminExists});
 
   @override
   Widget build(BuildContext context) {
@@ -76,16 +82,23 @@ class MyApp extends StatelessWidget {
         title: 'Library Management System',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
-        home: NavigationHandler(
-          child: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              if (state is AuthSuccess) {
-                return const HomeScreen();
-              }
-              return const LoginScreen();
-            },
-          ),
-        ),
+        home: adminExists 
+          ? NavigationHandler(
+              child: BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, state) {
+                  if (state is AuthSuccess) {
+                    return const HomeScreen();
+                  }
+                  return const LoginScreen();
+                },
+              ),
+            )
+          : BlocProvider(
+              create: (context) => NavigationCubit(),
+              child: NavigationHandler(
+                child: const InitialAdminSetupScreen(),
+              ),
+            ),
       ),
     );
   }

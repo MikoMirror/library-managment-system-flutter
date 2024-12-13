@@ -49,6 +49,11 @@ class BookingFilterSection extends StatelessWidget {
                     icon: Icons.book,
                   ),
                   BookingFilterButton(
+                    label: 'Overdue',
+                    filter: BookingFilter.overdue,
+                    icon: Icons.warning_amber_rounded,
+                  ),
+                  BookingFilterButton(
                     label: 'Returned',
                     filter: BookingFilter.returned,
                     icon: Icons.assignment_returned,
@@ -85,6 +90,7 @@ class BookingFilterSection extends StatelessWidget {
                 _buildDropdownItem(BookingFilter.all, 'All', Icons.list, isDarkMode),
                 _buildDropdownItem(BookingFilter.pending, 'Pending', Icons.pending, isDarkMode),
                 _buildDropdownItem(BookingFilter.borrowed, 'Borrowed', Icons.book, isDarkMode),
+                _buildDropdownItem(BookingFilter.overdue, 'Overdue', Icons.warning_amber_rounded, isDarkMode),
                 _buildDropdownItem(BookingFilter.returned, 'Returned', Icons.assignment_returned, isDarkMode),
               ],
               onChanged: (BookingFilter? newFilter) {

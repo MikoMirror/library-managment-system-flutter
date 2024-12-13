@@ -7,6 +7,7 @@ import '../../../core/widgets/custom_app_bar.dart';
 
 import '../widgets/users_table.dart';
 import '../../../core/widgets/custom_search_bar.dart';
+import '../../../core/navigation/cubit/navigation_cubit.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -88,7 +89,10 @@ class _UsersScreenState extends State<UsersScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.pushNamed(context, '/add-user'),
+        onPressed: () {
+          debugPrint('Add user button pressed');
+          context.read<NavigationCubit>().navigateToAddUser();
+        },
         child: const Icon(Icons.add),
       ),
     );

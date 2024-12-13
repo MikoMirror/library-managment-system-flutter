@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../core/services/database/user_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/widgets/custom_text_field.dart';
+import '../bloc/users_bloc.dart';
+import '../bloc/users_event.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AddUserScreen extends StatefulWidget {
   final bool isAdmin;
@@ -21,15 +24,72 @@ class _AddUserScreenState extends State<AddUserScreen> {
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _peselController = TextEditingController();
-  final _userService = UserService();
   String _selectedRole = 'member';
   bool _isLoading = false;
   bool _showPassword = false;
+  String? _adminEmail;
+  String? _adminPassword;
 
   @override
   void initState() {
     super.initState();
+    _loadAdminCredentials();
     _selectedRole = widget.isAdmin ? 'admin' : 'member';
+  }
+
+  Future<void> _loadAdminCredentials() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      setState(() {
+        _adminEmail = currentUser.email;
+      });
+      // Note: We'll need to get the admin password from the form
+      // since we can't retrieve it from Firebase
+    }
+  }
+
+  Future<String?> _getAdminPassword() async {
+    String? password;
+    if (_adminEmail != null) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Admin Authentication'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Please enter your admin password to continue'),
+              const SizedBox(height: 16),
+              TextField(
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Admin Password',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) => password = value,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                password = null;
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Confirm'),
+            ),
+          ],
+        ),
+      );
+    }
+    return password;
   }
 
   @override
@@ -46,23 +106,32 @@ class _AddUserScreenState extends State<AddUserScreen> {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
       try {
-        await _userService.createUser(
-          _nameController.text.trim(),
-          _phoneController.text.trim(),
-          _peselController.text.trim(),
-          _emailController.text.trim(),
-          _passwordController.text,
-          _selectedRole,
-        );
+        final adminPassword = await _getAdminPassword();
+        if (adminPassword == null && _adminEmail != null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Admin password required'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        context.read<UsersBloc>().add(CreateUser(
+          name: _nameController.text.trim(),
+          phoneNumber: _phoneController.text.trim(),
+          pesel: _peselController.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          role: _selectedRole,
+          adminEmail: _adminEmail,
+          adminPassword: adminPassword,
+        ));
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('User created successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pop(context);
+          Navigator.of(context).pop();
         }
       } catch (e) {
         if (mounted) {

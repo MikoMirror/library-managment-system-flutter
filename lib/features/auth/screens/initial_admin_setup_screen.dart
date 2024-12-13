@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../core/services/database/user_service.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/navigation/cubit/navigation_cubit.dart';
+import '../../users/repositories/users_repository.dart';
 
 class InitialAdminSetupScreen extends StatefulWidget {
   const InitialAdminSetupScreen({super.key});
@@ -18,7 +18,6 @@ class _InitialAdminSetupScreenState extends State<InitialAdminSetupScreen> {
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _peselController = TextEditingController();
-  final _userService = UserService();
   bool _isLoading = false;
   bool _showPassword = false;
   bool _showCredentials = false;
@@ -41,16 +40,16 @@ class _InitialAdminSetupScreenState extends State<InitialAdminSetupScreen> {
       try {
         final email = _emailController.text.trim();
         final password = _passwordController.text;
-        
-        await _userService.createUser(
-          _nameController.text.trim(),
-          _phoneController.text.trim(),
-          _peselController.text.trim(),
-          email,
-          password,
-          'admin',
+
+        final usersRepository = context.read<UsersRepository>();
+        await usersRepository.createInitialAdmin(
+          name: _nameController.text.trim(),
+          phoneNumber: _phoneController.text.trim(),
+          pesel: _peselController.text.trim(),
+          email: email,
+          password: password,
         );
-        
+
         if (mounted) {
           setState(() {
             _showCredentials = true;
@@ -73,9 +72,9 @@ class _InitialAdminSetupScreenState extends State<InitialAdminSetupScreen> {
     }
   }
 
- void _proceedToLogin() {
-  context.read<NavigationCubit>().navigateToLogin();
-}
+  void _proceedToLogin() {
+    context.read<NavigationCubit>().navigateToLogin();
+  }
 
   @override
   Widget build(BuildContext context) {

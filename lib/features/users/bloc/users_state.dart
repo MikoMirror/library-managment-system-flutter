@@ -16,4 +16,8 @@ class UsersError extends UsersState {
   final String message;
 
   UsersError(this.message);
-} 
+}
+
+class UserCreating extends UsersState {}
+
+class UserCreated extends UsersState {} 

@@ -42,13 +42,15 @@ class _BookingsScreenContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDarkMode ? AppTheme.primaryDark : AppTheme.primaryLight;
+    final accentColor = isDarkMode ? AppTheme.accentDark : AppTheme.accentLight;
     
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
         if (authState is! AuthSuccess) {
           return Center(
             child: CircularProgressIndicator(
-              color: isDarkMode ? AppTheme.accentDark : AppTheme.primaryLight,
+              color: accentColor,
             ),
           );
         }
@@ -59,7 +61,7 @@ class _BookingsScreenContent extends StatelessWidget {
             if (!userSnapshot.hasData) {
               return Center(
                 child: CircularProgressIndicator(
-                  color: isDarkMode ? AppTheme.accentDark : AppTheme.primaryLight,
+                  color: accentColor,
                 ),
               );
             }
@@ -69,7 +71,9 @@ class _BookingsScreenContent extends StatelessWidget {
             final isAdmin = userModel.role == 'admin';
 
             return Scaffold(
-              backgroundColor: Theme.of(context).colorScheme.surface,
+              backgroundColor: isDarkMode 
+                ? Theme.of(context).scaffoldBackgroundColor 
+                : Colors.white,
               appBar: CustomAppBar(
                 title: Text(
                   'Bookings Management',
@@ -82,23 +86,43 @@ class _BookingsScreenContent extends StatelessWidget {
                   IconButton(
                     icon: Icon(
                       Icons.refresh,
-                      color: isDarkMode ? AppTheme.accentDark : AppTheme.accentLight,
+                      color: accentColor,
                     ),
                     tooltip: 'Refresh bookings',
                     onPressed: () {
-                      // Trigger a refresh if needed
+                      context.read<BookingBloc>().add(LoadBookings());
                     },
                   ),
                   const SizedBox(width: 8),
                 ],
               ),
-              body: Column(
-                children: [
-                  const BookingFilterSection(),
-                  Expanded(
-                    child: _buildBookingsList(context, isAdmin),
-                  ),
-                ],
+              body: Container(
+                decoration: BoxDecoration(
+                  gradient: isDarkMode
+                    ? const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppTheme.darkGradient1,
+                          AppTheme.darkGradient2,
+                          AppTheme.darkGradient3,
+                        ],
+                      )
+                    : null,
+                ),
+                child: Column(
+                  children: [
+                    const BookingFilterSection(),
+                    Expanded(
+                      child: _buildBookingsList(
+                        context, 
+                        isAdmin,
+                        isDarkMode,
+                        accentColor,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -107,15 +131,31 @@ class _BookingsScreenContent extends StatelessWidget {
     );
   }
 
-  Widget _buildBookingsList(BuildContext context, bool isAdmin) {
+  Widget _buildBookingsList(
+    BuildContext context, 
+    bool isAdmin, 
+    bool isDarkMode,
+    Color accentColor,
+  ) {
     return BlocBuilder<BookingBloc, BookingState>(
       builder: (context, state) {
         if (state is BookingLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(
+            child: CircularProgressIndicator(
+              color: accentColor,
+            ),
+          );
         }
 
         if (state is BookingError) {
-          return Center(child: Text('Error: ${state.message}'));
+          return Center(
+            child: Text(
+              'Error: ${state.message}',
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : Colors.black87,
+              ),
+            ),
+          );
         }
 
         if (state is BookingsLoaded) {
@@ -154,9 +194,11 @@ class _BookingsScreenContent extends StatelessWidget {
       case BookingFilter.pending:
         return bookings.where((b) => b.status == 'pending').toList();
       case BookingFilter.borrowed:
-        return bookings.where((b) => b.status == 'borrowed').toList();
+        return bookings.where((b) => b.status == 'borrowed' && !b.isOverdue).toList();
       case BookingFilter.returned:
         return bookings.where((b) => b.status == 'returned').toList();
+      case BookingFilter.overdue:
+        return bookings.where((b) => b.currentStatus == 'overdue').toList();
       case BookingFilter.all:
       default:
         return bookings;

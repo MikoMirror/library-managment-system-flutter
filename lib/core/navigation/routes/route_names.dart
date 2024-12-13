@@ -13,6 +13,7 @@ class RouteNames {
   
   // User related routes
   static const String users = '/users';
+  static const String addUser = '/add-user';
   static const String favorites = '/favorites';
   
   // Booking related routes

@@ -37,9 +37,28 @@ class Booking {
     return '${date.day}/${date.month}/${date.year}';
   }
 
+  String get currentStatus {
+    if (status != 'returned' && isOverdue) {
+      return 'overdue';
+    }
+    return status;
+  }
+
   bool get isOverdue {
+    if (status == 'returned') return false;
+    
     final now = DateTime.now();
-    return dueDate.toDate().isBefore(now) && status != 'returned';
+    final dueDateInLocal = dueDate.toDate().toLocal();
+    
+    // Create DateTime for the end of the due date (23:59:59)
+    final endOfDueDate = DateTime(
+      dueDateInLocal.year,
+      dueDateInLocal.month,
+      dueDateInLocal.day,
+      23, 59, 59,
+    );
+    
+    return now.isAfter(endOfDueDate);
   }
 
   factory Booking.fromMap(Map<String, dynamic> map, String? id) {
@@ -58,10 +77,11 @@ class Booking {
   }
 
   Map<String, dynamic> toMap() {
+    final currentBookingStatus = currentStatus;
     return {
       'userId': userId,
       'bookId': bookId,
-      'status': status,
+      'status': currentBookingStatus,
       'borrowedDate': borrowedDate,
       'dueDate': dueDate,
       'quantity': quantity,

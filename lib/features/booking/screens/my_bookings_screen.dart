@@ -4,6 +4,7 @@ import '../bloc/booking_bloc.dart';
 import '../models/booking.dart';
 import '../../../core/widgets/custom_app_bar.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
+import '../widgets/delete_booking_dialog.dart';
 
 
 class MyBookingsScreen extends StatefulWidget {
@@ -21,32 +22,18 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     context.read<BookingBloc>().add(LoadBookings());
   }
 
-  void _showCancelConfirmationDialog(BuildContext context, String bookingId, String bookTitle) {
-    showDialog(
+  Future<void> _confirmDelete(BuildContext context, String bookingId, String bookTitle) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Cancel Booking'),
-          content: Text('Are you sure you want to cancel your booking for "$bookTitle"?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('No'),
-            ),
-            TextButton(
-              onPressed: () {
-                context.read<BookingBloc>().add(DeleteBooking(bookingId: bookingId));
-                Navigator.pop(context);
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
-              child: const Text('Yes, Cancel'),
-            ),
-          ],
-        );
-      },
+      builder: (context) => DeleteBookingDialog(
+        bookTitle: bookTitle,
+      ),
     );
+
+    if (confirmed == true) {
+      if (!mounted) return;
+      context.read<BookingBloc>().add(DeleteBooking(bookingId: bookingId));
+    }
   }
 
   @override
@@ -150,7 +137,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     }
 
     return TextButton.icon(
-      onPressed: () => _showCancelConfirmationDialog(
+      onPressed: () => _confirmDelete(
         context,
         booking.id!,
         booking.bookTitle ?? 'Unknown Book',

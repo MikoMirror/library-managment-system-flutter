@@ -98,8 +98,6 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
                 },
               ),
               const SizedBox(height: 16),
-
-              // Add Date Selection Fields after quantity
               Row(
                 children: [
                   Expanded(

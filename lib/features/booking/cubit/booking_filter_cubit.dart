@@ -5,6 +5,7 @@ enum BookingFilter implements SearchFilter {
   all('All'),
   pending('Pending'),
   borrowed('Borrowed'),
+  overdue('Overdue'),
   returned('Returned');
 
   @override

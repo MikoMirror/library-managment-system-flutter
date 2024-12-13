@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../../features/books/models/book.dart';
-
+import '../../../features/users/models/user_model.dart';
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -221,5 +221,32 @@ class FirestoreService {
       debugPrint('Error getting book: $error');
       return error;
     });
+  }
+
+  Future<void> createUserDocument(UserModel user) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(user.userId)
+          .set(user.toMap());
+    } catch (e) {
+      throw Exception('Failed to create user document: $e');
+    }
+  }
+
+  Future<bool> checkUserExists(String email) async {
+    final querySnapshot = await _firestore
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .get();
+    return querySnapshot.docs.isNotEmpty;
+  }
+
+  Future<void> deleteUser(String userId) async {
+    try {
+      await _firestore.collection('users').doc(userId).delete();
+    } catch (e) {
+      throw Exception('Failed to delete user: $e');
+    }
   }
 }

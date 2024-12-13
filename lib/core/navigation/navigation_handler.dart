@@ -9,6 +9,10 @@ import '../../features/auth/bloc/auth/auth_bloc.dart';
 import '../../features/books/repositories/books_repository.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/home/screens/home_screen.dart';
+import '../../features/users/screens/add_user_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../features/auth/screens/initial_admin_setup_screen.dart';
+
 
 class NavigationHandler extends StatelessWidget {
   final Widget child;
@@ -22,7 +26,7 @@ class NavigationHandler extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<NavigationCubit, NavigationState>(
       listenWhen: (previous, current) => previous.route != current.route,
-      listener: (context, navigationState) {
+      listener: (context, navigationState) async {
         switch (navigationState.route) {
           case RouteNames.home:
             Navigator.of(context).pushAndRemoveUntil(
@@ -74,6 +78,48 @@ class NavigationHandler extends StatelessWidget {
               ),
             );
             break;
+
+          case RouteNames.addUser:
+            final authState = context.read<AuthBloc>().state;
+            if (authState is AuthSuccess) {
+              final userDoc = await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(authState.user.uid)
+                  .get();
+              final userData = userDoc.data() as Map<String, dynamic>;
+              final isCurrentUserAdmin = userData['role'] == 'admin';
+
+              if (!context.mounted) return;
+              
+              if (isCurrentUserAdmin) {
+                debugPrint('Navigating to AddUserScreen');
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    settings: const RouteSettings(name: RouteNames.addUser),
+                    builder: (context) => const AddUserScreen(isAdmin: false),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Only administrators can add new users'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+            break;
+
+          case RouteNames.initialSetup:
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                settings: const RouteSettings(name: RouteNames.initialSetup),
+                builder: (context) => const InitialAdminSetupScreen(),
+              ),
+              (route) => false,
+            );
+            break;
+
           // Add other cases as needed
         }
       },
