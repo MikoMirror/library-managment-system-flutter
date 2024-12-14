@@ -27,39 +27,45 @@ class BookingFilterSection extends StatelessWidget {
         ),
       ),
       child: Center(
-        child: isSmallScreen
-            ? _buildDropdownFilter(context, isDarkMode)
-            : const Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  BookingFilterButton(
-                    label: 'All',
-                    filter: BookingFilter.all,
-                    icon: Icons.list,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: isSmallScreen
+              ? _buildDropdownFilter(context, isDarkMode)
+              : Center(
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: const [
+                      BookingFilterButton(
+                        label: 'All',
+                        filter: BookingFilter.all,
+                        icon: Icons.list,
+                      ),
+                      BookingFilterButton(
+                        label: 'Pending',
+                        filter: BookingFilter.pending,
+                        icon: Icons.pending,
+                      ),
+                      BookingFilterButton(
+                        label: 'Borrowed',
+                        filter: BookingFilter.borrowed,
+                        icon: Icons.book,
+                      ),
+                      BookingFilterButton(
+                        label: 'Overdue',
+                        filter: BookingFilter.overdue,
+                        icon: Icons.warning_amber_rounded,
+                      ),
+                      BookingFilterButton(
+                        label: 'Returned',
+                        filter: BookingFilter.returned,
+                        icon: Icons.assignment_returned,
+                      ),
+                    ],
                   ),
-                  BookingFilterButton(
-                    label: 'Pending',
-                    filter: BookingFilter.pending,
-                    icon: Icons.pending,
-                  ),
-                  BookingFilterButton(
-                    label: 'Borrowed',
-                    filter: BookingFilter.borrowed,
-                    icon: Icons.book,
-                  ),
-                  BookingFilterButton(
-                    label: 'Overdue',
-                    filter: BookingFilter.overdue,
-                    icon: Icons.warning_amber_rounded,
-                  ),
-                  BookingFilterButton(
-                    label: 'Returned',
-                    filter: BookingFilter.returned,
-                    icon: Icons.assignment_returned,
-                  ),
-                ],
-              ),
+                ),
+        ),
       ),
     );
   }

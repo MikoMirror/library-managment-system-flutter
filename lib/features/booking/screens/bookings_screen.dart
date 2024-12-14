@@ -20,6 +20,8 @@ class BookingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => BookingFilterCubit()),
@@ -29,7 +31,12 @@ class BookingsScreen extends StatelessWidget {
           )..add(LoadBookings()),
         ),
       ],
-      child: _BookingsScreenContent(firestoreService: firestoreService),
+      child: Scaffold(
+        backgroundColor: isDarkMode 
+          ? AppTheme.backgroundDark 
+          : AppTheme.backgroundLight,
+        body: _BookingsScreenContent(firestoreService: firestoreService),
+      ),
     );
   }
 }
@@ -70,60 +77,18 @@ class _BookingsScreenContent extends StatelessWidget {
             final userModel = UserModel.fromMap(userData);
             final isAdmin = userModel.role == 'admin';
 
-            return Scaffold(
-              backgroundColor: isDarkMode 
-                ? Theme.of(context).scaffoldBackgroundColor 
-                : Colors.white,
-              appBar: CustomAppBar(
-                title: Text(
-                  'Bookings Management',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.black87,
+            return Column(
+              children: [
+                const BookingFilterSection(),
+                Expanded(
+                  child: _buildBookingsList(
+                    context, 
+                    isAdmin,
+                    isDarkMode,
+                    accentColor,
                   ),
                 ),
-                actions: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.refresh,
-                      color: accentColor,
-                    ),
-                    tooltip: 'Refresh bookings',
-                    onPressed: () {
-                      context.read<BookingBloc>().add(LoadBookings());
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ),
-              body: Container(
-                decoration: BoxDecoration(
-                  gradient: isDarkMode
-                    ? const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          AppTheme.darkGradient1,
-                          AppTheme.darkGradient2,
-                          AppTheme.darkGradient3,
-                        ],
-                      )
-                    : null,
-                ),
-                child: Column(
-                  children: [
-                    const BookingFilterSection(),
-                    Expanded(
-                      child: _buildBookingsList(
-                        context, 
-                        isAdmin,
-                        isDarkMode,
-                        accentColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              ],
             );
           },
         );

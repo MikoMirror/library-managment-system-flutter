@@ -121,7 +121,7 @@ class BookingTable extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                booking.status.toUpperCase(),
+                                booking.currentStatus.toUpperCase(),
                                 style: TextStyle(
                                   color: statusColor,
                                   fontWeight: FontWeight.bold,
@@ -283,7 +283,7 @@ class BookingTable extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          booking.status.toUpperCase(),
+                          booking.currentStatus.toUpperCase(),
                           style: TextStyle(
                             color: statusColor,
                             fontWeight: FontWeight.bold,
@@ -470,7 +470,7 @@ class BookingTable extends StatelessWidget {
     final displayStatus = status.toUpperCase();
 
     return Container(
-      width: 120, // Fixed width for consistency
+      width: 120,
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: color,

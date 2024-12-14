@@ -243,16 +243,13 @@ class BookingCard extends StatelessWidget {
         vertical: isSmallScreen ? 4 : 6,
       ),
       decoration: BoxDecoration(
-        color: colors[booking.status]?.withOpacity(0.8) ?? Colors.grey,
+        color: colors[booking.currentStatus]?.withOpacity(0.8) ?? Colors.grey,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        booking.status.substring(0, 1).toUpperCase() + 
-        booking.status.substring(1),
+        booking.currentStatus.toUpperCase(),
         style: TextStyle(
-          color: booking.status == 'borrowed'
-              ? (isDarkMode ? AppTheme.primaryDark : Colors.black87)
-              : Colors.white,
+          color: colors[booking.currentStatus],
           fontSize: isSmallScreen ? 11 : 13,
           fontWeight: FontWeight.bold,
         ),

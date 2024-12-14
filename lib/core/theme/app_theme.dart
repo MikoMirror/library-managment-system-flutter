@@ -6,6 +6,9 @@ class AppTheme {
   static const Color accentLight = Color(0xFFACACAC);
   static const Color accentDark = Color(0xFFC8EDFF);
   
+  static final Color backgroundLight = Colors.grey[50]!;
+  static final Color backgroundDark = Colors.grey[900]!;
+  
   static const Color darkGradient1 = Color(0xFF2C2C2C);
   static const Color darkGradient2 = Color(0xFF3A3A3A);
   static const Color darkGradient3 = Color(0xFF4A4A4A);
@@ -13,7 +16,7 @@ class AppTheme {
   static final lightTheme = ThemeData(
     brightness: Brightness.light,
     primaryColor: primaryLight,
-    scaffoldBackgroundColor: Colors.white,
+    scaffoldBackgroundColor: backgroundLight,
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.grey[100],
       elevation: 0,
@@ -57,7 +60,7 @@ class AppTheme {
   static final darkTheme = ThemeData(
     brightness: Brightness.dark,
     primaryColor: primaryDark,
-    scaffoldBackgroundColor: Colors.grey[900],
+    scaffoldBackgroundColor: backgroundDark,
     appBarTheme: const AppBarTheme(
       backgroundColor: primaryDark,
       elevation: 0,
@@ -97,4 +100,30 @@ class AppTheme {
       ),
     ),
   );
+
+  // Status Colors Map
+  static final Map<String, Color> bookingStatus = {
+    'pending': Colors.orange,
+    'borrowed': Colors.blue,
+    'returned': Colors.green,
+    'overdue': Colors.red,
+    'rejected': Colors.red,
+  };
+
+  static Color getStatusColor(String status) {
+    return bookingStatus[status.toLowerCase()] ?? Colors.grey;
+  }
+
+  // Spacing constants
+  static const double spacingXSmall = 4.0;
+  static const double spacingSmall = 8.0;
+  static const double spacingMedium = 16.0;
+  
+  // Font sizes
+  static const double fontSizeSmall = 12.0;
+  static const double fontSizeMedium = 14.0;
+  static const double fontSizeLarge = 18.0;
+  
+  // Border radius
+  static const double borderRadiusMedium = 8.0;
 } 

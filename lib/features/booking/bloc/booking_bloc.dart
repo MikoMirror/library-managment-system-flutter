@@ -6,7 +6,11 @@ import '../repositories/bookings_repository.dart';
 // Events
 abstract class BookingEvent {}
 
-class LoadBookings extends BookingEvent {}
+class LoadBookings extends BookingEvent {
+  final String? userId;
+
+  LoadBookings({this.userId});
+}
 
 class CreateBooking extends BookingEvent {
   final String userId;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 
 class DeleteBookingDialog extends StatelessWidget {
   final String bookTitle;
@@ -10,20 +11,60 @@ class DeleteBookingDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return AlertDialog(
-      title: const Text('Delete Booking'),
-      content: Text('Are you sure you want to delete the booking for "$bookTitle"?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('No'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.red,
+      title: const Center(
+        child: Text(
+          'Delete Booking',
+          style: TextStyle(
+            fontSize: AppTheme.fontSizeLarge,
+            fontWeight: FontWeight.bold,
           ),
-          child: const Text('Yes, Delete'),
+        ),
+      ),
+      content: Text(
+        'Delete booking for "$bookTitle"?',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: AppTheme.fontSizeMedium,
+          color: isDarkMode ? Colors.white70 : Colors.black87,
+        ),
+      ),
+      contentPadding: EdgeInsets.all(AppTheme.spacingMedium),
+      actions: [
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: AppTheme.spacingMedium,
+            vertical: AppTheme.spacingSmall,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(
+                  'No',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontSizeMedium,
+                    color: isDarkMode ? AppTheme.accentDark : AppTheme.accentLight,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red,
+                ),
+                child: Text(
+                  'Yes, Delete',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontSizeMedium,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
