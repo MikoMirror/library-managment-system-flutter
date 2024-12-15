@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../bloc/booking_bloc.dart';
+import '../bloc/reservation_bloc.dart';
 import '../../users/models/user_model.dart';
 import '../../books/models/book.dart';
 import '../../../core/services/database/firestore_service.dart';
@@ -199,14 +199,14 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
                 const SizedBox(height: 16),
               ],
 
-              BlocConsumer<BookingBloc, BookingState>(
+              BlocConsumer<ReservationBloc, ReservationState>(
                 listener: (context, state) {
-                  if (state is BookingSuccess) {
+                  if (state is ReservationSuccess) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Book reserved successfully')),
                     );
-                  } else if (state is BookingError) {
+                  } else if (state is ReservationError) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(state.message)),
                     );
@@ -216,15 +216,15 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
                   return SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: state is BookingLoading
+                      onPressed: state is ReservationLoading
                           ? null
                           : () {
                               if (_formKey.currentState?.validate() ?? false) {
                                 final borrowedDate = DateFormat('dd/MM/yyyy').parse(_borrowedDateController.text);
                                 final dueDate = DateFormat('dd/MM/yyyy').parse(_dueDateController.text);
                                 
-                                context.read<BookingBloc>().add(
-                                      CreateBooking(
+                                context.read<ReservationBloc>().add(
+                                      CreateReservation(
                                         userId: widget.userId,
                                         bookId: widget.book.id!,
                                         quantity: int.parse(_quantityController.text),
@@ -235,7 +235,7 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
                                     );
                               }
                             },
-                      child: state is BookingLoading
+                      child: state is ReservationLoading
                           ? const SizedBox(
                               height: 20,
                               width: 20,

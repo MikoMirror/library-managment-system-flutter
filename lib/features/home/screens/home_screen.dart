@@ -7,8 +7,6 @@ import '../../users/screens/users_screen.dart';
 import '../../books/screens/books_screen.dart';
 import '../../books/screens/book_details_screen.dart';
 import '../../favorites/screens/favorites_screen.dart';
-import '../../booking/screens/my_bookings_screen.dart';
-import '../../booking/screens/bookings_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../../core/widgets/custom_navigation_bar.dart';
 import '../../../core/navigation/cubit/navigation_cubit.dart';
@@ -17,8 +15,11 @@ import '../../users/models/user_model.dart';
 import '../../books/bloc/books_bloc.dart';
 import '../../books/repositories/books_repository.dart';
 import '../../../core/navigation/cubit/navigation_state.dart';
-import '../../booking/bloc/booking_bloc.dart';
-import '../../booking/repositories/bookings_repository.dart';
+import '../../reservation/bloc/reservation_bloc.dart';
+import '../../reservation/repositories/reservation_repository.dart';
+import '../../reservation/bloc/reservation_bloc.dart';
+import '../../reservation/repositories/reservation_repository.dart';
+import '../../reservation/screens/reservations_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -93,10 +94,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
             1: () => const UsersScreen(),
             2: () => BlocProvider(
-                  create: (context) => BookingBloc(
-                    repository: BookingsRepository(firestore: _firestore),
-                  )..add(LoadBookings()),
-                  child: BookingsScreen(),
+                  create: (context) => ReservationBloc(
+                    repository: ReservationsRepository(firestore: _firestore),
+                  )..add(LoadReservations()),
+                  child: ReservationsScreen(),
                 ),
             3: () => const SettingsScreen(),
           }
@@ -109,10 +110,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
             1: () => const FavoritesScreen(),
             2: () => BlocProvider(
-                  create: (context) => BookingBloc(
-                    repository: BookingsRepository(firestore: _firestore),
-                  )..add(LoadBookings()),
-                  child: BookingsScreen(),
+                  create: (context) => ReservationBloc(
+                    repository: ReservationsRepository(firestore: _firestore),
+                  )..add(LoadReservations()),
+                  child: ReservationsScreen(),
                 ),
             3: () => const SettingsScreen(),
           };

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../cubit/booking_filter_cubit.dart';
+import '../cubit/reservation_filter_cubit.dart';
 import '../../../core/theme/app_theme.dart';
 
-class BookingFilterButton extends StatelessWidget {
+class ReservationFilterButton extends StatelessWidget {
   final String label;
-  final BookingFilter filter;
+  final ReservationFilter filter;
   final IconData icon;
 
-  const BookingFilterButton({
+  const ReservationFilterButton({
     super.key,
     required this.label,
     required this.filter,
@@ -19,12 +19,12 @@ class BookingFilterButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
-    return BlocBuilder<BookingFilterCubit, BookingFilter>(
+    return BlocBuilder<ReservationFilterCubit, ReservationFilter>(
       builder: (context, currentFilter) {
         final isSelected = currentFilter == filter;
         return ElevatedButton.icon(
           onPressed: () {
-            context.read<BookingFilterCubit>().updateFilter(filter);
+            context.read<ReservationFilterCubit>().updateFilter(filter);
           },
           icon: Icon(
             icon,

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import '../models/booking.dart';
+import '../models/reservation.dart';
 import '../../../core/theme/app_theme.dart';
 
-class BookingCard extends StatelessWidget {
-  final Booking booking;
+class ReservationCard extends StatelessWidget {
+  final Reservation reservation;
   final bool isAdmin;
   final Function(String, String) onStatusChange;
   final Function(String)? onDelete;
 
-  const BookingCard({
+  const ReservationCard({
     super.key,
-    required this.booking,
+    required this.reservation,
     required this.isAdmin,
     required this.onStatusChange,
     this.onDelete,
@@ -41,7 +41,7 @@ class BookingCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        booking.bookTitle ?? 'Loading...',
+                        reservation.bookTitle ?? 'Loading...',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           fontSize: isSmallScreen ? 14 : 16,
@@ -49,7 +49,7 @@ class BookingCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (booking.isOverdue) ...[
+                      if (reservation.isOverdue) ...[
                         const SizedBox(height: 4),
                         Container(
                           width: double.infinity,
@@ -95,7 +95,7 @@ class BookingCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '${booking.userName ?? 'Loading...'} (${booking.userLibraryNumber ?? 'N/A'})',
+                    '${reservation.userName ?? 'Loading...'} (${reservation.userLibraryNumber ?? 'N/A'})',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: isSmallScreen ? 12 : 14,
                     ),
@@ -114,15 +114,15 @@ class BookingCard extends StatelessWidget {
                     _buildInfoRow(
                       context,
                       'Borrowed',
-                      booking.formattedBorrowedDate,
+                      reservation.formattedBorrowedDate,
                       Icons.date_range,
                     ),
                     _buildInfoRow(
                       context,
                       'Due',
-                      booking.formattedDueDate,
+                      reservation.formattedDueDate,
                       Icons.calendar_today,
-                      isOverdue: booking.isOverdue,
+                      isOverdue: reservation.isOverdue,
                     ),
                     if (isAdmin) ...[
                       const SizedBox(height: 16),
@@ -131,11 +131,11 @@ class BookingCard extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          if (booking.status != 'borrowed' && 
-                              booking.status != 'returned')
+                          if (reservation.status != 'borrowed' && 
+                              reservation.status != 'returned')
                             TextButton.icon(
                               onPressed: () => onStatusChange(
-                                booking.id!,
+                                reservation.id!,
                                 'borrowed',
                               ),
                               icon: Icon(
@@ -144,10 +144,10 @@ class BookingCard extends StatelessWidget {
                               ),
                               label: const Text('Accept'),
                             ),
-                          if (booking.status == 'borrowed')
+                          if (reservation.status == 'borrowed')
                             TextButton.icon(
                               onPressed: () => onStatusChange(
-                                booking.id!,
+                                reservation.id!,
                                 'returned',
                               ),
                               icon: Icon(
@@ -158,7 +158,7 @@ class BookingCard extends StatelessWidget {
                             ),
                           const SizedBox(width: 8),
                           TextButton.icon(
-                            onPressed: () => onDelete?.call(booking.id!),
+                            onPressed: () => onDelete?.call(reservation.id!),
                             icon: const Icon(
                               Icons.delete_outline,
                               color: Colors.red,
@@ -243,13 +243,13 @@ class BookingCard extends StatelessWidget {
         vertical: isSmallScreen ? 4 : 6,
       ),
       decoration: BoxDecoration(
-        color: colors[booking.currentStatus]?.withOpacity(0.8) ?? Colors.grey,
+        color: colors[reservation.status]?.withOpacity(0.8) ?? Colors.grey,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        booking.currentStatus.toUpperCase(),
+        reservation.status.toUpperCase(),
         style: TextStyle(
-          color: colors[booking.currentStatus],
+          color: Colors.white,
           fontSize: isSmallScreen ? 11 : 13,
           fontWeight: FontWeight.bold,
         ),

@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
-import '../models/booking.dart';
+import '../models/reservation.dart';
 
-class BookingStatusChip extends StatelessWidget {
-  final Booking booking;
+class ReservationStatusChip extends StatelessWidget {
+  final Reservation reservation;
   final bool isSmallScreen;
   final bool isDarkMode;
 
-  const BookingStatusChip({
+  const ReservationStatusChip({
     super.key,
-    required this.booking,
+    required this.reservation,
     this.isSmallScreen = false,
     this.isDarkMode = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final currentStatus = booking.currentStatus;
+    final currentStatus = reservation.status;
     final statusColor = AppTheme.getStatusColor(currentStatus);
 
     return Container(

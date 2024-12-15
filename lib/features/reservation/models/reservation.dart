@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class Booking {
+class Reservation {
   final String? id;
   final String userId;
   final String bookId;
@@ -12,7 +12,7 @@ class Booking {
   final String? userName;
   final String? userLibraryNumber;
 
-  Booking({
+ Reservation({
     this.id,
     required this.userId,
     required this.bookId,
@@ -61,8 +61,8 @@ class Booking {
     return now.isAfter(endOfDueDate);
   }
 
-  factory Booking.fromMap(Map<String, dynamic> map, String? id) {
-    return Booking(
+  factory Reservation.fromMap(Map<String, dynamic> map, String? id) {
+    return Reservation(
       id: id,
       userId: map['userId'],
       bookId: map['bookId'],
@@ -91,7 +91,7 @@ class Booking {
     };
   }
 
-  Booking copyWith({
+  Reservation copyWith({
     String? id,
     String? userId,
     String? bookId,
@@ -103,7 +103,7 @@ class Booking {
     String? userName,
     String? userLibraryNumber,
   }) {
-    return Booking(
+    return Reservation(
       id: id ?? this.id,
       userId: userId ?? this.userId,
       bookId: bookId ?? this.bookId,

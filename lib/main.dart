@@ -11,8 +11,8 @@ import 'core/navigation/cubit/navigation_cubit.dart';
 import 'core/navigation/navigation_handler.dart';
 import 'features/books/repositories/books_repository.dart';
 import 'core/services/database/firestore_service.dart';
-import 'features/booking/bloc/booking_bloc.dart';
-import 'features/booking/repositories/bookings_repository.dart';
+import 'features/reservation/bloc/reservation_bloc.dart';
+import 'features/reservation/repositories/reservation_repository.dart';
 import 'features/books/bloc/books_bloc.dart';
 import 'features/users/bloc/users_bloc.dart';
 import 'features/users/repositories/users_repository.dart';
@@ -48,8 +48,8 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider(create: (context) => NavigationCubit()),
         BlocProvider(
-          create: (context) => BookingBloc(
-            repository: BookingsRepository(
+          create: (context) => ReservationBloc(
+            repository: ReservationsRepository(
               firestore: FirebaseFirestore.instance,
             ),
           ),
@@ -95,8 +95,8 @@ class MyApp extends StatelessWidget {
             )
           : BlocProvider(
               create: (context) => NavigationCubit(),
-              child: NavigationHandler(
-                child: const InitialAdminSetupScreen(),
+              child: const NavigationHandler(
+                child: InitialAdminSetupScreen(),
               ),
             ),
       ),

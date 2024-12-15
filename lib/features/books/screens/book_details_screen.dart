@@ -9,7 +9,7 @@ import '../cubit/rating/rating_state.dart';
 import '../../../features/users/models/user_model.dart';
 import '../../../core/services/database/firestore_service.dart';
 import '../../../core/services/image/image_cache_service.dart';
-import '../../booking/widgets/book_booking_dialog.dart';
+import '../../reservation/widgets/book_reservation_dialog.dart';
 import 'dart:ui';
 import '../../../features/books/repositories/books_repository.dart';
 import '../widgets/book_rating_widget.dart';

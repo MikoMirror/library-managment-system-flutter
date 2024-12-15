@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
-import '../models/booking.dart';
-import '../constants/booking_constants.dart';
+import '../models/reservation.dart';
+import '../constants/reservation_constants.dart';
 
-class BookingActions extends StatelessWidget {
-  final Booking booking;
+class ReservationActions extends StatelessWidget {
+  final Reservation reservation;
   final bool isAdmin;
   final bool isMobile;
   final Function(String, String) onStatusChange;
   final Function(String) onDelete;
 
-  const BookingActions({
+  const ReservationActions({
     super.key,
-    required this.booking,
+    required this.reservation,
     required this.isAdmin,
     required this.isMobile,
     required this.onStatusChange,
@@ -29,10 +29,10 @@ class BookingActions extends StatelessWidget {
   }
 
   Widget _buildDesktopActions(BuildContext context) {
-    if (!isAdmin || booking.id == null) return const SizedBox.shrink();
+    if (!isAdmin || reservation.id == null) return const SizedBox.shrink();
 
-    final isOverdue = booking.isOverdue;
-    final currentStatus = booking.currentStatus;
+    final isOverdue =reservation.isOverdue;
+    final currentStatus = reservation.currentStatus;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -41,22 +41,22 @@ class BookingActions extends StatelessWidget {
           _buildIconButton(
             context: context,
             icon: Icons.check_circle_outline,
-            onPressed: () => onStatusChange(booking.id!, 'borrowed'),
+            onPressed: () => onStatusChange(reservation.id!, 'borrowed'),
             tooltip: 'Accept',
-            color: AppTheme.bookingStatus['borrowed'],
+            color: AppTheme.reservationStatus['borrowed'],
           ),
         if (currentStatus == 'borrowed' || currentStatus == 'overdue')
           _buildIconButton(
             context: context,
             icon: Icons.assignment_return_outlined,
-            onPressed: () => onStatusChange(booking.id!, 'returned'),
+            onPressed: () => onStatusChange(reservation.id!, 'returned'),
             tooltip: 'Return',
-            color: AppTheme.bookingStatus['returned'],
+            color: AppTheme.reservationStatus['returned'],
           ),
         _buildIconButton(
           context: context,
           icon: Icons.delete_outline,
-          onPressed: () => onDelete(booking.id!),
+          onPressed: () => onDelete(reservation.id!),
           tooltip: 'Delete',
           color: Colors.red,
         ),
@@ -65,10 +65,10 @@ class BookingActions extends StatelessWidget {
   }
 
   Widget _buildMobileActions(BuildContext context) {
-    if (!isAdmin || booking.id == null) return const SizedBox.shrink();
+    if (!isAdmin || reservation.id == null) return const SizedBox.shrink();
 
-    final isOverdue = booking.isOverdue;
-    final currentStatus = booking.currentStatus;
+    final isOverdue = reservation.isOverdue;
+    final currentStatus = reservation.currentStatus;
 
     return Padding(
       padding: EdgeInsets.symmetric(vertical: AppTheme.spacingSmall),
@@ -80,8 +80,8 @@ class BookingActions extends StatelessWidget {
                 context: context,
                 icon: Icons.check_circle_outline,
                 label: 'Approve',
-                onPressed: () => onStatusChange(booking.id!, 'borrowed'),
-                backgroundColor: AppTheme.bookingStatus['borrowed']!,
+                onPressed: () => onStatusChange(reservation.id!, 'borrowed'),
+                backgroundColor: AppTheme.reservationStatus['borrowed']!,
               ),
             )
           else if (currentStatus == 'borrowed' || currentStatus == 'overdue')
@@ -90,8 +90,8 @@ class BookingActions extends StatelessWidget {
                 context: context,
                 icon: Icons.assignment_return_outlined,
                 label: 'Return',
-                onPressed: () => onStatusChange(booking.id!, 'returned'),
-                backgroundColor: AppTheme.bookingStatus['returned']!,
+                onPressed: () => onStatusChange(reservation.id!, 'returned'),
+                backgroundColor: AppTheme.reservationStatus['returned']!,
               ),
             ),
           SizedBox(width: AppTheme.spacingSmall),
@@ -100,7 +100,7 @@ class BookingActions extends StatelessWidget {
               context: context,
               icon: Icons.delete_outline,
               label: 'Remove',
-              onPressed: () => onDelete(booking.id!),
+              onPressed: () => onDelete(reservation.id!),
               backgroundColor: Colors.red,
             ),
           ),

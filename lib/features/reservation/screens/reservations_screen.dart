@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../widgets/booking_table.dart';
-import '../widgets/booking_filter_section.dart';
-import '../models/booking.dart';
-import '../bloc/booking_bloc.dart';
-import '../cubit/booking_filter_cubit.dart';
+import '../widgets/reservation_table.dart';
+import '../widgets/reservation_filter_section.dart';
+import '../models/reservation.dart';
+import '../bloc/reservation_bloc.dart';
+import '../cubit/reservation_filter_cubit.dart';
 import '../../../core/services/database/firestore_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/custom_app_bar.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
 import '../../users/models/user_model.dart';
-import '../repositories/bookings_repository.dart';
+import '../repositories/reservation_repository.dart';
 
-class BookingsScreen extends StatelessWidget {
+
+class ReservationsScreen extends StatelessWidget {
   final FirestoreService firestoreService = FirestoreService();
 
-  BookingsScreen({super.key});
+  ReservationsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -24,27 +25,27 @@ class BookingsScreen extends StatelessWidget {
     
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (context) => BookingFilterCubit()),
+        BlocProvider(create: (context) => ReservationFilterCubit()),
         BlocProvider(
-          create: (context) => BookingBloc(
-            repository: BookingsRepository(firestore: FirebaseFirestore.instance),
-          )..add(LoadBookings()),
+          create: (context) => ReservationBloc(
+            repository: ReservationsRepository(firestore: FirebaseFirestore.instance),
+          )..add(LoadReservations()),
         ),
       ],
       child: Scaffold(
         backgroundColor: isDarkMode 
           ? AppTheme.backgroundDark 
           : AppTheme.backgroundLight,
-        body: _BookingsScreenContent(firestoreService: firestoreService),
+        body: _ReservationsScreenContent(firestoreService: firestoreService),
       ),
     );
   }
 }
 
-class _BookingsScreenContent extends StatelessWidget {
+class _ReservationsScreenContent extends StatelessWidget {
   final FirestoreService firestoreService;
 
-  const _BookingsScreenContent({required this.firestoreService});
+  const _ReservationsScreenContent({required this.firestoreService});
 
   @override
   Widget build(BuildContext context) {
@@ -67,41 +68,40 @@ class _BookingsScreenContent extends StatelessWidget {
 
             return Column(
               children: [
-                const BookingFilterSection(),
+                const ReservationFilterSection(),
                 Expanded(
-                  child: BlocBuilder<BookingBloc, BookingState>(
+                  child: BlocBuilder<ReservationBloc, ReservationState>(
                     builder: (context, state) {
-                      if (state is BookingsLoaded) {
-                        return BlocBuilder<BookingFilterCubit, BookingFilter>(
+                      if (state is ReservationsLoaded) {
+                        return BlocBuilder<ReservationFilterCubit, ReservationFilter>(
                           builder: (context, filter) {
-                            final filteredBookings = _filterBookings(
-                              state.bookings,
+                            final filteredReservations = _filterReservations(
+                              state.reservations,
                               filter,
                               isAdmin,
                               authState.user.uid,
                             );
                             
-                            return BookingTable(
-                              bookings: filteredBookings,
+                            return ReservationTable(
+                              reservations: filteredReservations,
                               isAdmin: isAdmin,
-                              onStatusChange: (bookingId, newStatus) {
-                                context.read<BookingBloc>().add(
-                                  UpdateBookingStatus(
-                                    bookingId: bookingId,
+                              onStatusChange: (reservationId, newStatus) {
+                                context.read<ReservationBloc>().add(
+                                  UpdateReservationStatus(
+                                    reservationId: reservationId,
                                     newStatus: newStatus,
                                   ),
                                 );
                               },
-                              onDelete: (bookingId) {
-                                context.read<BookingBloc>().add(
-                                  DeleteBooking(bookingId: bookingId),
+                              onDelete: (reservationId) {
+                                context.read<ReservationBloc>().add(
+                                  DeleteReservation(reservationId: reservationId),
                                 );
                               },
                             );
                           },
                         );
                       }
-                      // ... rest of the state handling
                       return const SizedBox.shrink();
                     },
                   ),
@@ -114,28 +114,28 @@ class _BookingsScreenContent extends StatelessWidget {
     );
   }
 
-  List<Booking> _filterBookings(
-    List<Booking> bookings,
-    BookingFilter filter,
+  List<Reservation> _filterReservations(
+    List<Reservation> reservations,
+    ReservationFilter filter,
     bool isAdmin,
     String userId,
   ) {
     // First filter by user if not admin
     final filteredByUser = isAdmin 
-        ? bookings 
-        : bookings.where((b) => b.userId == userId).toList();
+        ? reservations 
+        : reservations.where((b) => b.userId == userId).toList();
 
     // Then apply status filter
     switch (filter) {
-      case BookingFilter.reserved:
+      case ReservationFilter.reserved:
         return filteredByUser.where((b) => b.status == 'reserved').toList();
-      case BookingFilter.borrowed:
+      case ReservationFilter.borrowed:
         return filteredByUser.where((b) => b.status == 'borrowed' && !b.isOverdue).toList();
-      case BookingFilter.returned:
+      case ReservationFilter.returned:
         return filteredByUser.where((b) => b.status == 'returned').toList();
-      case BookingFilter.overdue:
+      case ReservationFilter.overdue:
         return filteredByUser.where((b) => b.currentStatus == 'overdue').toList();
-      case BookingFilter.all:
+      case ReservationFilter.all:
       default:
         return filteredByUser;
     }

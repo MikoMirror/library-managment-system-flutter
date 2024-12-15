@@ -9,6 +9,12 @@ class AppTheme {
   static final Color backgroundLight = Colors.grey[50]!;
   static final Color backgroundDark = Colors.grey[900]!;
   
+  static final Color surfaceLight = Colors.white;
+  static final Color surfaceDark = Colors.grey[850]!;
+  
+  static const Color textLight = Colors.black87;
+  static const Color textDark = Colors.white70;
+  
   static const Color darkGradient1 = Color(0xFF2C2C2C);
   static const Color darkGradient2 = Color(0xFF3A3A3A);
   static const Color darkGradient3 = Color(0xFF4A4A4A);
@@ -102,8 +108,8 @@ class AppTheme {
   );
 
   // Status Colors Map
-  static final Map<String, Color> bookingStatus = {
-    'pending': Colors.orange,
+  static final Map<String, Color> reservationStatus = {
+    'reserved': Colors.orange,
     'borrowed': Colors.blue,
     'returned': Colors.green,
     'overdue': Colors.red,
@@ -111,7 +117,7 @@ class AppTheme {
   };
 
   static Color getStatusColor(String status) {
-    return bookingStatus[status.toLowerCase()] ?? Colors.grey;
+    return reservationStatus[status.toLowerCase()] ?? Colors.grey;
   }
 
   // Spacing constants

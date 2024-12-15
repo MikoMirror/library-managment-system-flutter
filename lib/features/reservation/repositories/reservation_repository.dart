@@ -1,15 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/booking.dart';
+import '../models/reservation.dart';
 import '../../../core/repositories/base_repository.dart';
 
-class BookingsRepository implements BaseRepository {
+class ReservationsRepository implements BaseRepository {
   final FirebaseFirestore firestore;
 
-  BookingsRepository({required this.firestore});
+  ReservationsRepository({required this.firestore});
 
-  Future<List<Booking>> getBookings() async {
+  Future<List<Reservation>> getReservations() async {
     try {
-      final snapshot = await firestore.collection('bookings').get();
+      final snapshot = await firestore.collection('books_reservation').get();
       
       return Future.wait(snapshot.docs.map((doc) async {
         final data = doc.data();
@@ -28,7 +28,7 @@ class BookingsRepository implements BaseRepository {
             .get();
         final userData = userDoc.data();
 
-        return Booking.fromMap({
+        return Reservation.fromMap({
           ...data,
           'bookTitle': bookData?['title'],
           'userName': userData?['name'],
@@ -36,11 +36,11 @@ class BookingsRepository implements BaseRepository {
         }, doc.id);
       }));
     } catch (e) {
-      throw Exception('Failed to fetch bookings: $e');
+      throw Exception('Failed to fetch reservations: $e');
     }
   }
 
-  Future<void> createBooking({
+  Future<void> createReservation({
     required String userId,
     required String bookId,
     required String status,
@@ -50,8 +50,8 @@ class BookingsRepository implements BaseRepository {
   }) async {
     final batch = firestore.batch();
     
-    final bookingRef = firestore.collection('bookings').doc();
-    batch.set(bookingRef, {
+    final reservationRef = firestore.collection('books_reservation').doc();
+    batch.set(reservationRef, {
       'userId': userId,
       'bookId': bookId,
       'status': status,
@@ -70,25 +70,25 @@ class BookingsRepository implements BaseRepository {
     await batch.commit();
   }
 
-  Future<void> updateBookingStatus({
-    required String bookingId,
+  Future<void> updateReservationStatus({
+    required String reservationId,
     required String newStatus,
   }) async {
     try {
       final batch = firestore.batch();
       
-      // Get the booking details
-      final bookingDoc = await firestore.collection('bookings').doc(bookingId).get();
-      final bookingData = bookingDoc.data();
+      // Get the reservation details
+      final reservationDoc = await firestore.collection('books_reservation').doc(reservationId).get();
+      final reservationData = reservationDoc.data();
       
-      if (bookingData != null) {
-        final bookId = bookingData['bookId'] as String;
-        final quantity = bookingData['quantity'] as int;
-        final oldStatus = bookingData['status'] as String;
+      if (reservationData != null) {
+        final bookId = reservationData['bookId'] as String;
+        final quantity = reservationData['quantity'] as int;
+        final oldStatus = reservationData['status'] as String;
 
-        // Update booking status
+        // Update reservation status
         batch.update(
-          firestore.collection('bookings').doc(bookingId),
+          firestore.collection('books_reservation').doc(reservationId),
           {
             'status': newStatus,
             'updatedAt': Timestamp.now(),
@@ -107,28 +107,28 @@ class BookingsRepository implements BaseRepository {
         await batch.commit();
       }
     } catch (e) {
-      throw Exception('Failed to update booking status: $e');
+      throw Exception('Failed to update reservation status: $e');
     }
   }
 
-  Future<void> deleteBooking(String bookingId) async {
+  Future<void> deleteReservation(String reservationId) async {
     try {
-      // Get the booking details before deletion
-      final bookingDoc = await firestore.collection('bookings').doc(bookingId).get();
-      final bookingData = bookingDoc.data();
+      // Get the reservation details before deletion
+      final reservationDoc = await firestore.collection('books_reservation').doc(reservationId).get();
+      final reservationData = reservationDoc.data();
       
-      if (bookingData != null) {
-        final status = bookingData['status'] as String;
-        final bookId = bookingData['bookId'] as String;
-        final quantity = bookingData['quantity'] as int;
+      if (reservationData != null) {
+        final status = reservationData['status'] as String;
+        final bookId = reservationData['bookId'] as String;
+        final quantity = reservationData['quantity'] as int;
 
         // Start a batch write
         final batch = firestore.batch();
 
-        // Delete the booking
-        batch.delete(firestore.collection('bookings').doc(bookingId));
+        // Delete the reservation
+        batch.delete(firestore.collection('books_reservation').doc(reservationId));
 
-        // If the booking was not returned, increment the book quantity
+        // If the reservation was not returned, increment the book quantity
         if (status != 'returned') {
           final bookRef = firestore.collection('books').doc(bookId);
           batch.update(bookRef, {
@@ -140,7 +140,7 @@ class BookingsRepository implements BaseRepository {
         await batch.commit();
       }
     } catch (e) {
-      throw Exception('Failed to delete booking: $e');
+      throw Exception('Failed to delete reservation: $e');
     }
   }
 

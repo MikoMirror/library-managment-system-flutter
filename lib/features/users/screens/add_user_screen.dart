@@ -59,7 +59,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Please enter your admin password to continue'),
+              const Text('Please enter your admin password to continue'),
               const SizedBox(height: 16),
               TextField(
                 obscureText: true,
