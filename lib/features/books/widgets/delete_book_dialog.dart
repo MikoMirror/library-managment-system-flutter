@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/book.dart';
 import '../../../core/services/database/firestore_service.dart';
+import '../../../features/books/bloc/books_bloc.dart';
+import '../../../features/books/bloc/books_event.dart';
 
 class DeleteBookDialog extends StatelessWidget {
   final Book book;
@@ -21,27 +24,9 @@ class DeleteBookDialog extends StatelessWidget {
           child: const Text('Cancel'),
         ),
         TextButton(
-          onPressed: () async {
-            try {
-              await FirestoreService().deleteBook('books', book.id!);
-              if (!context.mounted) return;
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Book deleted successfully'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            } catch (e) {
-              if (!context.mounted) return;
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Error deleting book: $e'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
+          onPressed: () {
+            context.read<BooksBloc>().add(DeleteBook(book.id!));
+            Navigator.of(context).pop();
           },
           style: TextButton.styleFrom(foregroundColor: Colors.red),
           child: const Text('Delete'),

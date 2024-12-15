@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../core/services/api/open_library_service.dart';
 
 class Book {
   final String? id;
@@ -116,6 +117,10 @@ class Book {
         path: uri.path,
         queryParameters: params,
       ).toString();
+    }
+    
+    if (OpenLibraryService.isOpenLibraryUrl(externalImageUrl!)) {
+      return OpenLibraryService.transformCoverUrl(externalImageUrl!, isLarge: true);
     }
     
     return externalImageUrl!;

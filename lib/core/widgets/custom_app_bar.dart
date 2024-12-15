@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../theme/app_theme.dart';
+import '../theme/cubit/theme_cubit.dart';
+
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final Widget? title;
   final bool automaticallyImplyLeading;
   final Widget? leading;
+  final PreferredSizeWidget? bottom;
 
   const CustomAppBar({
     super.key,
@@ -13,32 +17,34 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.title,
     this.automaticallyImplyLeading = true,
     this.leading,
+    this.bottom,
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => Size.fromHeight(
+    kToolbarHeight + (bottom?.preferredSize.height ?? 0)
+  );
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final isDesktop = MediaQuery.of(context).size.width >= 1024;
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? AppTheme.dark : AppTheme.light;
     
     return AppBar(
       leading: leading,
       title: title,
       actions: [
         if (actions != null) ...actions!,
-        if (isDesktop && actions != null) const SizedBox(width: 8),
       ],
       automaticallyImplyLeading: automaticallyImplyLeading,
       centerTitle: false,
       elevation: 0,
-      backgroundColor: isDarkMode 
-          ? AppTheme.primaryDark.withOpacity(0.3)
-          : AppTheme.primaryLight.withOpacity(0.3),
+      backgroundColor: colors.primary.withOpacity(0.1),
       iconTheme: IconThemeData(
-        color: isDarkMode ? AppTheme.accentDark : AppTheme.accentLight,
+        color: colors.primary,
       ),
+      bottom: bottom,
     );
   }
 } 

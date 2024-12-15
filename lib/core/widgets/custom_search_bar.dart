@@ -87,12 +87,12 @@ class _CustomSearchBarState extends State<CustomSearchBar> with SingleTickerProv
                       controller: _controller,
                       onChanged: widget.onChanged,
                       style: TextStyle(
-                        color: isDarkMode ? AppTheme.accentDark : AppTheme.accentLight,
+                        color: isDarkMode ? AppTheme.dark.secondary : AppTheme.light.secondary,
                       ),
                       decoration: InputDecoration(
                         hintText: widget.hintText,
                         hintStyle: TextStyle(
-                          color: isDarkMode ? AppTheme.accentDark : AppTheme.accentLight,
+                          color: isDarkMode ? AppTheme.dark.secondary : AppTheme.light.secondary,
                         ),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16),

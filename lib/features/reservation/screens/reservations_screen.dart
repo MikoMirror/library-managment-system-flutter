@@ -12,6 +12,7 @@ import '../../../core/widgets/custom_app_bar.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
 import '../../users/models/user_model.dart';
 import '../repositories/reservation_repository.dart';
+import '../../../core/widgets/custom_app_bar.dart';
 
 
 class ReservationsScreen extends StatelessWidget {
@@ -33,9 +34,21 @@ class ReservationsScreen extends StatelessWidget {
         ),
       ],
       child: Scaffold(
+        appBar: CustomAppBar(
+          title: Text(
+            'Reservations',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(80),
+            child: ReservationFilterSection(),
+          ),
+        ),
         backgroundColor: isDarkMode 
-          ? AppTheme.backgroundDark 
-          : AppTheme.backgroundLight,
+          ? AppTheme.dark.background 
+          : AppTheme.light.background,
         body: _ReservationsScreenContent(firestoreService: firestoreService),
       ),
     );
@@ -68,7 +81,6 @@ class _ReservationsScreenContent extends StatelessWidget {
 
             return Column(
               children: [
-                const ReservationFilterSection(),
                 Expanded(
                   child: BlocBuilder<ReservationBloc, ReservationState>(
                     builder: (context, state) {

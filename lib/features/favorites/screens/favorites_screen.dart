@@ -42,8 +42,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     
     return Scaffold(
       appBar: CustomAppBar(
-        title: const Text('Favorites'),
-        actions: [
+      title: Text(
+        'Favorites',
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      actions: [
           SizedBox(
             width: MediaQuery.of(context).size.width * 0.4,
             child: CustomSearchBar(

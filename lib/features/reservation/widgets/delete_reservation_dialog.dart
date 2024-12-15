@@ -11,15 +11,17 @@ class DeleteBookingDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final coreColors = isDark ? AppTheme.dark : AppTheme.light;
 
     return AlertDialog(
-      title: const Center(
+      title: Center(
         child: Text(
           'Delete Booking',
           style: TextStyle(
-            fontSize: AppTheme.fontSizeLarge,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
+            color: coreColors.onSurface,
           ),
         ),
       ),
@@ -27,46 +29,30 @@ class DeleteBookingDialog extends StatelessWidget {
         'Delete booking for "$bookTitle"?',
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontSize: AppTheme.fontSizeMedium,
-          color: isDarkMode ? Colors.white70 : Colors.black87,
+          fontSize: 16,
+          color: coreColors.textSubtle,
         ),
       ),
-      contentPadding: EdgeInsets.all(AppTheme.spacingMedium),
+      contentPadding: const EdgeInsets.all(16.0),
       actions: [
-        Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingMedium,
-            vertical: AppTheme.spacingSmall,
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text(
+            'No',
+            style: TextStyle(
+              fontSize: 16,
+              color: coreColors.secondary,
+            ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(
-                  'No',
-                  style: TextStyle(
-                    fontSize: AppTheme.fontSizeMedium,
-                    color: isDarkMode ? AppTheme.accentDark : AppTheme.accentLight,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  if (!Navigator.of(context).mounted) return;
-                  Navigator.of(context).pop(true);
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.red,
-                ),
-                child: Text(
-                  'Yes, Delete',
-                  style: TextStyle(
-                    fontSize: AppTheme.fontSizeMedium,
-                  ),
-                ),
-              ),
-            ],
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: TextButton.styleFrom(
+            foregroundColor: coreColors.error,
+          ),
+          child: const Text(
+            'Yes, Delete',
+            style: TextStyle(fontSize: 16),
           ),
         ),
       ],

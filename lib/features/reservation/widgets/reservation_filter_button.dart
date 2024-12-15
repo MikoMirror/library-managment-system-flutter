@@ -29,20 +29,20 @@ class ReservationFilterButton extends StatelessWidget {
           icon: Icon(
             icon,
             color: isSelected
-                ? (isDarkMode ? AppTheme.primaryDark : Colors.white)
-                : (isDarkMode ? AppTheme.accentDark : AppTheme.accentLight),
+                ? (isDarkMode ? Colors.white : Colors.white)
+                : (isDarkMode ? AppTheme.dark.secondary : AppTheme.light.secondary),
           ),
           label: Text(
             label,
             style: TextStyle(
               color: isSelected
-                  ? (isDarkMode ? AppTheme.primaryDark : Colors.white)
-                  : (isDarkMode ? AppTheme.accentDark : AppTheme.accentLight),
+                  ? (isDarkMode ? Colors.white : Colors.white)
+                  : (isDarkMode ? AppTheme.dark.secondary : AppTheme.light.secondary),
             ),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: isSelected
-                ? (isDarkMode ? AppTheme.accentDark : AppTheme.primaryLight)
+                ? (isDarkMode ? AppTheme.dark.primary : AppTheme.light.primary)
                 : Theme.of(context).cardColor,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             elevation: isSelected ? 2 : 1,

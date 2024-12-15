@@ -6,8 +6,9 @@ import '../../../core/services/settings/settings_service.dart';
 import '../../../features/users/models/user_model.dart';
 import '../widgets/cache_management_widget.dart';
 import '../../../core/widgets/simple_app_bar.dart';
-
-
+import '../../../core/theme/cubit/theme_cubit.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import '../../../core/widgets/custom_app_bar.dart';
 
 class SettingsScreen extends StatelessWidget {
   static final _firestore = FirebaseFirestore.instance;
@@ -22,14 +23,15 @@ class SettingsScreen extends StatelessWidget {
         }
 
         return Scaffold(
-          appBar: SimpleAppBar(
-            title: Text(
-              'Settings',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+         appBar: CustomAppBar(
+          title: Text(
+            'Settings',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
             ),
           ),
+        ),
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: StreamBuilder<DocumentSnapshot>(
             stream: _firestore.collection('users')
                 .doc(state.user.uid)
@@ -75,6 +77,8 @@ class SettingsScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    _buildThemeSettings(context),
                     const SizedBox(height: 16),
                     const CacheManagementWidget(),
                     const SizedBox(height: 32),
@@ -124,6 +128,38 @@ class SettingsScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildThemeSettings(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Theme',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            BlocBuilder<ThemeCubit, ThemeState>(
+              builder: (context, state) {
+                return SwitchListTile(
+                  title: const Text('Dark Mode'),
+                  value: state.isDarkMode,
+                  onChanged: (_) {
+                    context.read<ThemeCubit>().toggleTheme();
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 

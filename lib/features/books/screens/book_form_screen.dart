@@ -4,6 +4,10 @@ import '../models/book.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/book_cover_selector_widget.dart';
+import '../../../core/constants/language_constants.dart';
+import '../widgets/language_management_dialog.dart';
+import 'dart:async';
+import '../utils/book_cover_utils.dart';
 
 enum FormMode { add, edit }
 
@@ -39,17 +43,21 @@ class BookFormScreenState extends State<BookFormScreen> {
 
   Timestamp? _selectedDate;
   String? _imageUrl;
-  late String _selectedLanguage;
+  String _selectedLanguage = LanguageConstants.defaultLanguage;
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
-    _selectedLanguage = widget.book?.language ?? 'en';
+    _initializeLanguage();
+    
+    // Add listener to ISBN controller
+    _isbnController.addListener(_onIsbnChanged);
   }
 
   @override
   void dispose() {
+    _isbnController.removeListener(_onIsbnChanged);
     _titleController.dispose();
     _authorController.dispose();
     _isbnController.dispose();
@@ -59,6 +67,14 @@ class BookFormScreenState extends State<BookFormScreen> {
     _publishedDateController.dispose();
     _quantityController.dispose();
     super.dispose();
+  }
+
+  void _initializeLanguage() {
+    if (widget.book != null) {
+      _selectedLanguage = LanguageConstants.isValidLanguage(widget.book!.language)
+          ? widget.book!.language
+          : LanguageConstants.defaultLanguage;
+    }
   }
 
   void _initializeControllers() {
@@ -73,7 +89,17 @@ class BookFormScreenState extends State<BookFormScreen> {
     _quantityController = TextEditingController(text: book?.booksQuantity.toString() ?? '0');
 
     _selectedDate = book?.publishedDate;
-    _imageUrl = book?.externalImageUrl;
+    
+    // Initialize image URL from book or generate new one if ISBN exists
+    if (book?.externalImageUrl != null) {
+      _imageUrl = book?.externalImageUrl;
+    } else if (book?.isbn != null && book!.isbn!.isNotEmpty) {
+      _imageUrl = BookCoverUtils.getOpenLibraryCover(
+        book.isbn!,
+        size: CoverSize.large,
+      );
+    }
+
     _publishedDateController = TextEditingController(
       text: book?.publishedDate != null
           ? DateFormat('yyyy-MM-dd').format(book!.publishedDate!.toDate())
@@ -112,24 +138,28 @@ class BookFormScreenState extends State<BookFormScreen> {
           description: _descriptionController.text,
           categories: _categoriesController.text,
           pageCount: int.tryParse(_pageCountController.text) ?? 0,
-          externalImageUrl: _imageUrl,
-          publishedDate: _selectedDate,
           booksQuantity: int.tryParse(_quantityController.text) ?? 0,
+          publishedDate: _selectedDate,
           language: _selectedLanguage,
           ratings: widget.book?.ratings ?? {},
+          externalImageUrl: _imageUrl,
         );
 
-        if (widget.mode == FormMode.add) {
-          await _firestoreService.addBook(widget.collectionId, bookData);
-        } else {
+        if (widget.mode == FormMode.edit) {
           await _firestoreService.updateBook(widget.collectionId, bookData);
+        } else {
+          await _firestoreService.addBook(widget.collectionId, bookData);
         }
 
         if (mounted) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Book saved successfully'),
+            SnackBar(
+              content: Text(
+                widget.mode == FormMode.edit
+                    ? 'Book updated successfully'
+                    : 'Book added successfully',
+              ),
               backgroundColor: Colors.green,
             ),
           );
@@ -138,7 +168,7 @@ class BookFormScreenState extends State<BookFormScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error saving book: $e'),
+              content: Text('Error ${widget.mode == FormMode.edit ? 'updating' : 'adding'} book: $e'),
               backgroundColor: Colors.red,
             ),
           );
@@ -151,6 +181,26 @@ class BookFormScreenState extends State<BookFormScreen> {
         }
       }
     }
+  }
+
+  // Add debounce timer
+  Timer? _debounceTimer;
+
+  void _onIsbnChanged() {
+    // Cancel previous timer if it exists
+    _debounceTimer?.cancel();
+    
+    // Set new timer
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (_isbnController.text.isNotEmpty) {
+        setState(() {
+          _imageUrl = BookCoverUtils.getOpenLibraryCover(
+            _isbnController.text,
+            size: CoverSize.large,
+          );
+        });
+      }
+    });
   }
 
   @override
@@ -179,14 +229,35 @@ class BookFormScreenState extends State<BookFormScreen> {
                       padding: const EdgeInsets.all(24.0),
                       child: Column(
                         children: [
-                          BookCoverSelector(
-                            initialUrl: _imageUrl,
-                            isbn: _isbnController.text,
-                            onCoverSelected: (String url) {
-                              setState(() {
-                                _imageUrl = url;
-                              });
-                            },
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              BookCoverSelector(
+                                initialUrl: _imageUrl,
+                                isbn: _isbnController.text,
+                                onCoverSelected: (String url) {
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    if (mounted) {
+                                      setState(() {
+                                        _imageUrl = url;
+                                      });
+                                    }
+                                  });
+                                },
+                              ),
+                              if (_isLoading)
+                                Container(
+                                  width: 200,
+                                  height: 300,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -230,7 +301,7 @@ class BookFormScreenState extends State<BookFormScreen> {
                       child: _isLoading
                           ? const CircularProgressIndicator()
                           : Text(
-                              widget.mode == FormMode.edit ? 'Update Book' : 'Add Book',
+                              widget.mode == FormMode.edit ? 'Save Changes' : 'Add Book',
                               style: const TextStyle(fontSize: 16),
                             ),
                     ),
@@ -361,24 +432,52 @@ class BookFormScreenState extends State<BookFormScreen> {
   }
 
   Widget _buildLanguageDropdown() {
-    return DropdownButtonFormField<String>(
-      value: _selectedLanguage,
-      decoration: const InputDecoration(
-        labelText: 'Language',
-        border: OutlineInputBorder(),
-        filled: true,
-      ),
-      items: ['en', 'es', 'fr', 'de', 'zh', 'ja', 'ru', 'it', 'pt']
-          .map((lang) => DropdownMenuItem(
-                value: lang,
-                child: Text(lang.toUpperCase()),
-              ))
-          .toList(),
-      onChanged: (value) {
-        setState(() {
-          _selectedLanguage = value!;
-        });
-      },
+    if (!LanguageConstants.isValidLanguage(_selectedLanguage)) {
+      setState(() {
+        _selectedLanguage = LanguageConstants.defaultLanguage;
+      });
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: _selectedLanguage,
+            decoration: const InputDecoration(
+              labelText: 'Language',
+              border: OutlineInputBorder(),
+              filled: true,
+            ),
+            items: LanguageConstants.getActiveLanguages()
+                .map((lang) => DropdownMenuItem(
+                      value: lang.code,
+                      child: Text('${lang.name} (${lang.code.toUpperCase()})'),
+                    ))
+                .toList(),
+            onChanged: (value) {
+              if (value != null && LanguageConstants.isValidLanguage(value)) {
+                setState(() {
+                  _selectedLanguage = value;
+                });
+              }
+            },
+            validator: (value) => value == null || !LanguageConstants.isValidLanguage(value)
+                ? 'Please select a valid language'
+                : null,
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          icon: const Icon(Icons.settings),
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) => const LanguageManagementDialog(),
+            ).then((_) => setState(() {})); // Refresh the dropdown after dialog closes
+          },
+          tooltip: 'Manage Languages',
+        ),
+      ],
     );
   }
 } 

@@ -18,12 +18,14 @@ class ReservationTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: reservations.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final reservation = reservations[index];
         return ReservationCard(
+          key: ValueKey(reservation.id),
           reservation: reservation,
           isAdmin: isAdmin,
           onStatusChange: onStatusChange,

@@ -31,7 +31,8 @@ class ReservationActions extends StatelessWidget {
   Widget _buildDesktopActions(BuildContext context) {
     if (!isAdmin || reservation.id == null) return const SizedBox.shrink();
 
-    final isOverdue =reservation.isOverdue;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final coreColors = isDark ? AppTheme.dark : AppTheme.light;
     final currentStatus = reservation.currentStatus;
 
     return Row(
@@ -43,7 +44,7 @@ class ReservationActions extends StatelessWidget {
             icon: Icons.check_circle_outline,
             onPressed: () => onStatusChange(reservation.id!, 'borrowed'),
             tooltip: 'Accept',
-            color: AppTheme.reservationStatus['borrowed'],
+            color: coreColors.success,
           ),
         if (currentStatus == 'borrowed' || currentStatus == 'overdue')
           _buildIconButton(
@@ -51,14 +52,14 @@ class ReservationActions extends StatelessWidget {
             icon: Icons.assignment_return_outlined,
             onPressed: () => onStatusChange(reservation.id!, 'returned'),
             tooltip: 'Return',
-            color: AppTheme.reservationStatus['returned'],
+            color: coreColors.info,
           ),
         _buildIconButton(
           context: context,
           icon: Icons.delete_outline,
           onPressed: () => onDelete(reservation.id!),
           tooltip: 'Delete',
-          color: Colors.red,
+          color: coreColors.error,
         ),
       ],
     );
@@ -67,11 +68,12 @@ class ReservationActions extends StatelessWidget {
   Widget _buildMobileActions(BuildContext context) {
     if (!isAdmin || reservation.id == null) return const SizedBox.shrink();
 
-    final isOverdue = reservation.isOverdue;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final coreColors = isDark ? AppTheme.dark : AppTheme.light;
     final currentStatus = reservation.currentStatus;
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: AppTheme.spacingSmall),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
           if (currentStatus != 'borrowed' && currentStatus != 'returned')
@@ -81,7 +83,7 @@ class ReservationActions extends StatelessWidget {
                 icon: Icons.check_circle_outline,
                 label: 'Approve',
                 onPressed: () => onStatusChange(reservation.id!, 'borrowed'),
-                backgroundColor: AppTheme.reservationStatus['borrowed']!,
+                backgroundColor: coreColors.success,
               ),
             )
           else if (currentStatus == 'borrowed' || currentStatus == 'overdue')
@@ -91,17 +93,17 @@ class ReservationActions extends StatelessWidget {
                 icon: Icons.assignment_return_outlined,
                 label: 'Return',
                 onPressed: () => onStatusChange(reservation.id!, 'returned'),
-                backgroundColor: AppTheme.reservationStatus['returned']!,
+                backgroundColor: coreColors.info,
               ),
             ),
-          SizedBox(width: AppTheme.spacingSmall),
+          const SizedBox(width: 8),
           Expanded(
             child: _buildActionButton(
               context: context,
               icon: Icons.delete_outline,
               label: 'Remove',
               onPressed: () => onDelete(reservation.id!),
-              backgroundColor: Colors.red,
+              backgroundColor: coreColors.error,
             ),
           ),
         ],
@@ -120,11 +122,11 @@ class ReservationActions extends StatelessWidget {
       icon: Icon(
         icon,
         color: color,
-        size: AppTheme.fontSizeLarge + 4,
+        size: 24,
       ),
       onPressed: onPressed,
       tooltip: tooltip,
-      splashRadius: AppTheme.fontSizeLarge + 8,
+      splashRadius: 24,
     );
   }
 
@@ -135,28 +137,32 @@ class ReservationActions extends StatelessWidget {
     required VoidCallback onPressed,
     required Color backgroundColor,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final coreColors = isDark ? AppTheme.dark : AppTheme.light;
+
     return ElevatedButton.icon(
       onPressed: onPressed,
       icon: Icon(
         icon,
-        size: AppTheme.fontSizeLarge,
+        size: 20,
       ),
       label: Text(
         label,
         style: TextStyle(
-          fontSize: AppTheme.fontSizeMedium,
+          fontSize: 14,
           fontWeight: FontWeight.w500,
+          color: coreColors.onPrimary,
         ),
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: backgroundColor,
-        foregroundColor: Colors.white,
-        padding: EdgeInsets.symmetric(
-          vertical: AppTheme.spacingMedium,
-          horizontal: AppTheme.spacingMedium,
+        foregroundColor: coreColors.onPrimary,
+        padding: const EdgeInsets.symmetric(
+          vertical: 12.0,
+          horizontal: 12.0,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+          borderRadius: BorderRadius.circular(8.0),
         ),
       ),
     );

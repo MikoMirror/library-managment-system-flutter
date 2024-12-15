@@ -8,6 +8,7 @@ import '../../bloc/book_card_bloc.dart';
 import '../../repositories/books_repository.dart';
 import 'dart:ui';
 import '../../../../core/theme/app_theme.dart';
+import '../delete_book_dialog.dart';
 
 
 class BookCard extends StatefulWidget {
@@ -67,7 +68,12 @@ class _BookCardState extends State<BookCard> {
     if (widget.isAdmin) {
       return IconButton(
         icon: const Icon(Icons.delete, color: Colors.red),
-        onPressed: widget.onDelete,
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => DeleteBookDialog(book: widget.book),
+          );
+        },
       );
     } else {
       return BlocBuilder<BookCardBloc, BookCardState>(
@@ -97,6 +103,7 @@ class _BookCardState extends State<BookCard> {
   Widget _buildDesktopCard() {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final coreColors = isDark ? AppTheme.dark : AppTheme.light;
     
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -108,27 +115,6 @@ class _BookCardState extends State<BookCard> {
             width: double.infinity,
             height: double.infinity,
             fit: BoxFit.cover,
-          ),
-
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: const [0.5, 0.7, 1.0],
-                  colors: isDark ? [
-                    Colors.transparent,
-                    AppTheme.darkGradient1.withOpacity(0.7),
-                    AppTheme.darkGradient3.withOpacity(0.95),
-                  ] : [
-                    Colors.transparent,
-                    AppTheme.primaryLight.withOpacity(0.3),
-                    AppTheme.primaryLight.withOpacity(0.9),
-                  ],
-                ),
-              ),
-            ),
           ),
 
           Positioned(
@@ -149,15 +135,15 @@ class _BookCardState extends State<BookCard> {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      stops: const [0.0, 0.4, 1.0],
+                      stops: const [0.0, 0.3, 0.7],
                       colors: isDark ? [
-                        AppTheme.darkGradient1.withOpacity(0.3),
-                        AppTheme.darkGradient2.withOpacity(0.7),
-                        AppTheme.darkGradient3.withOpacity(0.95),
+                        coreColors.surface.withOpacity(0.1),
+                        coreColors.surface.withOpacity(0.3),
+                        coreColors.surface.withOpacity(0.7),
                       ] : [
-                        AppTheme.primaryLight.withOpacity(0.1),
-                        AppTheme.primaryLight.withOpacity(0.6),
-                        AppTheme.primaryLight.withOpacity(0.9),
+                        coreColors.surface.withOpacity(0.05),
+                        coreColors.surface.withOpacity(0.2),
+                        coreColors.surface.withOpacity(0.4),
                       ],
                     ),
                   ),
@@ -172,7 +158,7 @@ class _BookCardState extends State<BookCard> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.black87,
+                            color: coreColors.onSurface,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -223,21 +209,22 @@ class _BookCardState extends State<BookCard> {
           ),
 
           Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  stops: const [0.0, 0.3, 1.0],
-                  colors: [
-                    Colors.transparent,
-                    (isDark ? AppTheme.primaryDark : AppTheme.primaryLight).withOpacity(0.3),
-                    (isDark ? AppTheme.primaryDark : AppTheme.primaryLight).withOpacity(0.9),
-                  ],
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    stops: const [0.0, 0.3, 1.0],
+                    colors: [
+                      Colors.transparent,
+                      (isDark ? AppTheme.dark.primary : AppTheme.light.primary).withOpacity(0.1),
+                      (isDark ? AppTheme.dark.primary : AppTheme.light.primary).withOpacity(0.3),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
+          
 
           Row(
             children: [

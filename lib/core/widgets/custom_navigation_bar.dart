@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../core/theme/cubit/theme_cubit.dart';
 
 class NavigationItem {
   final int index;
@@ -31,25 +33,52 @@ class CustomNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
-    return Container(
-      color: theme.appBarTheme.backgroundColor,
-      child: isHorizontal
-          ? Column(
-              children: items.map((item) => _buildVerticalItem(context, item)).toList(),
-            )
-          : Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: items.map((item) => _buildHorizontalItem(context, item)).toList(),
-            ),
+    return BlocBuilder<ThemeCubit, ThemeState>(
+      builder: (context, themeState) {
+        final theme = Theme.of(context);
+        final isDarkMode = themeState.isDarkMode;
+        final colors = isDarkMode ? AppTheme.dark : AppTheme.light;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: isDarkMode ? colors.surface : colors.primary.withOpacity(0.1),
+            border: isHorizontal ? Border(
+              right: BorderSide(
+                color: Colors.transparent,
+                width: 0,
+              ),
+            ) : null,
+          ),
+          child: isHorizontal
+            ? Column(
+                children: items.map((item) => _buildVerticalItem(
+                  context, 
+                  item,
+                  isDarkMode,
+                  colors,
+                )).toList(),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: items.map((item) => _buildHorizontalItem(
+                  context,
+                  item,
+                  isDarkMode,
+                  colors,
+                )).toList(),
+              ),
+        );
+      },
     );
   }
 
-  Widget _buildVerticalItem(BuildContext context, NavigationItem item) {
+  Widget _buildVerticalItem(
+    BuildContext context,
+    NavigationItem item,
+    bool isDarkMode,
+    CoreColors colors,
+  ) {
     final isSelected = selectedIndex == item.index;
-    final theme = Theme.of(context);
-    const selectedColor = AppTheme.primaryLight;
     
     return InkWell(
       onTap: () => onItemSelected(item.index),
@@ -62,14 +91,18 @@ class CustomNavigationBar extends StatelessWidget {
           children: [
             Icon(
               isSelected ? item.selectedIcon : item.unselectedIcon,
-              color: isSelected ? selectedColor : theme.iconTheme.color,
+              color: isSelected 
+                ? colors.primary
+                : colors.primary.withOpacity(0.7),
             ),
             const SizedBox(height: 4),
             Text(
               item.label,
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: isSelected ? selectedColor : theme.iconTheme.color,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: isSelected 
+                  ? colors.primary
+                  : colors.primary.withOpacity(0.7),
                 fontSize: 12,
               ),
             ),
@@ -79,10 +112,13 @@ class CustomNavigationBar extends StatelessWidget {
     );
   }
 
-  Widget _buildHorizontalItem(BuildContext context, NavigationItem item) {
+  Widget _buildHorizontalItem(
+    BuildContext context,
+    NavigationItem item,
+    bool isDarkMode,
+    CoreColors colors,
+  ) {
     final isSelected = selectedIndex == item.index;
-    final theme = Theme.of(context);
-    const selectedColor = AppTheme.primaryLight;
     
     return Expanded(
       child: InkWell(
@@ -95,14 +131,18 @@ class CustomNavigationBar extends StatelessWidget {
             children: [
               Icon(
                 isSelected ? item.selectedIcon : item.unselectedIcon,
-                color: isSelected ? selectedColor : theme.iconTheme.color,
+                color: isSelected 
+                  ? colors.primary
+                  : colors.primary.withOpacity(0.7),
               ),
               const SizedBox(height: 4),
               Text(
                 item.label,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: isSelected ? selectedColor : theme.iconTheme.color,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: isSelected 
+                    ? colors.primary
+                    : colors.primary.withOpacity(0.7),
                   fontSize: 12,
                 ),
               ),

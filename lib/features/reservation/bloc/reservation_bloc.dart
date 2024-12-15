@@ -64,13 +64,14 @@ class ReservationsLoaded extends ReservationState {
 
 class ReservationBloc extends Bloc<ReservationEvent, ReservationState> {
   final ReservationsRepository repository;
+  List<Reservation> _currentReservations = [];
 
   ReservationBloc({required this.repository}) : super(ReservationInitial()) {
     on<LoadReservations>((event, emit) async {
       try {
         emit(ReservationLoading());
-        final reservations = await repository.getReservations();
-        emit(ReservationsLoaded(reservations));
+        _currentReservations = await repository.getReservations();
+        emit(ReservationsLoaded(_currentReservations));
       } catch (e) {
         emit(ReservationError(e.toString()));
       }
@@ -99,25 +100,34 @@ class ReservationBloc extends Bloc<ReservationEvent, ReservationState> {
   }
 
   Future<void> _onUpdateReservationStatus(UpdateReservationStatus event, Emitter<ReservationState> emit) async {
-    emit(ReservationLoading());
     try {
       await repository.updateReservationStatus(
         reservationId: event.reservationId,
         newStatus: event.newStatus,
       );
-      emit(ReservationSuccess());
-      add(LoadReservations());
+      
+      _currentReservations = _currentReservations.map((reservation) {
+        if (reservation.id == event.reservationId) {
+          return reservation.copyWith(status: event.newStatus);
+        }
+        return reservation;
+      }).toList();
+      
+      emit(ReservationsLoaded(_currentReservations));
     } catch (e) {
       emit(ReservationError(e.toString()));
     }
   }
 
   Future<void> _onDeleteReservation(DeleteReservation event, Emitter<ReservationState> emit) async {
-    emit(ReservationLoading());
     try {
       await repository.deleteReservation(event.reservationId);
-      emit(ReservationSuccess());
-      add(LoadReservations());
+      
+      _currentReservations = _currentReservations
+          .where((reservation) => reservation.id != event.reservationId)
+          .toList();
+          
+      emit(ReservationsLoaded(_currentReservations));
     } catch (e) {
       emit(ReservationError(e.toString()));
     }

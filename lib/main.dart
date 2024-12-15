@@ -17,6 +17,7 @@ import 'features/books/bloc/books_bloc.dart';
 import 'features/users/bloc/users_bloc.dart';
 import 'features/users/repositories/users_repository.dart';
 import 'features/auth/screens/initial_admin_setup_screen.dart';
+import 'core/theme/cubit/theme_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,28 +78,34 @@ class MyApp extends StatelessWidget {
             repository: context.read<UsersRepository>(),
           ),
         ),
+        BlocProvider(create: (context) => ThemeCubit()),
       ],
-      child: MaterialApp(
-        title: 'Library Management System',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        home: adminExists 
-          ? NavigationHandler(
-              child: BlocBuilder<AuthBloc, AuthState>(
-                builder: (context, state) {
-                  if (state is AuthSuccess) {
-                    return const HomeScreen();
-                  }
-                  return const LoginScreen();
-                },
-              ),
-            )
-          : BlocProvider(
-              create: (context) => NavigationCubit(),
-              child: const NavigationHandler(
-                child: InitialAdminSetupScreen(),
-              ),
-            ),
+      child: BlocBuilder<ThemeCubit, ThemeState>(
+        builder: (context, state) {
+          return MaterialApp(
+            title: 'Library Management System',
+            theme: AppTheme.getTheme(false),
+            darkTheme: AppTheme.getTheme(true),
+            themeMode: state.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            home: adminExists 
+              ? NavigationHandler(
+                  child: BlocBuilder<AuthBloc, AuthState>(
+                    builder: (context, state) {
+                      if (state is AuthSuccess) {
+                        return const HomeScreen();
+                      }
+                      return const LoginScreen();
+                    },
+                  ),
+                )
+              : BlocProvider(
+                  create: (context) => NavigationCubit(),
+                  child: const NavigationHandler(
+                    child: InitialAdminSetupScreen(),
+                  ),
+                ),
+          );
+        },
       ),
     );
   }

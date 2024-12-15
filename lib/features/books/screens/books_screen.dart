@@ -52,12 +52,12 @@ class _BooksScreenState extends State<BooksScreen> {
       builder: (context, authState) {
         return Scaffold(
           appBar: CustomAppBar(
-            title: Text(
-              'Books',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: isSmallScreen ? 18 : null,
-              ),
+          title: Text(
+            'Books',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+
             ),
             actions: [
               SizedBox(

@@ -17,6 +17,7 @@ import '../bloc/books_bloc.dart';
 import '../bloc/books_state.dart';
 import 'dart:math' show max;
 import '../../../core/theme/app_theme.dart';
+import '../screens/book_form_screen.dart';
 
 
 class BookDetailsScreen extends StatefulWidget {
@@ -102,11 +103,17 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   Widget _buildScaffold(BuildContext context, Book currentBook) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = isDark ? AppTheme.dark : AppTheme.light;
+    
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: IconThemeData(
+          color: isDark ? Colors.white : Colors.black,
+        ),
         actions: [
           BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
@@ -119,21 +126,30 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     final userData = snapshot.data!.data() as Map<String, dynamic>;
                     final userModel = UserModel.fromMap(userData);
                     
-                    return TextButton.icon(
-                      icon: const Icon(
-                        Icons.star_border,
+                    if (userModel.role == 'admin') {
+                      return IconButton(
+                        icon: const Icon(Icons.edit),
+                        tooltip: 'Edit Book',
+                        onPressed: () => _navigateToEditBook(context, currentBook),
                         color: Colors.white,
-                      ),
-                      label: const Text(
-                        'Rate this book',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      onPressed: () => _showRatingDialog(
-                        context,
-                        userModel.userId,
-                        currentBook.id!,
-                      ),
-                    );
+                      );
+                    } else {
+                      return TextButton.icon(
+                        icon: const Icon(
+                          Icons.star_border,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          'Rate this book',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        onPressed: () => _showRatingDialog(
+                          context,
+                          userModel.userId,
+                          currentBook.id!,
+                        ),
+                      );
+                    }
                   },
                 );
               }
@@ -150,21 +166,27 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             offset: Offset(0.0, -_scrollOffset * 0.5),
             child: _buildBackgroundImage(context, currentBook),
           ),
-          // Endless gradient overlay
+          // Gradient overlay
           Container(
             height: MediaQuery.of(context).size.height * 2,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withOpacity(0.5),
-                  Colors.black.withOpacity(0.8),
-                  Colors.black,
-                  Colors.black,
-                ],
-                stops: const [0.0, 0.2, 0.4, 0.6, 1.0],
+                colors: isDark 
+                    ? [
+                        colors.background.withOpacity(0.0),
+                        colors.background.withOpacity(0.5),
+                        colors.background.withOpacity(0.9),
+                        colors.background,
+                      ]
+                    : [
+                        colors.background.withOpacity(0.0),
+                        colors.background.withOpacity(0.5),
+                        colors.background.withOpacity(0.9),
+                        colors.background,
+                      ],
+                stops: const [0.0, 0.2, 0.6, 1.0],
               ),
             ),
           ),
@@ -221,6 +243,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   Widget _buildBackgroundImage(BuildContext context, Book currentBook) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SizedBox(
       height: MediaQuery.of(context).size.height * 1.5,
       child: _imageCacheService.buildCachedImage(
@@ -231,7 +255,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               image: imageProvider,
               fit: BoxFit.cover,
               colorFilter: ColorFilter.mode(
-                Colors.black.withOpacity(0.1),
+                isDark 
+                    ? Colors.black.withOpacity(0.1)
+                    : Colors.white.withOpacity(0.1),
                 BlendMode.darken,
               ),
             ),
@@ -242,7 +268,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               sigmaY: 5.0,
             ),
             child: Container(
-              color: Colors.black.withOpacity(0.1),
+              color: isDark
+                  ? Colors.black.withOpacity(0.1)
+                  : Colors.white.withOpacity(0.1),
             ),
           ),
         ),
@@ -345,17 +373,20 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   Widget _buildInfoBox(BuildContext context, String label, String value, Widget icon, bool isDark) {
+    final theme = Theme.of(context);
+    final colors = isDark ? AppTheme.dark : AppTheme.light;
+    
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
         color: isDark 
-            ? AppTheme.darkGradient1.withOpacity(0.7)
-            : AppTheme.primaryLight.withOpacity(0.7),
+            ? colors.surface.withOpacity(0.7)
+            : colors.surface.withOpacity(0.7),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark 
-              ? AppTheme.darkGradient3.withOpacity(0.5)
-              : AppTheme.primaryLight.withOpacity(0.9),
+              ? colors.primary.withOpacity(0.5)
+              : colors.primary.withOpacity(0.9),
           width: 1,
         ),
         boxShadow: [
@@ -376,7 +407,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white70 : Colors.black87,
+              color: isDark 
+                  ? colors.primary
+                  : colors.primary,
             ),
           ),
           const SizedBox(height: 8),
@@ -385,7 +418,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black,
+              color: isDark 
+                  ? colors.primary
+                  : colors.primary,
             ),
             textAlign: TextAlign.center,
             maxLines: 1,
@@ -402,15 +437,15 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
         color: isDark 
-            ? AppTheme.darkGradient1.withOpacity(0.7)
-            : AppTheme.primaryLight.withOpacity(0.7),
+            ? AppTheme.dark.surface.withOpacity(0.7)
+            : AppTheme.light.surface.withOpacity(0.7),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark 
-              ? AppTheme.darkGradient3.withOpacity(0.5)
-              : AppTheme.primaryLight.withOpacity(0.9),
+              ? AppTheme.dark.primary.withOpacity(0.5)
+              : AppTheme.light.primary.withOpacity(0.9),
           width: 1,
-        ),
+      ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -457,11 +492,16 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   Widget _buildDescription(BuildContext context, Book currentBook) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final defaultCardColor = isDark ? Colors.grey[800]! : Colors.white;
+    
     return Card(
-      color: theme.cardTheme.color?.withOpacity(0.8),
-      elevation: theme.cardTheme.elevation,
+      color: defaultCardColor.withOpacity(0.9),
+      elevation: 2,
       shadowColor: Colors.black,
-      shape: theme.cardTheme.shape,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -469,17 +509,19 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           children: [
             Text(
               'Synopsis',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+              style: TextStyle(
                 fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black,
               ),
             ),
             const SizedBox(height: 12),
             Text(
               currentBook.description,
-              style: theme.textTheme.bodyLarge?.copyWith(
+              style: TextStyle(
                 fontSize: 16,
                 height: 1.5,
+                color: isDark ? Colors.white70 : Colors.black87,
               ),
             ),
           ],
@@ -489,6 +531,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   Widget _buildActionButtons(BuildContext context, Book book, bool isAdmin, String userId) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     // Add max width constraint for buttons
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 400),
@@ -503,8 +547,12 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   ? () => _showBookingDialog(context, book, isAdmin, userId)
                   : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
+                backgroundColor: isDark 
+                    ? AppTheme.dark.primary
+                    : AppTheme.light.primary,
+                foregroundColor: isDark 
+                    ? AppTheme.dark.surface
+                    : AppTheme.light.surface,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
             ),
@@ -550,11 +598,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'Books available in library: ',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
                       ),
                     ),
                     Text(
@@ -601,5 +651,20 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
         ),
       ),
     );
+  }
+
+  void _navigateToEditBook(BuildContext context, Book book) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookFormScreen(
+          collectionId: 'books',
+          book: book,
+          mode: FormMode.edit,
+        ),
+      ),
+    ).then((_) {
+      setState(() {});
+    });
   }
 } 

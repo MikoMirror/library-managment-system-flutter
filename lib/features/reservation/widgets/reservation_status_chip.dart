@@ -17,22 +17,33 @@ class ReservationStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentStatus = reservation.status;
-    final statusColor = AppTheme.getStatusColor(currentStatus);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final coreColors = isDark ? AppTheme.dark : AppTheme.light;
+    
+    Color getStatusColor() {
+      switch (currentStatus.toLowerCase()) {
+        case 'pending': return coreColors.warning;
+        case 'borrowed': return coreColors.success;
+        case 'returned': return coreColors.info;
+        case 'overdue': return coreColors.error;
+        default: return coreColors.primary;
+      }
+    }
 
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? AppTheme.spacingSmall : AppTheme.spacingMedium,
-        vertical: isSmallScreen ? AppTheme.spacingXSmall : AppTheme.spacingSmall,
+        horizontal: isSmallScreen ? 8.0 : 12.0,
+        vertical: isSmallScreen ? 4.0 : 8.0,
       ),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+        color: getStatusColor().withOpacity(0.8),
+        borderRadius: BorderRadius.circular(8.0),
       ),
       child: Text(
         currentStatus.toUpperCase(),
         style: TextStyle(
-          color: Colors.white,
-          fontSize: isSmallScreen ? AppTheme.fontSizeSmall : AppTheme.fontSizeMedium,
+          color: coreColors.onPrimary,
+          fontSize: isSmallScreen ? 12.0 : 14.0,
           fontWeight: FontWeight.bold,
         ),
       ),

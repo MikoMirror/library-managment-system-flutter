@@ -15,13 +15,13 @@ class ReservationFilterSection extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDarkMode 
-            ? AppTheme.primaryDark.withOpacity(0.1)
-            : AppTheme.primaryLight.withOpacity(0.1),
+            ? AppTheme.dark.primary.withOpacity(0.1)
+            : AppTheme.light.primary.withOpacity(0.1),
         border: Border(
           bottom: BorderSide(
             color: isDarkMode
-                ? AppTheme.primaryDark.withOpacity(0.1)
-                : AppTheme.primaryLight.withOpacity(0.2),
+                ? AppTheme.dark.primary.withOpacity(0.1)
+                : AppTheme.light.primary.withOpacity(0.2),
           ),
         ),
       ),
@@ -60,8 +60,8 @@ class ReservationFilterSection extends StatelessWidget {
                 color: isSelected
                     ? Colors.white
                     : isDarkMode 
-                        ? AppTheme.accentDark 
-                        : AppTheme.accentLight,
+                        ? AppTheme.dark.secondary 
+                        : AppTheme.light.secondary,
               ),
               const SizedBox(width: 8),
               Text(filter.displayName),
@@ -74,18 +74,18 @@ class ReservationFilterSection extends StatelessWidget {
             }
           },
           backgroundColor: isDarkMode 
-              ? AppTheme.surfaceDark 
-              : AppTheme.surfaceLight,
+              ? AppTheme.dark.surface 
+              : AppTheme.light.surface,
           selectedColor: isDarkMode 
-              ? AppTheme.primaryDark 
-              : AppTheme.primaryLight,
+              ? AppTheme.dark.primary 
+              : AppTheme.light.primary,
           checkmarkColor: Colors.white,
           labelStyle: TextStyle(
             color: isSelected
                 ? Colors.white
                 : isDarkMode 
-                    ? AppTheme.textDark 
-                    : AppTheme.textLight,
+                    ? AppTheme.dark.secondary 
+                    : AppTheme.light.secondary,
           ),
         );
       },
@@ -102,8 +102,8 @@ class ReservationFilterSection extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isDarkMode 
-                  ? AppTheme.accentDark.withOpacity(0.3)
-                  : AppTheme.primaryLight.withOpacity(0.3),
+                  ? AppTheme.dark.secondary.withOpacity(0.3)
+                  : AppTheme.light.primary.withOpacity(0.3),
             ),
           ),
           child: DropdownButtonHideUnderline(
@@ -112,7 +112,7 @@ class ReservationFilterSection extends StatelessWidget {
               isExpanded: true,
               icon: Icon(
                 Icons.filter_list,
-                color: isDarkMode ? AppTheme.accentDark : AppTheme.accentLight,
+                color: isDarkMode ? AppTheme.dark.secondary : AppTheme.light.secondary,
               ),
               items: ReservationFilter.values.map((filter) {
                 return DropdownMenuItem<ReservationFilter>(
@@ -122,13 +122,13 @@ class ReservationFilterSection extends StatelessWidget {
                       Icon(
                         _getIconForFilter(filter),
                         size: 20,
-                        color: isDarkMode ? AppTheme.accentDark : AppTheme.accentLight,
+                        color: isDarkMode ? AppTheme.dark.secondary : AppTheme.light.secondary,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         filter.displayName,
                         style: TextStyle(
-                          color: isDarkMode ? AppTheme.accentDark : AppTheme.accentLight,
+                          color: isDarkMode ? AppTheme.dark.secondary : AppTheme.light.secondary,
                         ),
                       ),
                     ],

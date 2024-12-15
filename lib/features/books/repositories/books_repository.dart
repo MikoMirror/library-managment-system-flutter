@@ -38,10 +38,7 @@ class BooksRepository implements BaseRepository {
         .collection('books')
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => Book.fromMap(
-                  doc.data(),
-                  doc.id,
-                ))
+            .map((doc) => Book.fromMap(doc.data(), doc.id))
             .toList());
   }
 

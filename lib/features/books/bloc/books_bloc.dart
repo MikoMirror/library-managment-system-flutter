@@ -44,6 +44,7 @@ class BooksBloc extends Bloc<BooksEvent, BooksState> {
   Future<void> _onDeleteBook(DeleteBook event, Emitter<BooksState> emit) async {
     try {
       await _repository.deleteBook(event.bookId);
+      add(LoadBooks());
     } catch (e) {
       emit(BooksError(e.toString()));
     }

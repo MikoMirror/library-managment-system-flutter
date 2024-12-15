@@ -30,10 +30,10 @@ class SimpleAppBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: false,
       elevation: 0,
       backgroundColor: isDarkMode 
-          ? AppTheme.primaryDark.withOpacity(0.3)
-          : AppTheme.primaryLight.withOpacity(0.3),
+          ? AppTheme.dark.primary.withOpacity(0.3)
+          : AppTheme.light.primary.withOpacity(0.3),
       iconTheme: IconThemeData(
-        color: isDarkMode ? AppTheme.accentDark : AppTheme.accentLight,
+        color: isDarkMode ? AppTheme.dark.secondary : AppTheme.light.secondary,
       ),
     );
   }
