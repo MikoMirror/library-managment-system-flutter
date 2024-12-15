@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
               index: 2,
               selectedIcon: Icons.bookmark,
               unselectedIcon: Icons.bookmark_border,
-              label: 'My Bookings',
+              label: 'Bookings',
             ),
           ];
 
@@ -112,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   create: (context) => BookingBloc(
                     repository: BookingsRepository(firestore: _firestore),
                   )..add(LoadBookings()),
-                  child: const MyBookingsScreen(),
+                  child: BookingsScreen(),
                 ),
             3: () => const SettingsScreen(),
           };
@@ -127,19 +127,14 @@ class _HomeScreenState extends State<HomeScreen> {
     
     final navigationMap = {
       0: () => context.read<NavigationCubit>().navigateToBooks(),
+      2: () => context.read<NavigationCubit>().navigateToBookings(),
       3: () => context.read<NavigationCubit>().navigateToSettings(),
     };
 
     if (_cachedUserModel!.role == 'admin') {
-      navigationMap.addAll({
-        1: () => context.read<NavigationCubit>().navigateToUsers(),
-        2: () => context.read<NavigationCubit>().navigateToBookings(),
-      });
+      navigationMap[1] = () => context.read<NavigationCubit>().navigateToUsers();
     } else {
-      navigationMap.addAll({
-        1: () => context.read<NavigationCubit>().navigateToFavorites(),
-        2: () => context.read<NavigationCubit>().navigateToMyBookings(),
-      });
+      navigationMap[1] = () => context.read<NavigationCubit>().navigateToFavorites();
     }
 
     navigationMap[index]?.call();
@@ -158,7 +153,6 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() => _selectedIndex = 1);
             break;
           case RouteNames.bookings:
-          case RouteNames.myBookings:
             setState(() => _selectedIndex = 2);
             break;
           case RouteNames.settings:

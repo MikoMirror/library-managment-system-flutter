@@ -43,8 +43,8 @@ class BookingFilterSection extends StatelessWidget {
                         icon: Icons.list,
                       ),
                       BookingFilterButton(
-                        label: 'Pending',
-                        filter: BookingFilter.pending,
+                        label: 'Reserved',
+                        filter: BookingFilter.reserved,
                         icon: Icons.pending,
                       ),
                       BookingFilterButton(
@@ -94,7 +94,7 @@ class BookingFilterSection extends StatelessWidget {
               ),
               items: [
                 _buildDropdownItem(BookingFilter.all, 'All', Icons.list, isDarkMode),
-                _buildDropdownItem(BookingFilter.pending, 'Pending', Icons.pending, isDarkMode),
+                _buildDropdownItem(BookingFilter.reserved, 'Reserved', Icons.pending, isDarkMode),
                 _buildDropdownItem(BookingFilter.borrowed, 'Borrowed', Icons.book, isDarkMode),
                 _buildDropdownItem(BookingFilter.overdue, 'Overdue', Icons.warning_amber_rounded, isDarkMode),
                 _buildDropdownItem(BookingFilter.returned, 'Returned', Icons.assignment_returned, isDarkMode),

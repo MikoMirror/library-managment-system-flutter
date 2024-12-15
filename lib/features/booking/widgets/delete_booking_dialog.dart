@@ -52,7 +52,10 @@ class DeleteBookingDialog extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () => Navigator.pop(context, true),
+                onPressed: () {
+                  if (!Navigator.of(context).mounted) return;
+                  Navigator.of(context).pop(true);
+                },
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.red,
                 ),

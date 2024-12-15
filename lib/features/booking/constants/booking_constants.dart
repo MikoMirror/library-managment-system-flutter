@@ -5,7 +5,7 @@ class BookingConstants {
   static const double wideDesktopBreakpoint = 1800;
   
   static const Map<String, String> statusDisplayNames = {
-    'pending': 'Pending',
+    'reserved': 'Reserved',
     'borrowed': 'Borrowed',
     'returned': 'Returned',
     'overdue': 'Overdue',

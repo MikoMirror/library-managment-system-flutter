@@ -86,7 +86,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       await repository.createBooking(
         userId: event.selectedUserId ?? event.userId,
         bookId: event.bookId,
-        status: 'pending',
+        status: 'reserved',
         borrowedDate: event.borrowedDate,
         dueDate: event.dueDate,
         quantity: event.quantity,

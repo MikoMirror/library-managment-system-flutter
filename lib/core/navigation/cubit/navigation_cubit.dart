@@ -11,7 +11,6 @@ class NavigationCubit extends Cubit<NavigationState> {
   void navigateToUsers() => _navigate(RouteNames.users);
   void navigateToFavorites() => _navigate(RouteNames.favorites);
   void navigateToBookings() => _navigate(RouteNames.bookings);
-  void navigateToMyBookings() => _navigate(RouteNames.myBookings);
   void navigateToSettings() => _navigate(RouteNames.settings);
   void navigateToLogin() => _navigate(RouteNames.login);
   void navigateToInitialSetup() => _navigate(RouteNames.initialSetup);

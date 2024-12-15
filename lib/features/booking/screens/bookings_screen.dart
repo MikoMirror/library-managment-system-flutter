@@ -48,29 +48,17 @@ class _BookingsScreenContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDarkMode ? AppTheme.primaryDark : AppTheme.primaryLight;
-    final accentColor = isDarkMode ? AppTheme.accentDark : AppTheme.accentLight;
-    
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
         if (authState is! AuthSuccess) {
-          return Center(
-            child: CircularProgressIndicator(
-              color: accentColor,
-            ),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         return StreamBuilder<DocumentSnapshot>(
           stream: firestoreService.getUserStream(authState.user.uid),
           builder: (context, userSnapshot) {
             if (!userSnapshot.hasData) {
-              return Center(
-                child: CircularProgressIndicator(
-                  color: accentColor,
-                ),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
 
             final userData = userSnapshot.data!.data() as Map<String, dynamic>;
@@ -81,11 +69,41 @@ class _BookingsScreenContent extends StatelessWidget {
               children: [
                 const BookingFilterSection(),
                 Expanded(
-                  child: _buildBookingsList(
-                    context, 
-                    isAdmin,
-                    isDarkMode,
-                    accentColor,
+                  child: BlocBuilder<BookingBloc, BookingState>(
+                    builder: (context, state) {
+                      if (state is BookingsLoaded) {
+                        return BlocBuilder<BookingFilterCubit, BookingFilter>(
+                          builder: (context, filter) {
+                            final filteredBookings = _filterBookings(
+                              state.bookings,
+                              filter,
+                              isAdmin,
+                              authState.user.uid,
+                            );
+                            
+                            return BookingTable(
+                              bookings: filteredBookings,
+                              isAdmin: isAdmin,
+                              onStatusChange: (bookingId, newStatus) {
+                                context.read<BookingBloc>().add(
+                                  UpdateBookingStatus(
+                                    bookingId: bookingId,
+                                    newStatus: newStatus,
+                                  ),
+                                );
+                              },
+                              onDelete: (bookingId) {
+                                context.read<BookingBloc>().add(
+                                  DeleteBooking(bookingId: bookingId),
+                                );
+                              },
+                            );
+                          },
+                        );
+                      }
+                      // ... rest of the state handling
+                      return const SizedBox.shrink();
+                    },
                   ),
                 ),
               ],
@@ -96,77 +114,30 @@ class _BookingsScreenContent extends StatelessWidget {
     );
   }
 
-  Widget _buildBookingsList(
-    BuildContext context, 
-    bool isAdmin, 
-    bool isDarkMode,
-    Color accentColor,
+  List<Booking> _filterBookings(
+    List<Booking> bookings,
+    BookingFilter filter,
+    bool isAdmin,
+    String userId,
   ) {
-    return BlocBuilder<BookingBloc, BookingState>(
-      builder: (context, state) {
-        if (state is BookingLoading) {
-          return Center(
-            child: CircularProgressIndicator(
-              color: accentColor,
-            ),
-          );
-        }
+    // First filter by user if not admin
+    final filteredByUser = isAdmin 
+        ? bookings 
+        : bookings.where((b) => b.userId == userId).toList();
 
-        if (state is BookingError) {
-          return Center(
-            child: Text(
-              'Error: ${state.message}',
-              style: TextStyle(
-                color: isDarkMode ? Colors.white70 : Colors.black87,
-              ),
-            ),
-          );
-        }
-
-        if (state is BookingsLoaded) {
-          return BlocBuilder<BookingFilterCubit, BookingFilter>(
-            builder: (context, filter) {
-              final filteredBookings = _filterBookings(state.bookings, filter);
-              
-              return BookingTable(
-                bookings: filteredBookings,
-                isAdmin: isAdmin,
-                onStatusChange: (bookingId, newStatus) {
-                  context.read<BookingBloc>().add(
-                    UpdateBookingStatus(
-                      bookingId: bookingId,
-                      newStatus: newStatus,
-                    ),
-                  );
-                },
-                onDelete: (bookingId) {
-                  context.read<BookingBloc>().add(
-                    DeleteBooking(bookingId: bookingId),
-                  );
-                },
-              );
-            },
-          );
-        }
-
-        return const SizedBox.shrink();
-      },
-    );
-  }
-
-  List<Booking> _filterBookings(List<Booking> bookings, BookingFilter filter) {
+    // Then apply status filter
     switch (filter) {
-      case BookingFilter.pending:
-        return bookings.where((b) => b.status == 'pending').toList();
+      case BookingFilter.reserved:
+        return filteredByUser.where((b) => b.status == 'reserved').toList();
       case BookingFilter.borrowed:
-        return bookings.where((b) => b.status == 'borrowed' && !b.isOverdue).toList();
+        return filteredByUser.where((b) => b.status == 'borrowed' && !b.isOverdue).toList();
       case BookingFilter.returned:
-        return bookings.where((b) => b.status == 'returned').toList();
+        return filteredByUser.where((b) => b.status == 'returned').toList();
       case BookingFilter.overdue:
-        return bookings.where((b) => b.currentStatus == 'overdue').toList();
+        return filteredByUser.where((b) => b.currentStatus == 'overdue').toList();
       case BookingFilter.all:
       default:
-        return bookings;
+        return filteredByUser;
     }
   }
 }

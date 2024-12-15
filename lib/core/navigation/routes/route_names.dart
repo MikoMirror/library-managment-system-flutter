@@ -18,7 +18,6 @@ class RouteNames {
   
   // Booking related routes
   static const String bookings = '/bookings';
-  static const String myBookings = '/my-bookings';
   
   // Settings
   static const String settings = '/settings';

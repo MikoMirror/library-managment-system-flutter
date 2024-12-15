@@ -3,7 +3,7 @@ import '../../../core/models/search_filter.dart';
 
 enum BookingFilter implements SearchFilter {
   all('All'),
-  pending('Pending'),
+  reserved('Reserved'),
   borrowed('Borrowed'),
   overdue('Overdue'),
   returned('Returned');

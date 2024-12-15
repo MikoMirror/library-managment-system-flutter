@@ -54,7 +54,7 @@ class BookingTable extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: rowItems.map((booking) {
             final statusColors = {
-              'pending': Colors.orange,
+              'reserved': Colors.orange,
               'borrowed': Colors.blue,
               'returned': Colors.green,
               'overdue': Colors.red,
@@ -217,7 +217,7 @@ class BookingTable extends StatelessWidget {
         if (booking.id == null) return const SizedBox.shrink();
 
         final statusColors = {
-          'pending': Colors.orange,
+          'reserved': Colors.orange,
           'borrowed': Colors.blue,
           'returned': Colors.green,
           'overdue': Colors.red,
@@ -460,7 +460,7 @@ class BookingTable extends StatelessWidget {
 
   Widget _buildStatusChip(BuildContext context, String status) {
     final statusColors = {
-      'pending': Colors.orange,
+      'reserved': Colors.orange,
       'borrowed': Colors.blue,
       'returned': Colors.green,
       'overdue': Colors.red,
@@ -490,13 +490,18 @@ class BookingTable extends StatelessWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, Booking booking) async {
+    if (!context.mounted) return;
+    
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => DeleteBookingDialog(
+      barrierDismissible: false, // Prevent closing by tapping outside
+      builder: (BuildContext dialogContext) => DeleteBookingDialog(
         bookTitle: booking.bookTitle ?? 'Unknown Book',
       ),
     );
 
+    if (!context.mounted) return;
+    
     if (confirmed == true && onDelete != null) {
       onDelete!(booking.id!);
     }
