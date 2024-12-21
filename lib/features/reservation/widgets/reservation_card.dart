@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../widgets/delete_reservation_dialog.dart';
 import '../bloc/reservation_card_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 
 class ReservationCard extends StatelessWidget {
   final Reservation reservation;
@@ -219,12 +220,20 @@ class ReservationCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
+    final displayValue = (label == 'Due' && reservation.status == 'returned')
+        ? DateFormat('dd/MM/yyyy').format(DateTime.now())
+        : value;
+
+    final displayLabel = (label == 'Due' && reservation.status == 'returned') 
+        ? 'Returned' 
+        : label;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Icon(
-            icon,
+            (displayLabel == 'Returned') ? Icons.check_circle_outline : icon,
             size: 18,
             color: isDarkMode 
                 ? AppTheme.dark.secondary 
@@ -234,7 +243,7 @@ class ReservationCard extends StatelessWidget {
           SizedBox(
             width: 80,
             child: Text(
-              '$label:',
+              '$displayLabel:',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 fontSize: isSmallScreen ? 12 : 14,
@@ -243,10 +252,10 @@ class ReservationCard extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              value,
+              displayValue,
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: isSmallScreen ? 12 : 14,
-                color: isOverdue ? Colors.red : null,
+                color: (isOverdue && reservation.status != 'returned') ? Colors.red : null,
               ),
             ),
           ),

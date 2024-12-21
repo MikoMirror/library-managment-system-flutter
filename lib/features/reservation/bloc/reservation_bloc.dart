@@ -46,6 +46,8 @@ class DeleteReservation extends ReservationEvent {
   DeleteReservation({required this.reservationId});
 }
 
+class RefreshReservations extends ReservationEvent {}
+
 // States
 abstract class ReservationState {}
 
@@ -79,6 +81,14 @@ class ReservationBloc extends Bloc<ReservationEvent, ReservationState> {
     on<CreateReservation>(_onCreateReservation);
     on<UpdateReservationStatus>(_onUpdateReservationStatus);
     on<DeleteReservation>(_onDeleteReservation);
+    on<RefreshReservations>((event, emit) async {
+      try {
+        _currentReservations = await repository.getReservations();
+        emit(ReservationsLoaded(_currentReservations));
+      } catch (e) {
+        emit(ReservationError(e.toString()));
+      }
+    });
   }
 
   Future<void> _onCreateReservation(CreateReservation event, Emitter<ReservationState> emit) async {

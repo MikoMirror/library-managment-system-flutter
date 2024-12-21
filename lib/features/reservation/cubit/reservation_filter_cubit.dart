@@ -6,7 +6,8 @@ enum ReservationFilter implements SearchFilter {
   reserved('Reserved'),
   borrowed('Borrowed'),
   overdue('Overdue'),
-  returned('Returned');
+  returned('Returned'),
+  expired('Expired');
 
   final String displayName;
   const ReservationFilter(this.displayName);

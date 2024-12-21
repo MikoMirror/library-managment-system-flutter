@@ -15,6 +15,7 @@ class NavigationCubit extends Cubit<NavigationState> {
   void navigateToLogin() => _navigate(RouteNames.login);
   void navigateToInitialSetup() => _navigate(RouteNames.initialSetup);
   void navigateToAddUser() => _navigate(RouteNames.addUser);
+  void navigateToDashboard() => _navigate(RouteNames.dashboard);
   
   // Navigation with parameters
   void navigateToBookDetails(String bookId) => _navigate(

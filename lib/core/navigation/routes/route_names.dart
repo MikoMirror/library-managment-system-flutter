@@ -24,4 +24,7 @@ class RouteNames {
   
   // Admin routes
   static const String initialSetup = '/initial-setup';
+  
+  // Dashboard
+  static const String dashboard = '/dashboard';
 }

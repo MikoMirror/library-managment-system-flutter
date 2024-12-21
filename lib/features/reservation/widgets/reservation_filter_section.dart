@@ -159,6 +159,8 @@ class ReservationFilterSection extends StatelessWidget {
         return Icons.warning_amber_rounded;
       case ReservationFilter.returned:
         return Icons.assignment_returned;
+      case ReservationFilter.expired:
+        return Icons.timer_off;
     }
   }
 }

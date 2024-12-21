@@ -18,6 +18,7 @@ import 'features/users/bloc/users_bloc.dart';
 import 'features/users/repositories/users_repository.dart';
 import 'features/auth/screens/initial_admin_setup_screen.dart';
 import 'core/theme/cubit/theme_cubit.dart';
+import 'core/services/background/reservation_check_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,13 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  final firestore = FirebaseFirestore.instance;
+  final reservationsRepository = ReservationsRepository(firestore: firestore);
+  
+  // Start the reservation check service
+  final reservationCheckService = ReservationCheckService(reservationsRepository);
+  reservationCheckService.startChecking();
 
   final usersRepository = UsersRepository(
     firestore: FirebaseFirestore.instance,

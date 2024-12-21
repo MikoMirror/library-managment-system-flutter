@@ -2,7 +2,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../../features/books/models/book.dart';
 import '../../../features/users/models/user_model.dart';
+import 'package:intl/intl.dart';
+import '../../../features/dashboard/models/borrowing_trend_point.dart';
+
 class FirestoreService {
+  static const String BOOKS_COLLECTION = 'books';
+  static const String USERS_COLLECTION = 'users';
+  static const String FAVORITES_COLLECTION = 'favorites';
+  static const String RESERVATIONS_COLLECTION = 'books_reservation';
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final _favoriteCache = <String, Stream<bool>>{};
@@ -36,9 +44,9 @@ class FirestoreService {
 
   Stream<bool> isBookFavorited(String userId, String bookId) {
     return _firestore
-        .collection('users')
+        .collection(USERS_COLLECTION)
         .doc(userId)
-        .collection('favorites')
+        .collection(FAVORITES_COLLECTION)
         .doc(bookId)
         .snapshots()
         .map((doc) => doc.exists);
@@ -69,29 +77,85 @@ class FirestoreService {
 
   Stream<QuerySnapshot> getAllBookings() {
     return _firestore
-        .collection('bookings')
+        .collection(RESERVATIONS_COLLECTION)
         .orderBy('borrowedDate', descending: true)
         .snapshots();
   }
 
   Future<String> getBookTitle(String bookId) async {
-    final doc = await _firestore.collection('books').doc(bookId).get();
+    final doc = await _firestore.collection(BOOKS_COLLECTION).doc(bookId).get();
     return doc.data()?['title'] ?? 'Unknown Book';
   }
 
   Future<String> getUserName(String userId) async {
-    final doc = await _firestore.collection('users').doc(userId).get();
+    final doc = await _firestore.collection(USERS_COLLECTION).doc(userId).get();
     return doc.data()?['name'] ?? 'Unknown User';
   }
 
   Future<void> updateBookingStatus(String bookingId, String status) async {
-    await _firestore.collection('bookings').doc(bookingId).update({
-      'status': status,
-    });
+    final batch = _firestore.batch();
+    final bookingRef = _firestore.collection(RESERVATIONS_COLLECTION).doc(bookingId);
+
+    final bookingDoc = await bookingRef.get();
+    if (!bookingDoc.exists) {
+      throw Exception('Booking not found');
+    }
+
+    final bookingData = bookingDoc.data()!;
+    final bookId = bookingData['bookId'] as String;
+    final quantity = bookingData['quantity'] as int;
+    final oldStatus = bookingData['status'] as String;
+
+    if (status == 'returned' || status == 'expired') {
+      batch.update(bookingRef, {
+        'status': status,
+        'returnedDate': Timestamp.now(),
+        'updatedAt': Timestamp.now(),
+      });
+
+      if (oldStatus != 'returned' && oldStatus != 'expired') {
+        final bookRef = _firestore.collection(BOOKS_COLLECTION).doc(bookId);
+        batch.update(bookRef, {
+          'booksQuantity': FieldValue.increment(quantity),
+        });
+      }
+    } else {
+      batch.update(bookingRef, {
+        'status': status,
+        'updatedAt': Timestamp.now(),
+      });
+    }
+
+    await batch.commit();
   }
 
   Future<void> deleteBooking(String bookingId) async {
-    await _firestore.collection('bookings').doc(bookingId).delete();
+    final bookingDoc = await _firestore
+        .collection(RESERVATIONS_COLLECTION)
+        .doc(bookingId)
+        .get();
+    
+    if (!bookingDoc.exists) {
+      throw Exception('Booking not found');
+    }
+
+    final data = bookingDoc.data()!;
+    final status = data['status'] as String;
+    final bookId = data['bookId'] as String;
+    final quantity = data['quantity'] as int;
+
+    final batch = _firestore.batch();
+
+    batch.delete(bookingDoc.reference);
+
+    if (status != 'returned' && status != 'expired') {
+      final bookRef = _firestore.collection(BOOKS_COLLECTION).doc(bookId);
+      batch.update(bookRef, {
+        'booksQuantity': FieldValue.increment(quantity),
+      });
+    }
+
+    await batch.commit();
   }
 
   Future<void> createBooking({
@@ -102,14 +166,26 @@ class FirestoreService {
     required Timestamp dueDate,
     required int quantity,
   }) async {
-    await _firestore.collection('bookings').add({
+    final batch = _firestore.batch();
+    
+    final bookingRef = _firestore.collection(RESERVATIONS_COLLECTION).doc();
+    batch.set(bookingRef, {
       'userId': userId,
       'bookId': bookId,
       'status': status,
       'borrowedDate': borrowedDate,
       'dueDate': dueDate,
       'quantity': quantity,
+      'createdAt': Timestamp.now(),
+      'updatedAt': Timestamp.now(),
     });
+
+    final bookRef = _firestore.collection(BOOKS_COLLECTION).doc(bookId);
+    batch.update(bookRef, {
+      'booksQuantity': FieldValue.increment(-quantity),
+    });
+
+    await batch.commit();
   }
 
   Stream<QuerySnapshot> getUsers() {
@@ -139,12 +215,10 @@ class FirestoreService {
   Stream<bool> getFavoriteStatus(String userId, String bookId) {
     final cacheKey = '$userId-$bookId';
     
-    // Return cached stream if it exists
     if (_favoriteCache.containsKey(cacheKey)) {
       return _favoriteCache[cacheKey]!;
     }
 
-    // Create and cache new stream
     final stream = _firestore
         .collection('users')
         .doc(userId)
@@ -152,7 +226,7 @@ class FirestoreService {
         .doc(bookId)
         .snapshots()
         .map((snapshot) => snapshot.exists)
-        .distinct(); // Only emit when value changes
+        .distinct();
 
     _favoriteCache[cacheKey] = stream;
     return stream;
@@ -178,7 +252,6 @@ class FirestoreService {
     return ratings;
   }
 
-  // Get user data stream
   Stream<DocumentSnapshot> getUserStream(String userId) {
     return _firestore
         .collection('users')
@@ -190,7 +263,6 @@ class FirestoreService {
     });
   }
 
-  // Get user data future
   Future<DocumentSnapshot> getUserData(String userId) async {
     try {
       return await _firestore.collection('users').doc(userId).get();
@@ -200,7 +272,6 @@ class FirestoreService {
     }
   }
 
-  // Get books stream
   Stream<QuerySnapshot> getBooksStream() {
     return _firestore
         .collection('books')
@@ -211,7 +282,6 @@ class FirestoreService {
     });
   }
 
-  // Get single book stream
   Stream<DocumentSnapshot> getBookStream(String bookId) {
     return _firestore
         .collection('books')
@@ -248,5 +318,89 @@ class FirestoreService {
     } catch (e) {
       throw Exception('Failed to delete user: $e');
     }
+  }
+
+  Future<void> trackBorrowingEvent(String bookId) async {
+    final now = DateTime.now();
+    final dayKey = DateFormat('yyyy-MM-dd').format(now);
+    
+    await _firestore.collection('books').doc(bookId)
+        .collection('borrowing_history')
+        .doc(dayKey)
+        .set({
+          'timestamp': now,
+          'count': FieldValue.increment(1),
+        }, SetOptions(merge: true));
+  }
+
+  Future<List<BorrowingTrendPoint>> getBorrowingTrends(DateTime startDate) async {
+    final snapshots = await _firestore
+        .collectionGroup('borrowing_history')
+        .where('timestamp', isGreaterThanOrEqualTo: startDate)
+        .orderBy('timestamp')
+        .get();
+
+    final trendsMap = <String, int>{};
+    for (var doc in snapshots.docs) {
+      final timestamp = (doc.data()['timestamp'] as Timestamp).toDate();
+      final dayKey = DateFormat('yyyy-MM-dd').format(timestamp);
+      final count = doc.data()['count'] as int;
+      
+      trendsMap[dayKey] = (trendsMap[dayKey] ?? 0) + count;
+    }
+
+    return trendsMap.entries.map((entry) {
+      return BorrowingTrendPoint(
+        timestamp: DateFormat('yyyy-MM-dd').parse(entry.key),
+        count: entry.value,
+      );
+    }).toList()
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+  }
+
+  Future<Map<String, int>> getDashboardStats() async {
+    final booksSnapshot = await _firestore.collection(BOOKS_COLLECTION).get();
+    final reservationsSnapshot = await _firestore.collection(RESERVATIONS_COLLECTION).get();
+    
+    int uniqueBooks = booksSnapshot.docs.length;
+    int totalBooks = 0;
+    int reservedBooks = 0;
+    int borrowedBooks = 0;
+    int overdueBooks = 0;
+    int expiredBooks = 0;
+
+    for (var doc in booksSnapshot.docs) {
+      final data = doc.data();
+      totalBooks += (data['booksQuantity'] as int?) ?? 0;
+    }
+
+    for (var doc in reservationsSnapshot.docs) {
+      final data = doc.data();
+      final status = data['status'] as String?;
+      
+      switch (status) {
+        case 'reserved':
+          reservedBooks++;
+          break;
+        case 'borrowed':
+          borrowedBooks++;
+          break;
+        case 'overdue':
+          overdueBooks++;
+          break;
+        case 'expired':
+          expiredBooks++;
+          break;
+      }
+    }
+
+    return {
+      'uniqueBooks': uniqueBooks,
+      'totalBooks': totalBooks,
+      'reservedBooks': reservedBooks,
+      'borrowedBooks': borrowedBooks,
+      'overdueBooks': overdueBooks,
+      'expiredBooks': expiredBooks,
+    };
   }
 }

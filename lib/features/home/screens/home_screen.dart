@@ -20,6 +20,9 @@ import '../../reservation/repositories/reservation_repository.dart';
 import '../../reservation/bloc/reservation_bloc.dart';
 import '../../reservation/repositories/reservation_repository.dart';
 import '../../reservation/screens/reservations_screen.dart';
+import '../../dashboard/screens/dashboard_screen.dart';
+import '../../dashboard/cubit/dashboard_cubit.dart';
+import '../../../core/services/database/firestore_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
         label: 'Books',
       ),
       const NavigationItem(
-        index: 3,
+        index: 4,
         selectedIcon: Icons.settings,
         unselectedIcon: Icons.settings_outlined,
         label: 'Settings',
@@ -54,12 +57,18 @@ class _HomeScreenState extends State<HomeScreen> {
         ? [
             const NavigationItem(
               index: 1,
+              selectedIcon: Icons.dashboard,
+              unselectedIcon: Icons.dashboard_outlined,
+              label: 'Dashboard',
+            ),
+            const NavigationItem(
+              index: 2,
               selectedIcon: Icons.people,
               unselectedIcon: Icons.people_outline,
               label: 'Users',
             ),
             const NavigationItem(
-              index: 2,
+              index: 3,
               selectedIcon: Icons.bookmark,
               unselectedIcon: Icons.bookmark_border,
               label: 'Bookings',
@@ -92,14 +101,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: const BooksScreen(),
                 ),
-            1: () => const UsersScreen(),
-            2: () => BlocProvider(
+            1: () => BlocProvider(
+                  create: (context) => DashboardCubit(
+                    FirestoreService(),
+                  )..loadDashboard(),
+                  child: const DashboardScreen(),
+                ),
+            2: () => const UsersScreen(),
+            3: () => BlocProvider(
                   create: (context) => ReservationBloc(
                     repository: ReservationsRepository(firestore: _firestore),
                   )..add(LoadReservations()),
                   child: ReservationsScreen(),
                 ),
-            3: () => const SettingsScreen(),
+            4: () => const SettingsScreen(),
           }
         : {
             0: () => BlocProvider(
@@ -128,14 +143,16 @@ class _HomeScreenState extends State<HomeScreen> {
     
     final navigationMap = {
       0: () => context.read<NavigationCubit>().navigateToBooks(),
-      2: () => context.read<NavigationCubit>().navigateToBookings(),
-      3: () => context.read<NavigationCubit>().navigateToSettings(),
+      3: () => context.read<NavigationCubit>().navigateToBookings(),
+      4: () => context.read<NavigationCubit>().navigateToSettings(),
     };
 
     if (_cachedUserModel!.role == 'admin') {
-      navigationMap[1] = () => context.read<NavigationCubit>().navigateToUsers();
+      navigationMap[1] = () => context.read<NavigationCubit>().navigateToDashboard();
+      navigationMap[2] = () => context.read<NavigationCubit>().navigateToUsers();
     } else {
       navigationMap[1] = () => context.read<NavigationCubit>().navigateToFavorites();
+      navigationMap[2] = () => context.read<NavigationCubit>().navigateToBookings();
     }
 
     navigationMap[index]?.call();
@@ -149,15 +166,18 @@ class _HomeScreenState extends State<HomeScreen> {
           case RouteNames.books:
             setState(() => _selectedIndex = 0);
             break;
-          case RouteNames.users:
-          case RouteNames.favorites:
+          case RouteNames.dashboard:
             setState(() => _selectedIndex = 1);
             break;
-          case RouteNames.bookings:
+          case RouteNames.users:
+          case RouteNames.favorites:
             setState(() => _selectedIndex = 2);
             break;
-          case RouteNames.settings:
+          case RouteNames.bookings:
             setState(() => _selectedIndex = 3);
+            break;
+          case RouteNames.settings:
+            setState(() => _selectedIndex = 4);
             break;
           case RouteNames.bookDetails:
             final bookId = state.params?['bookId'] as String;

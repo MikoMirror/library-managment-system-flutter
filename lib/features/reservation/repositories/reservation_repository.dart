@@ -75,37 +75,49 @@ class ReservationsRepository implements BaseRepository {
     required String newStatus,
   }) async {
     try {
-      final batch = firestore.batch();
+      // Get the reservation details first
+      final reservationDoc = await firestore
+          .collection('books_reservation')
+          .doc(reservationId)
+          .get();
       
-      // Get the reservation details
-      final reservationDoc = await firestore.collection('books_reservation').doc(reservationId).get();
-      final reservationData = reservationDoc.data();
-      
-      if (reservationData != null) {
-        final bookId = reservationData['bookId'] as String;
-        final quantity = reservationData['quantity'] as int;
-        final oldStatus = reservationData['status'] as String;
-
-        // Update reservation status
-        batch.update(
-          firestore.collection('books_reservation').doc(reservationId),
-          {
-            'status': newStatus,
-            'updatedAt': Timestamp.now(),
-          },
-        );
-
-        // Handle book quantity updates
-        if (newStatus == 'returned' && oldStatus != 'returned') {
-          // Increment book quantity when returning
-          batch.update(
-            firestore.collection('books').doc(bookId),
-            {'booksQuantity': FieldValue.increment(quantity)},
-          );
-        }
-
-        await batch.commit();
+      if (!reservationDoc.exists) {
+        throw Exception('Reservation not found');
       }
+
+      final reservationData = reservationDoc.data()!;
+      final bookId = reservationData['bookId'] as String;
+      final quantity = reservationData['quantity'] as int;
+      final oldStatus = reservationData['status'] as String;
+
+      // Start a batch write
+      final batch = firestore.batch();
+      final reservationRef = firestore.collection('books_reservation').doc(reservationId);
+      final bookRef = firestore.collection('books').doc(bookId);
+
+      // Update reservation status
+      if (newStatus == 'returned') {
+        batch.update(reservationRef, {
+          'status': newStatus,
+          'returnedDate': Timestamp.now(),
+          'updatedAt': Timestamp.now(),
+        });
+
+        // Only increase book quantity if the status wasn't already 'returned'
+        if (oldStatus != 'returned') {
+          // Increase available books quantity
+          batch.update(bookRef, {
+            'booksQuantity': FieldValue.increment(quantity),
+          });
+        }
+      } else {
+        batch.update(reservationRef, {
+          'status': newStatus,
+          'updatedAt': Timestamp.now(),
+        });
+      }
+
+      await batch.commit();
     } catch (e) {
       throw Exception('Failed to update reservation status: $e');
     }
@@ -141,6 +153,81 @@ class ReservationsRepository implements BaseRepository {
       }
     } catch (e) {
       throw Exception('Failed to delete reservation: $e');
+    }
+  }
+
+  Future<void> checkAndUpdateOverdueReservations() async {
+    try {
+      final snapshot = await firestore
+          .collection('books_reservation')
+          .where('status', isEqualTo: 'borrowed')
+          .get();
+
+      final now = Timestamp.now();
+      final batch = firestore.batch();
+      bool hasBatchOperations = false;
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final dueDate = data['dueDate'] as Timestamp;
+        
+        if (now.seconds > dueDate.seconds) {
+          batch.update(doc.reference, {
+            'status': 'overdue',
+            'updatedAt': now,
+          });
+          hasBatchOperations = true;
+        }
+      }
+
+      if (hasBatchOperations) {
+        await batch.commit();
+      }
+    } catch (e) {
+      throw Exception('Failed to update overdue reservations: $e');
+    }
+  }
+
+  Future<void> checkAndUpdateExpiredReservations() async {
+    try {
+      final snapshot = await firestore
+          .collection('books_reservation')
+          .where('status', isEqualTo: 'reserved')
+          .get();
+
+      final now = Timestamp.now();
+      final batch = firestore.batch();
+      bool hasBatchOperations = false;
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final borrowedDate = data['borrowedDate'] as Timestamp;
+        
+        // Check if more than 24 hours have passed
+        if (now.seconds - borrowedDate.seconds > 24 * 60 * 60) {
+          final bookId = data['bookId'] as String;
+          final quantity = data['quantity'] as int;
+
+          batch.update(doc.reference, {
+            'status': 'expired',
+            'updatedAt': now,
+          });
+
+          // Return books to inventory
+          final bookRef = firestore.collection('books').doc(bookId);
+          batch.update(bookRef, {
+            'booksQuantity': FieldValue.increment(quantity),
+          });
+
+          hasBatchOperations = true;
+        }
+      }
+
+      if (hasBatchOperations) {
+        await batch.commit();
+      }
+    } catch (e) {
+      throw Exception('Failed to update expired reservations: $e');
     }
   }
 
