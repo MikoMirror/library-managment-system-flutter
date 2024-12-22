@@ -35,14 +35,13 @@ class CustomNavigationBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ThemeCubit, ThemeState>(
       builder: (context, themeState) {
-        final theme = Theme.of(context);
         final isDarkMode = themeState.isDarkMode;
         final colors = isDarkMode ? AppTheme.dark : AppTheme.light;
 
         return Container(
           decoration: BoxDecoration(
-            color: isDarkMode ? colors.surface : colors.primary.withOpacity(0.1),
-            border: isHorizontal ? Border(
+            color: isDarkMode ? colors.surface : colors.primary.withAlpha(25),
+            border: isHorizontal ? const Border(
               right: BorderSide(
                 color: Colors.transparent,
                 width: 0,
@@ -93,7 +92,7 @@ class CustomNavigationBar extends StatelessWidget {
               isSelected ? item.selectedIcon : item.unselectedIcon,
               color: isSelected 
                 ? colors.primary
-                : colors.primary.withOpacity(0.7),
+                : colors.primary.withAlpha(128),
             ),
             const SizedBox(height: 4),
             Text(
@@ -102,7 +101,7 @@ class CustomNavigationBar extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: isSelected 
                   ? colors.primary
-                  : colors.primary.withOpacity(0.7),
+                  : colors.primary.withAlpha(128),
                 fontSize: 12,
               ),
             ),
@@ -133,7 +132,7 @@ class CustomNavigationBar extends StatelessWidget {
                 isSelected ? item.selectedIcon : item.unselectedIcon,
                 color: isSelected 
                   ? colors.primary
-                  : colors.primary.withOpacity(0.7),
+                  : colors.primary.withAlpha(128),
               ),
               const SizedBox(height: 4),
               Text(
@@ -142,7 +141,7 @@ class CustomNavigationBar extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: isSelected 
                     ? colors.primary
-                    : colors.primary.withOpacity(0.7),
+                    : colors.primary.withAlpha(128),
                   fontSize: 12,
                 ),
               ),

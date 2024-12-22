@@ -40,14 +40,40 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0.0;
 
+  // Add caching for processed data
+  Book? _cachedBook;
+  Widget? _cachedBackground;
+  Widget? _cachedBookImage;
+  
+  // Use const widgets where possible
+  static const _spacing24 = SizedBox(height: 24);
+  static const _spacing16 = SizedBox(height: 16);
+  static const _spacing8 = SizedBox(height: 8);
+
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _precacheImages();
+  }
+
+  Future<void> _precacheImages() async {
+    if (widget.book != null) {
+      await _imageCacheService.preCacheBookImages(context, [widget.book!]);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
   void dispose() {
+    // Clear cached data
+    _cachedBackground = null;
+    _cachedBookImage = null;
+    _cachedBook = null;
     _scrollController.dispose();
     super.dispose();
   }
@@ -60,9 +86,14 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.book != null) {
+    // Cache the book reference to avoid repeated lookups
+    if (widget.book != null && _cachedBook != widget.book) {
+      _cachedBook = widget.book;
       _imageCacheService.preCacheBookImages(context, [widget.book!]);
-      return _buildScaffold(context, widget.book!);
+    }
+
+    if (_cachedBook != null) {
+      return _buildScaffold(context, _cachedBook!);
     }
 
     return BlocBuilder<BooksBloc, BooksState>(
@@ -243,51 +274,52 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   Widget _buildBackgroundImage(BuildContext context, Book currentBook) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 1.5,
-      child: _imageCacheService.buildCachedImage(
-        imageUrl: currentBook.coverUrl,
-        imageBuilder: (context, imageProvider) => Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: imageProvider,
-              fit: BoxFit.cover,
-              colorFilter: ColorFilter.mode(
-                isDark 
-                    ? Colors.black.withOpacity(0.1)
-                    : Colors.white.withOpacity(0.1),
-                BlendMode.darken,
+    // Cache the background image to avoid rebuilds
+    if (_cachedBackground == null) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      
+      _cachedBackground = SizedBox(
+        height: MediaQuery.of(context).size.height * 1.5,
+        child: _imageCacheService.buildCachedImage(
+          imageUrl: currentBook.coverUrl,
+          imageBuilder: (context, imageProvider) => Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: imageProvider,
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  isDark ? Colors.black.withOpacity(0.1) : Colors.white.withOpacity(0.1),
+                  BlendMode.darken,
+                ),
+              ),
+            ),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+              child: Container(
+                color: isDark ? Colors.black.withOpacity(0.1) : Colors.white.withOpacity(0.1),
               ),
             ),
           ),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: 5.0,
-              sigmaY: 5.0,
-            ),
-            child: Container(
-              color: isDark
-                  ? Colors.black.withOpacity(0.1)
-                  : Colors.white.withOpacity(0.1),
-            ),
-          ),
         ),
-      ),
-    );
+      );
+    }
+    return _cachedBackground!;
   }
 
   Widget _buildBookImage(Book currentBook) {
-    return Hero(
-      tag: 'book-${currentBook.id}',
-      child: _imageCacheService.buildCachedImage(
-        imageUrl: currentBook.coverUrl,
-        width: 240,
-        height: 360,
-        fit: BoxFit.contain,
-      ),
-    );
+    // Cache the book image to avoid rebuilds
+    if (_cachedBookImage == null) {
+      _cachedBookImage = Hero(
+        tag: 'book-${currentBook.id}',
+        child: _imageCacheService.buildCachedImage(
+          imageUrl: currentBook.coverUrl,
+          width: 240,
+          height: 360,
+          fit: BoxFit.contain,
+        ),
+      );
+    }
+    return _cachedBookImage!;
   }
 
   Widget _buildBookHeader(BuildContext context, Book currentBook) {
@@ -373,60 +405,53 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   Widget _buildInfoBox(BuildContext context, String label, String value, Widget icon, bool isDark) {
-    final theme = Theme.of(context);
     final colors = isDark ? AppTheme.dark : AppTheme.light;
     
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      decoration: BoxDecoration(
-        color: isDark 
-            ? colors.surface.withOpacity(0.7)
-            : colors.surface.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark 
-              ? colors.primary.withOpacity(0.5)
-              : colors.primary.withOpacity(0.9),
-          width: 1,
+    return RepaintBoundary(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isDark ? colors.surface.withOpacity(0.7) : colors.surface.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? colors.primary.withOpacity(0.5) : colors.primary.withOpacity(0.9),
+            width: 1,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A000000), // Optimized opacity
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          icon,
-          const SizedBox(height: 12),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: isDark 
-                  ? colors.primary
-                  : colors.primary,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            icon,
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: colors.primary,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isDark 
-                  ? colors.primary
-                  : colors.primary,
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: colors.primary,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

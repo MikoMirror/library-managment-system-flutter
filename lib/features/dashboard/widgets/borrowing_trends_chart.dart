@@ -5,188 +5,281 @@ import '../../../features/dashboard/cubit/dashboard_cubit.dart';
 import '../../../features/dashboard/cubit/dashboard_state.dart';
 import '../models/borrowing_trend_point.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-enum TimeRange {
-  day,
-  week,
-  month,
-  halfYear
-}
+import 'package:intl/intl.dart';
+import 'dart:math' show max, min;
+import 'package:library_management_system/features/dashboard/widgets/date_range_selector.dart';
 
 class BorrowingTrendsChart extends StatefulWidget {
   final double width;
-  final Color color;
+  final DateTime startDate;
+  final DateTime endDate;
+  final List<FlSpot> borrowedTrends;
+  final List<FlSpot> returnedTrends;
+  final bool isMobile;
+  final Function(DateTime, DateTime) onDateRangeChanged;
 
   const BorrowingTrendsChart({
     super.key,
     required this.width,
-    required this.color,
+    required this.startDate,
+    required this.endDate,
+    required this.borrowedTrends,
+    required this.returnedTrends,
+    required this.onDateRangeChanged,
+    this.isMobile = false,
   });
 
   @override
   State<BorrowingTrendsChart> createState() => _BorrowingTrendsChartState();
 }
 
-class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> {
-  TimeRange _selectedRange = TimeRange.week;
+class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with AutomaticKeepAliveClientMixin {
+  bool _showBorrowed = true;
+  late List<FlSpot> _processedBorrowedSpots;
+  late List<FlSpot> _processedReturnedSpots;
+  final ScrollController _scrollController = ScrollController();
+  bool _isScrollControllerReady = false;
 
-  List<FlSpot> _getSpots(List<BorrowingTrendPoint> trends) {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _processDataPoints();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _isScrollControllerReady = true;
+        });
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
+      }
+    });
+  }
+
+  void _processDataPoints() {
+    _processedBorrowedSpots = _convertToSpots(widget.borrowedTrends);
+    _processedReturnedSpots = _convertToSpots(widget.returnedTrends);
+  }
+
+  List<FlSpot> _convertToSpots(List<FlSpot> trends) {
     if (trends.isEmpty) return [];
+    
+    // Create a map using actual dates as keys
+    final Map<DateTime, double> valueMap = {};
+    final totalDays = widget.endDate.difference(widget.startDate).inDays + 1;
+    
+    // Initialize all days with 0
+    for (int i = 0; i < totalDays; i++) {
+      final date = widget.startDate.add(Duration(days: i));
+      valueMap[DateTime(date.year, date.month, date.day)] = 0;
+    }
+    
+    // Fill in actual values
+    for (var spot in trends) {
+      final date = widget.startDate.add(Duration(days: spot.x.toInt()));
+      valueMap[DateTime(date.year, date.month, date.day)] = spot.y;
+    }
+    
+    // Convert back to FlSpots
+    return valueMap.entries
+        .map((entry) {
+          final days = entry.key.difference(widget.startDate).inDays;
+          return FlSpot(days.toDouble(), entry.value);
+        })
+        .toList()
+      ..sort((a, b) => a.x.compareTo(b.x));
+  }
 
-    // Filter trends based on selected range
-    final now = DateTime.now();
-    final startDate = switch (_selectedRange) {
-      TimeRange.day => DateTime(now.year, now.month, now.day - 1),
-      TimeRange.week => now.subtract(const Duration(days: 7)),
-      TimeRange.month => DateTime(now.year, now.month - 1, now.day),
-      TimeRange.halfYear => DateTime(now.year, now.month - 6, now.day),
-    };
+  @override
+  void didUpdateWidget(BorrowingTrendsChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.borrowedTrends != widget.borrowedTrends ||
+        oldWidget.returnedTrends != widget.returnedTrends ||
+        oldWidget.startDate != widget.startDate ||
+        oldWidget.endDate != widget.endDate) {
+      _processDataPoints();
+      
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
+      });
+    }
+  }
 
-    final filteredTrends = trends
-        .where((trend) => trend.timestamp.isAfter(startDate))
-        .toList();
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
-    return filteredTrends.asMap().entries.map((entry) {
-      return FlSpot(
-        entry.key.toDouble(),
-        entry.value.count.toDouble(),
-      );
-    }).toList();
+  String _getTooltipDate(double x) {
+    final date = widget.startDate.add(Duration(days: x.toInt()));
+    return DateFormat('MMM d, yyyy').format(date);
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final colors = isDarkMode ? AppTheme.dark : AppTheme.light;
+    final displayedSpots = _showBorrowed ? _processedBorrowedSpots : _processedReturnedSpots;
 
-    return Column(
-      children: [
-        _buildTimeRangeSelector(colors),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: widget.width,
-          height: 300,
-          child: BlocBuilder<DashboardCubit, DashboardState>(
-            builder: (context, state) {
-              if (state is DashboardLoaded) {
-                final spots = _getSpots(state.borrowingTrends);
-                return _buildChart(spots, colors);
-              }
-              return const Center(child: CircularProgressIndicator());
-            },
-          ),
-        ),
-      ],
-    );
-  }
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Borrowing Trends',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                DateRangeSelector(
+                  key: const ValueKey('date_range_selector'),
+                  startDate: widget.startDate,
+                  endDate: widget.endDate,
+                  onDateRangeChanged: widget.onDateRangeChanged,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: SegmentedButton<bool>(
+                selected: {_showBorrowed},
+                onSelectionChanged: (Set<bool> selected) {
+                  setState(() {
+                    _showBorrowed = selected.first;
+                  });
+                },
+                segments: [
+                  ButtonSegment<bool>(
+                    value: true,
+                    label: Text('Borrowed', 
+                      style: TextStyle(color: colors.onSurface)),
+                  ),
+                  ButtonSegment<bool>(
+                    value: false,
+                    label: Text('Returned', 
+                      style: TextStyle(color: colors.onSurface)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: SizedBox(
+                height: 400,
+                width: widget.width,
+                child: _isScrollControllerReady ? Builder(
+                  builder: (context) {
+                    final daysCount = widget.endDate.difference(widget.startDate).inDays + 1;
+                    final minWidth = widget.width - 32; // Account for padding
+                    final desiredWidth = daysCount * 40.0;
+                    
+                    // If the desired width is less than available width, show centered chart
+                    if (desiredWidth <= minWidth) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 16.0, bottom: 24.0),
+                        child: _buildChart(displayedSpots, colors),
+                      );
+                    }
 
-  Widget _buildTimeRangeSelector(CoreColors colors) {
-    return SegmentedButton<TimeRange>(
-      selected: {_selectedRange},
-      onSelectionChanged: (Set<TimeRange> selection) {
-        setState(() {
-          _selectedRange = selection.first;
-        });
-      },
-      segments: [
-        ButtonSegment<TimeRange>(
-          value: TimeRange.day,
-          label: Text('Day'),
+                    // Otherwise, show scrollable chart
+                    return Scrollbar(
+                      thumbVisibility: true,
+                      trackVisibility: true,
+                      controller: _scrollController,
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          width: max(desiredWidth, minWidth),
+                          child: _buildChart(displayedSpots, colors),
+                        ),
+                      ),
+                    );
+                  },
+                ) : const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            ),
+          ],
         ),
-        ButtonSegment<TimeRange>(
-          value: TimeRange.week,
-          label: Text('Week'),
-        ),
-        ButtonSegment<TimeRange>(
-          value: TimeRange.month,
-          label: Text('Month'),
-        ),
-        ButtonSegment<TimeRange>(
-          value: TimeRange.halfYear,
-          label: Text('6M'),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildChart(List<FlSpot> spots, CoreColors colors) {
+    final allYValues = spots.map((e) => e.y).toList();
+    final maxY = allYValues.isEmpty ? 10.0 : max(allYValues.reduce(max) * 1.2, 5.0);
+    final horizontalInterval = maxY / 5 > 1 ? (maxY / 5).ceilToDouble() : 1.0;
+    final maxX = widget.endDate.difference(widget.startDate).inDays.toDouble();
+
     return LineChart(
       LineChartData(
+        minX: 0,
+        maxX: maxX,
+        minY: 0,
+        maxY: maxY,
+        clipData: FlClipData.all(),
         gridData: FlGridData(
           show: true,
           drawVerticalLine: true,
-          horizontalInterval: 1,
+          horizontalInterval: horizontalInterval,
           verticalInterval: 1,
-          getDrawingHorizontalLine: (value) {
-            return FlLine(
-              color: colors.onBackground.withOpacity(0.1),
-              strokeWidth: 1,
-            );
-          },
-          getDrawingVerticalLine: (value) {
-            return FlLine(
-              color: colors.onBackground.withOpacity(0.1),
-              strokeWidth: 1,
-            );
-          },
         ),
         titlesData: FlTitlesData(
           show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 30,
+              interval: 1,
+              getTitlesWidget: (value, meta) => _bottomTitleWidgets(value, meta, colors),
+            ),
+          ),
           rightTitles: AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
           topTitles: AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 30,
-              interval: 1,
-              getTitlesWidget: _bottomTitleWidgets,
-            ),
-          ),
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              interval: 1,
-              getTitlesWidget: _leftTitleWidgets,
-              reservedSize: 42,
+              interval: horizontalInterval,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) => _leftTitleWidgets(value, meta, colors),
             ),
           ),
         ),
         borderData: FlBorderData(
-          show: false,
+          show: true,
+          border: Border.all(color: Colors.grey.withOpacity(0.2)),
         ),
-        minX: 0,
-        maxX: _getMaxX(),
-        minY: 0,
-        maxY: 6,
         lineBarsData: [
           LineChartBarData(
             spots: spots,
-            isCurved: true,
-            gradient: LinearGradient(
-              colors: [
-                widget.color.withOpacity(0.5),
-                widget.color,
-              ],
-            ),
-            barWidth: 3,
+            isCurved: false,
+            color: _showBorrowed ? colors.primary : colors.success,
+            barWidth: 2,
             isStrokeCapRound: true,
-            dotData: FlDotData(
-              show: false,
-            ),
+            dotData: FlDotData(show: true),
             belowBarData: BarAreaData(
               show: true,
-              gradient: LinearGradient(
-                colors: [
-                  widget.color.withOpacity(0.1),
-                  widget.color.withOpacity(0.05),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
+              color: (_showBorrowed ? colors.primary : colors.success).withOpacity(0.1),
             ),
           ),
         ],
@@ -194,55 +287,34 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> {
     );
   }
 
-  Widget _bottomTitleWidgets(double value, TitleMeta meta) {
+  Widget _bottomTitleWidgets(double value, TitleMeta meta, CoreColors colors) {
     final style = TextStyle(
-      color: Colors.grey,
+      color: colors.textSubtle,
       fontWeight: FontWeight.bold,
-      fontSize: 12,
+      fontSize: 10,
     );
 
-    String text;
-    switch (_selectedRange) {
-      case TimeRange.day:
-        text = '${value.toInt()}h';
-        break;
-      case TimeRange.week:
-        text = 'D${value.toInt()}';
-        break;
-      case TimeRange.month:
-        text = 'W${value.toInt()}';
-        break;
-      case TimeRange.halfYear:
-        text = 'M${value.toInt()}';
-        break;
-    }
-
+    final date = widget.startDate.add(Duration(days: value.toInt()));
+    
     return SideTitleWidget(
       axisSide: meta.axisSide,
-      child: Text(text, style: style),
+      angle: 45,
+      child: Text(
+        '${date.day} ${DateFormat('MMM').format(date)}',
+        style: style,
+      ),
     );
   }
 
-  Widget _leftTitleWidgets(double value, TitleMeta meta) {
-    final style = TextStyle(
-      color: Colors.grey,
-      fontWeight: FontWeight.bold,
-      fontSize: 12,
+  Widget _leftTitleWidgets(double value, TitleMeta meta, CoreColors colors) {
+    return Text(
+      value.toInt().toString(),
+      style: TextStyle(
+        color: colors.textSubtle,
+        fontWeight: FontWeight.bold,
+        fontSize: 12,
+      ),
+      textAlign: TextAlign.left,
     );
-
-    return Text(value.toInt().toString(), style: style, textAlign: TextAlign.left);
-  }
-
-  double _getMaxX() {
-    switch (_selectedRange) {
-      case TimeRange.day:
-        return 23;
-      case TimeRange.week:
-        return 7;
-      case TimeRange.month:
-        return 4;
-      case TimeRange.halfYear:
-        return 6;
-    }
   }
 } 

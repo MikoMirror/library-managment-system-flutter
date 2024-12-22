@@ -26,6 +26,7 @@ class ReservationStatusChip extends StatelessWidget {
         case 'borrowed': return coreColors.success;
         case 'returned': return coreColors.info;
         case 'overdue': return coreColors.error;
+        case 'expired': return coreColors.expired;
         default: return coreColors.primary;
       }
     }

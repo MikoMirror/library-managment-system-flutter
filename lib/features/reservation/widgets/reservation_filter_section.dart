@@ -15,13 +15,13 @@ class ReservationFilterSection extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDarkMode 
-            ? AppTheme.dark.primary.withOpacity(0.1)
-            : AppTheme.light.primary.withOpacity(0.1),
+            ? AppTheme.dark.primary.withAlpha(25)
+            : AppTheme.light.primary.withAlpha(25),
         border: Border(
           bottom: BorderSide(
             color: isDarkMode
-                ? AppTheme.dark.primary.withOpacity(0.1)
-                : AppTheme.light.primary.withOpacity(0.2),
+                ? AppTheme.dark.primary.withAlpha(25)
+                : AppTheme.light.primary.withAlpha(51),
           ),
         ),
       ),
@@ -102,8 +102,8 @@ class ReservationFilterSection extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isDarkMode 
-                  ? AppTheme.dark.secondary.withOpacity(0.3)
-                  : AppTheme.light.primary.withOpacity(0.3),
+                  ? AppTheme.dark.secondary.withAlpha(51)
+                  : AppTheme.light.primary.withAlpha(51),
             ),
           ),
           child: DropdownButtonHideUnderline(

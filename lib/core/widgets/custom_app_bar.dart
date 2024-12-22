@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../theme/app_theme.dart';
-import '../theme/cubit/theme_cubit.dart';
+
 
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -40,7 +39,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: automaticallyImplyLeading,
       centerTitle: false,
       elevation: 0,
-      backgroundColor: colors.primary.withOpacity(0.1),
+      backgroundColor: colors.primary.withAlpha(25),
       iconTheme: IconThemeData(
         color: colors.primary,
       ),

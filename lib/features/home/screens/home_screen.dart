@@ -36,6 +36,27 @@ class _HomeScreenState extends State<HomeScreen> {
   final _firestore = FirebaseFirestore.instance;
   UserModel? _cachedUserModel;
   List<NavigationItem>? _cachedNavigationItems;
+  late final DashboardCubit _dashboardCubit;
+  late final BooksBloc _booksBloc;
+  late final ReservationBloc _reservationBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _dashboardCubit = DashboardCubit(FirestoreService());
+    _booksBloc = BooksBloc(repository: BooksRepository(firestore: _firestore));
+    _reservationBloc = ReservationBloc(
+      repository: ReservationsRepository(firestore: _firestore),
+    );
+  }
+
+  @override
+  void dispose() {
+    _dashboardCubit.close();
+    _booksBloc.close();
+    _reservationBloc.close();
+    super.dispose();
+  }
 
   List<NavigationItem> _getNavigationItems(String role) {
     final commonItems = [
@@ -95,39 +116,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _getScreenForIndex(int index, String role) {
     final screens = role == 'admin'
         ? {
-            0: () => BlocProvider(
-                  create: (context) => BooksBloc(
-                    repository: BooksRepository(firestore: _firestore),
-                  ),
+            0: () => BlocProvider.value(
+                  value: _booksBloc,
                   child: const BooksScreen(),
                 ),
-            1: () => BlocProvider(
-                  create: (context) => DashboardCubit(
-                    FirestoreService(),
-                  )..loadDashboard(),
+            1: () => BlocProvider.value(
+                  value: _dashboardCubit..loadDashboard(),
                   child: const DashboardScreen(),
                 ),
             2: () => const UsersScreen(),
-            3: () => BlocProvider(
-                  create: (context) => ReservationBloc(
-                    repository: ReservationsRepository(firestore: _firestore),
-                  )..add(LoadReservations()),
+            3: () => BlocProvider.value(
+                  value: _reservationBloc..add(LoadReservations()),
                   child: ReservationsScreen(),
                 ),
             4: () => const SettingsScreen(),
           }
         : {
-            0: () => BlocProvider(
-                  create: (context) => BooksBloc(
-                    repository: BooksRepository(firestore: _firestore),
-                  ),
+            0: () => BlocProvider.value(
+                  value: _booksBloc,
                   child: const BooksScreen(),
                 ),
             1: () => const FavoritesScreen(),
-            2: () => BlocProvider(
-                  create: (context) => ReservationBloc(
-                    repository: ReservationsRepository(firestore: _firestore),
-                  )..add(LoadReservations()),
+            2: () => BlocProvider.value(
+                  value: _reservationBloc..add(LoadReservations()),
                   child: ReservationsScreen(),
                 ),
             3: () => const SettingsScreen(),

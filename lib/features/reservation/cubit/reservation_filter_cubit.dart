@@ -1,22 +1,29 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../core/models/search_filter.dart';
 
-enum ReservationFilter implements SearchFilter {
-  all('All'),
-  reserved('Reserved'),
-  borrowed('Borrowed'),
-  overdue('Overdue'),
-  returned('Returned'),
-  expired('Expired');
+enum ReservationFilter {
+  all,
+  reserved,
+  borrowed,
+  returned,
+  overdue,
+  expired;
 
-  final String displayName;
-  const ReservationFilter(this.displayName);
-
-  @override
-  String getDisplayName() => displayName;
-
-  @override
-  String get label => displayName;
+  String get displayName {
+    switch (this) {
+      case ReservationFilter.all:
+        return 'All';
+      case ReservationFilter.reserved:
+        return 'Reserved';
+      case ReservationFilter.borrowed:
+        return 'Borrowed';
+      case ReservationFilter.returned:
+        return 'Returned';
+      case ReservationFilter.overdue:
+        return 'Overdue';
+      case ReservationFilter.expired:
+        return 'Expired';
+    }
+  }
 }
 
 class ReservationFilterCubit extends Cubit<ReservationFilter> {

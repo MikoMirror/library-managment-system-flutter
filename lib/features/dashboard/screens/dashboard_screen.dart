@@ -1,21 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../cubit/dashboard_cubit.dart';
 import '../cubit/dashboard_state.dart';
+import '../models/borrowing_trend_point.dart';
 import '../widgets/stat_card.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/theme/app_theme.dart';
 import '../widgets/borrowing_trends_chart.dart';
+import '../widgets/date_range_selector.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final colors = isDarkMode ? AppTheme.dark : AppTheme.light;
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
 
+class _DashboardScreenState extends State<DashboardScreen> {
+  DashboardLoaded? _dashboardData;
+
+  @override
+  void initState() {
+    super.initState();
+    final currentState = context.read<DashboardCubit>().state;
+    
+    // Only load if we're in initial state or dates are missing
+    if (currentState is DashboardInitial || 
+        currentState.selectedStartDate == null || 
+        currentState.selectedEndDate == null) {
+      final now = DateTime.now();
+      final endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      final startDate = DateTime(
+        now.year, 
+        now.month, 
+        now.day - 29,
+        0, 0, 0
+      );
+      
+      context.read<DashboardCubit>().loadDashboard(
+        startDate: startDate,
+        endDate: endDate,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(
         title: Text(
@@ -25,133 +56,185 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
       ),
-      backgroundColor: isDarkMode 
+      backgroundColor: Theme.of(context).brightness == Brightness.dark 
         ? AppTheme.dark.background 
         : AppTheme.light.background,
-      body: _DashboardContent(colors: colors),
+      body: BlocBuilder<DashboardCubit, DashboardState>(
+        builder: (context, state) {
+          if (state is DashboardError) {
+            return Center(child: Text(state.message));
+          }
+
+          if (state is DashboardLoading && _dashboardData == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state is DashboardLoaded) {
+            _dashboardData = state;
+            return _DashboardContent(data: state);
+          }
+
+          if (_dashboardData != null) {
+            return _DashboardContent(data: _dashboardData!);
+          }
+
+          return const Center(child: Text('Something went wrong'));
+        },
+      ),
     );
   }
 }
 
 class _DashboardContent extends StatelessWidget {
-  final CoreColors colors;
+  final DashboardLoaded data;
 
-  const _DashboardContent({required this.colors});
+  const _DashboardContent({required this.data});
+
+  List<FlSpot> _convertToSpots(List<BorrowingTrendPoint> trends) {
+    if (trends.isEmpty) return [];
+    
+    // Create a map for all possible dates with default value 0
+    final Map<DateTime, double> spotMap = {};
+    final totalDays = data.selectedEndDate.difference(data.selectedStartDate).inDays + 1;
+    
+    // Initialize all days with 0
+    for (int i = 0; i < totalDays; i++) {
+      final date = data.selectedStartDate.add(Duration(days: i));
+      spotMap[DateTime(date.year, date.month, date.day)] = 0;
+    }
+    
+    // Fill in actual values
+    for (var trend in trends) {
+      final date = trend.timestamp;
+      spotMap[DateTime(date.year, date.month, date.day)] = trend.count.toDouble();
+    }
+    
+    // Convert map to sorted list of FlSpots
+    return spotMap.entries
+        .map((entry) {
+          final days = entry.key.difference(data.selectedStartDate).inDays;
+          return FlSpot(days.toDouble(), entry.value);
+        })
+        .toList()
+      ..sort((a, b) => a.x.compareTo(b.x));
+  }
+
+  double _calculateCardWidth(BoxConstraints constraints) {
+    final screenWidth = constraints.maxWidth;
+    if (screenWidth > 1600) return 320;
+    if (screenWidth > 1200) return 280;
+    if (screenWidth > 800) return 260;
+    if (screenWidth > 600) return screenWidth / 2 - 24;
+    return screenWidth - 32;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final cardWidth = _calculateCardWidth(screenSize.width);
-    final gridSpacing = screenSize.width > 1200 ? 24.0 : 16.0;
-
-    return BlocBuilder<DashboardCubit, DashboardState>(
-      builder: (context, state) {
-        if (state is DashboardLoading) {
-          return Center(
-            child: CircularProgressIndicator(
-              color: colors.primary,
-            ),
-          );
-        }
-
-        if (state is DashboardLoaded) {
-          return SingleChildScrollView(
-            padding: EdgeInsets.all(gridSpacing),
-            child: Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(bottom: gridSpacing),
-                  child: Center(
-                    child: Text(
-                      'Library Statistics',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colors.onBackground,
-                      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = _calculateCardWidth(constraints);
+        final isMobile = constraints.maxWidth < 600;
+        
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Center(
+                  child: Text(
+                    'Library Statistics',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
                   ),
                 ),
-                Center(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Container(
-                        constraints: BoxConstraints(
-                          maxWidth: 1600,
-                        ),
-                        child: Wrap(
-                          spacing: gridSpacing,
-                          runSpacing: gridSpacing,
-                          alignment: WrapAlignment.center,
-                          children: [
-                            StatCard(
-                              width: cardWidth,
-                              title: 'Unique Books',
-                              value: state.uniqueBooks.toString(),
-                              icon: Icons.auto_stories,
-                              color: colors.info,
-                            ),
-                            StatCard(
-                              width: cardWidth,
-                              title: 'Available Books',
-                              value: '${state.totalBooks - (state.reservedBooks + state.borrowedBooks)}/${state.totalBooks}',
-                              icon: Icons.library_books,
-                              color: colors.primary,
-                            ),
-                            StatCard(
-                              width: cardWidth,
-                              title: 'Reserved Books',
-                              value: state.reservedBooks.toString(),
-                              icon: Icons.bookmark,
-                              color: colors.warning,
-                            ),
-                            StatCard(
-                              width: cardWidth,
-                              title: 'Borrowed Books',
-                              value: state.borrowedBooks.toString(),
-                              icon: Icons.book,
-                              color: colors.success,
-                            ),
-                            StatCard(
-                              width: cardWidth,
-                              title: 'Overdue Books',
-                              value: state.overdueBooks.toString(),
-                              icon: Icons.warning,
-                              color: colors.error,
-                            ),
-                            BorrowingTrendsChart(
-                              width: screenSize.width > 800 ? screenSize.width - 48 : screenSize.width - 32,
-                              color: colors.primary,
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+              ),
+              AnimatedPadding(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    _buildStatCards(data, cardWidth),
+                    const SizedBox(height: 16),
+                    RepaintBoundary(
+                      child: BorrowingTrendsChart(
+                        key: ValueKey('borrowing_trends_chart_${data.selectedStartDate}_${data.selectedEndDate}'),
+                        width: constraints.maxWidth - 32,
+                        startDate: data.selectedStartDate,
+                        endDate: data.selectedEndDate,
+                        borrowedTrends: _convertToSpots(data.borrowedTrends),
+                        returnedTrends: _convertToSpots(data.returnedTrends),
+                        isMobile: isMobile,
+                        onDateRangeChanged: (start, end) {
+                          context.read<DashboardCubit>().loadDashboard(
+                            startDate: start,
+                            endDate: end,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        }
-
-        if (state is DashboardError) {
-          return Center(
-            child: Text(
-              state.message,
-              style: TextStyle(color: colors.error),
-            ),
-          );
-        }
-
-        return const SizedBox.shrink();
+              ),
+            ],
+          ),
+        );
       },
     );
   }
 
-  double _calculateCardWidth(double screenWidth) {
-    if (screenWidth > 1600) return 320; // Extra large screens
-    if (screenWidth > 1200) return 280; // Large screens
-    if (screenWidth > 800) return 260;  // Medium screens
-    if (screenWidth > 600) return screenWidth / 2 - 24; // Small screens
-    return screenWidth - 32; // Mobile screens
+  Widget _buildStatCards(DashboardLoaded state, double cardWidth) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      constraints: const BoxConstraints(maxWidth: 1600),
+      child: Wrap(
+        spacing: 16.0,
+        runSpacing: 16.0,
+        alignment: WrapAlignment.center,
+        children: [
+          StatCard(
+            key: const ValueKey('unique_books'),
+            width: cardWidth,
+            title: 'Unique Books',
+            value: '${state.uniqueBooks}',
+            icon: Icons.auto_stories,
+            color: AppTheme.light.info,
+          ),
+          StatCard(
+            key: const ValueKey('available_books'),
+            width: cardWidth,
+            title: 'Available Books',
+            value: '${state.totalBooks - (state.reservedBooks + state.borrowedBooks)}/${state.totalBooks}',
+            icon: Icons.library_books,
+            color: AppTheme.light.primary,
+          ),
+          StatCard(
+            key: const ValueKey('reserved_books'),
+            width: cardWidth,
+            title: 'Reserved Books',
+            value: '${state.reservedBooks}',
+            icon: Icons.bookmark,
+            color: AppTheme.light.warning,
+          ),
+          StatCard(
+            key: const ValueKey('borrowed_books'),
+            width: cardWidth,
+            title: 'Borrowed Books',
+            value: '${state.borrowedBooks}',
+            icon: Icons.book,
+            color: AppTheme.light.success,
+          ),
+          StatCard(
+            key: const ValueKey('overdue_books'),
+            width: cardWidth,
+            title: 'Overdue Books',
+            value: '${state.overdueBooks}',
+            icon: Icons.warning,
+            color: AppTheme.light.error,
+          ),
+        ],
+      ),
+    );
   }
 } 

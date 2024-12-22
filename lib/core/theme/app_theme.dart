@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppTheme {
   // Core UI Colors
@@ -31,6 +32,7 @@ class AppTheme {
     success: Color(0xFF4CAF50),
     warning: Color(0xFFFFA000),
     info: Color(0xFF2196F3),
+    expired: Color.fromARGB(255, 139, 0, 49),
   );
 
   static CoreColors dark = const CoreColors(
@@ -62,6 +64,7 @@ class AppTheme {
     success: Color(0xFF81C784),
     warning: Color(0xFFFFB74D),
     info: Color(0xFF64B5F6),
+    expired: Color.fromARGB(255, 104, 0, 0),
   );
 
   static ReservationStatusColors reservationStatus = ReservationStatusColors(
@@ -70,11 +73,12 @@ class AppTheme {
     returned: light.info,
     overdue: light.error,
     rejected: light.error,
-    expired: light.textSubtle,
+    expired: light.expired,
   );
 
   static ThemeData getTheme(bool isDarkMode) {
     final colors = isDarkMode ? dark : light;
+    
     
     return ThemeData(
       useMaterial3: true,
@@ -110,6 +114,14 @@ class AppTheme {
           fontSize: 20,
           fontWeight: FontWeight.bold,
           color: colors.onBackground,
+        ),
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: colors.background,
+          statusBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
+          statusBarBrightness: isDarkMode ? Brightness.dark : Brightness.light,
+          systemNavigationBarColor: colors.background,
+          systemNavigationBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
+          systemNavigationBarDividerColor: Colors.transparent,
         ),
       ),
       
@@ -158,6 +170,7 @@ class CoreColors {
   final Color success;
   final Color warning;
   final Color info;
+  final Color expired;
 
   const CoreColors({
     required this.background,
@@ -179,6 +192,7 @@ class CoreColors {
     required this.success,
     required this.warning,
     required this.info,
+    required this.expired,
   });
 }
 

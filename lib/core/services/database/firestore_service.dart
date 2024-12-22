@@ -75,9 +75,14 @@ class FirestoreService {
         .snapshots();
   }
 
-  Stream<QuerySnapshot> getAllBookings() {
-    return _firestore
-        .collection(RESERVATIONS_COLLECTION)
+  Stream<QuerySnapshot> getAllBookings({String? filterStatus}) {
+    Query query = _firestore.collection(RESERVATIONS_COLLECTION);
+    
+    if (filterStatus != null && filterStatus.toLowerCase() != 'all') {
+      query = query.where('status', isEqualTo: filterStatus.toLowerCase());
+    }
+
+    return query
         .orderBy('borrowedDate', descending: true)
         .snapshots();
   }
@@ -185,6 +190,8 @@ class FirestoreService {
       'booksQuantity': FieldValue.increment(-quantity),
     });
 
+    await trackBorrowingEvent(bookId);
+    
     await batch.commit();
   }
 
@@ -333,74 +340,211 @@ class FirestoreService {
         }, SetOptions(merge: true));
   }
 
-  Future<List<BorrowingTrendPoint>> getBorrowingTrends(DateTime startDate) async {
-    final snapshots = await _firestore
-        .collectionGroup('borrowing_history')
-        .where('timestamp', isGreaterThanOrEqualTo: startDate)
-        .orderBy('timestamp')
-        .get();
-
-    final trendsMap = <String, int>{};
-    for (var doc in snapshots.docs) {
-      final timestamp = (doc.data()['timestamp'] as Timestamp).toDate();
-      final dayKey = DateFormat('yyyy-MM-dd').format(timestamp);
-      final count = doc.data()['count'] as int;
+  Future<List<BorrowingTrendPoint>> getBorrowingTrends({
+    required DateTime startDate,
+    required DateTime endDate,
+    required String status,
+  }) async {
+    try {
+      debugPrint('Fetching $status trends from ${startDate.toIso8601String()} to ${endDate.toIso8601String()}');
       
-      trendsMap[dayKey] = (trendsMap[dayKey] ?? 0) + count;
-    }
+      Query query;
+      if (status == 'borrowed') {
+        // For borrowed trends, show all books that were borrowed on each date
+        query = _firestore
+            .collection(RESERVATIONS_COLLECTION)
+            .where(
+              'borrowedDate',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
+              isLessThanOrEqualTo: Timestamp.fromDate(endDate.add(const Duration(days: 1))),
+            )
+            .orderBy('borrowedDate');
+      } else {
+        // For returned trends, only show books that were actually returned
+        query = _firestore
+            .collection(RESERVATIONS_COLLECTION)
+            .where('status', isEqualTo: 'returned')
+            .where(
+              'returnedDate',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
+              isLessThanOrEqualTo: Timestamp.fromDate(endDate.add(const Duration(days: 1))),
+            )
+            .orderBy('returnedDate');
+      }
 
-    return trendsMap.entries.map((entry) {
-      return BorrowingTrendPoint(
-        timestamp: DateFormat('yyyy-MM-dd').parse(entry.key),
-        count: entry.value,
-      );
-    }).toList()
-      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      final querySnapshot = await query.get();
+      debugPrint('Found ${querySnapshot.docs.length} documents for $status trends');
+
+      // Group by day
+      final Map<DateTime, int> dailyCounts = {};
+      
+      for (var doc in querySnapshot.docs) {
+        try {
+          final timestamp = doc.get(status == 'borrowed' ? 'borrowedDate' : 'returnedDate') as Timestamp;
+          final date = DateTime(
+            timestamp.toDate().year,
+            timestamp.toDate().month,
+            timestamp.toDate().day,
+          );
+          
+          final quantity = doc.get('quantity') as int;
+          dailyCounts[date] = (dailyCounts[date] ?? 0) + quantity;
+          
+          debugPrint('Added ${quantity} books for date ${date}');
+        } catch (e) {
+          debugPrint('Error processing document ${doc.id}: $e');
+          debugPrint('Document data: ${doc.data()}');
+        }
+      }
+
+      // Fill in missing dates with zero counts
+      DateTime currentDate = startDate;
+      while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
+        final normalizedDate = DateTime(
+          currentDate.year,
+          currentDate.month,
+          currentDate.day,
+        );
+        if (!dailyCounts.containsKey(normalizedDate)) {
+          dailyCounts[normalizedDate] = 0;
+        }
+        currentDate = currentDate.add(const Duration(days: 1));
+      }
+
+      final trends = dailyCounts.entries.map((entry) {
+        return BorrowingTrendPoint(
+          timestamp: entry.key,
+          count: entry.value,
+        );
+      }).toList()..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      
+      debugPrint('Generated ${trends.length} trend points');
+      trends.forEach((point) {
+        debugPrint('${point.timestamp}: ${point.count}');
+      });
+      
+      return trends;
+    } catch (e) {
+      debugPrint('Error getting $status trends: $e');
+      return [];
+    }
   }
 
   Future<Map<String, int>> getDashboardStats() async {
     final booksSnapshot = await _firestore.collection(BOOKS_COLLECTION).get();
-    final reservationsSnapshot = await _firestore.collection(RESERVATIONS_COLLECTION).get();
-    
+    final reservationsSnapshot = await _firestore
+        .collection(RESERVATIONS_COLLECTION)
+        .where('status', whereIn: ['reserved', 'borrowed', 'overdue'])
+        .get();
+
     int uniqueBooks = booksSnapshot.docs.length;
-    int totalBooks = 0;
+    int totalBooks = 0;  // Total books in the system (library + reserved/borrowed)
     int reservedBooks = 0;
     int borrowedBooks = 0;
     int overdueBooks = 0;
     int expiredBooks = 0;
 
+    // Calculate total books in the library collection
     for (var doc in booksSnapshot.docs) {
       final data = doc.data();
-      totalBooks += (data['booksQuantity'] as int?) ?? 0;
+      totalBooks += (data['booksQuantity'] as int?) ?? 0;  // Current quantity in library
     }
 
+    // Add books that are currently reserved/borrowed/overdue to get true total
     for (var doc in reservationsSnapshot.docs) {
       final data = doc.data();
       final status = data['status'] as String?;
+      final quantity = (data['quantity'] as int?) ?? 1;
       
+      // Add to total books count since these are part of the library's total inventory
+      totalBooks += quantity;
+      
+      // Track individual status counts
       switch (status) {
         case 'reserved':
-          reservedBooks++;
+          reservedBooks += quantity;
           break;
         case 'borrowed':
-          borrowedBooks++;
+          borrowedBooks += quantity;
           break;
         case 'overdue':
-          overdueBooks++;
+          overdueBooks += quantity;
           break;
         case 'expired':
-          expiredBooks++;
+          expiredBooks += quantity;
           break;
       }
     }
 
     return {
       'uniqueBooks': uniqueBooks,
-      'totalBooks': totalBooks,
+      'totalBooks': totalBooks,  // Total books in system (library + reserved/borrowed)
       'reservedBooks': reservedBooks,
       'borrowedBooks': borrowedBooks,
       'overdueBooks': overdueBooks,
       'expiredBooks': expiredBooks,
     };
+  }
+
+  Future<void> checkReservationStatuses() async {
+    final batch = _firestore.batch();
+    final now = Timestamp.now();
+
+    try {
+      // Check expired reservations (reserved for more than 24 hours)
+      final reservedQuery = await _firestore
+          .collection(RESERVATIONS_COLLECTION)
+          .where('status', isEqualTo: 'reserved')
+          .get();
+
+      for (var doc in reservedQuery.docs) {
+        final createdAt = doc.data()['borrowedDate'] as Timestamp;
+        final expiryTime = 24 * 60 * 60; // 24 hours in seconds
+        
+        if (now.seconds - createdAt.seconds > expiryTime) {
+          batch.update(doc.reference, {
+            'status': 'expired',
+            'updatedAt': now,
+          });
+
+          // Return the book quantity back to the book's inventory
+          final bookId = doc.data()['bookId'] as String;
+          final quantity = doc.data()['quantity'] as int;
+          final bookRef = _firestore.collection(BOOKS_COLLECTION).doc(bookId);
+          
+          batch.update(bookRef, {
+            'booksQuantity': FieldValue.increment(quantity),
+          });
+        }
+      }
+
+      await batch.commit();
+    } catch (e) {
+      print('Error checking reservations: $e');
+      throw Exception('Failed to check reservations');
+    }
+  }
+
+  Future<void> cleanupExpiredReservations() async {
+    final batch = _firestore.batch();
+    final thirtyDaysAgo = DateTime.now().subtract(Duration(days: 30));
+
+    try {
+      final expiredQuery = await _firestore
+          .collection(RESERVATIONS_COLLECTION)
+          .where('status', isEqualTo: 'expired')
+          .where('updatedAt', isLessThan: Timestamp.fromDate(thirtyDaysAgo))
+          .get();
+
+      for (var doc in expiredQuery.docs) {
+        batch.delete(doc.reference);
+      }
+
+      await batch.commit();
+      print('Cleaned up ${expiredQuery.size} expired reservations');
+    } catch (e) {
+      print('Error cleaning up reservations: $e');
+      throw Exception('Failed to cleanup reservations');
+    }
   }
 }

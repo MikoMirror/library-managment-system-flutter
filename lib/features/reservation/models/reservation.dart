@@ -38,27 +38,15 @@ class Reservation {
   }
 
   String get currentStatus {
-    if (status != 'returned' && isOverdue) {
-      return 'overdue';
-    }
+    if (status == 'expired') return 'expired';
+    if (status != 'returned' && isOverdue) return 'overdue';
     return status;
   }
 
   bool get isOverdue {
-    if (status == 'returned') return false;
-    
+    if (status == 'returned' || status == 'expired') return false;
     final now = DateTime.now();
-    final dueDateInLocal = dueDate.toDate().toLocal();
-    
-    // Create DateTime for the end of the due date (23:59:59)
-    final endOfDueDate = DateTime(
-      dueDateInLocal.year,
-      dueDateInLocal.month,
-      dueDateInLocal.day,
-      23, 59, 59,
-    );
-    
-    return now.isAfter(endOfDueDate);
+    return dueDate.toDate().isBefore(now);
   }
 
   factory Reservation.fromMap(Map<String, dynamic> map, String? id) {

@@ -19,6 +19,7 @@ import 'features/users/repositories/users_repository.dart';
 import 'features/auth/screens/initial_admin_setup_screen.dart';
 import 'core/theme/cubit/theme_cubit.dart';
 import 'core/services/background/reservation_check_service.dart';
+import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,6 +51,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    
     return MultiBlocProvider(
       providers: [
         BlocProvider(

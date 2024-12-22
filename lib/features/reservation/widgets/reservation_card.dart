@@ -156,7 +156,8 @@ class ReservationCard extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     if (reservation.status != 'borrowed' && 
-                                        reservation.status != 'returned')
+                                        reservation.status != 'returned' &&
+                                        reservation.status != 'expired')
                                       TextButton.icon(
                                         onPressed: () {
                                           context.read<ReservationCardBloc>()
@@ -267,14 +268,15 @@ class ReservationCard extends StatelessWidget {
   Widget _buildStatusChip(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    final coreColors = isDarkMode ? AppTheme.dark : AppTheme.light;
     
     final colors = {
-      'pending': Colors.orange,
-      'borrowed': isDarkMode 
-          ? AppTheme.dark.secondary 
-          : AppTheme.light.primary,
-      'returned': Colors.green,
-      'rejected': Colors.red,
+      'pending': coreColors.warning,
+      'borrowed': coreColors.success,
+      'returned': coreColors.info,
+      'rejected': coreColors.error,
+      'overdue': coreColors.error,
+      'expired': coreColors.expired,
     };
 
     return Container(
