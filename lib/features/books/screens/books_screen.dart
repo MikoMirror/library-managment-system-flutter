@@ -12,7 +12,7 @@ import '../widgets/book card/desktop_books_grid.dart';
 import '../enums/book_view_type.dart';
 import '../widgets/book card/table_books_view.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/widgets/custom_search_bar.dart';
+
 class BooksScreen extends StatefulWidget {
   const BooksScreen({super.key});
 
@@ -21,8 +21,14 @@ class BooksScreen extends StatefulWidget {
 }
 
 class _BooksScreenState extends State<BooksScreen> {
-  final _firestore = FirebaseFirestore.instance;
-  final _searchController = TextEditingController();
+  late final _firestore = FirebaseFirestore.instance;
+  late final _searchController = TextEditingController();
+  
+  late bool _isSmallScreen;
+  late bool _isPortrait;
+  
+  Stream<DocumentSnapshot>? _adminCheckStream;
+  
   BookViewType _viewType = BookViewType.desktop;
 
   @override
@@ -31,6 +37,22 @@ class _BooksScreenState extends State<BooksScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BooksBloc>().add(LoadBooks());
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final mediaQuery = MediaQuery.of(context);
+    _isSmallScreen = mediaQuery.size.width < 600;
+    _isPortrait = mediaQuery.orientation == Orientation.portrait;
+    
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthSuccess && _adminCheckStream == null) {
+      _adminCheckStream = _firestore
+          .collection('users')
+          .doc(authState.user.uid)
+          .snapshots();
+    }
   }
 
   @override
@@ -43,89 +65,26 @@ class _BooksScreenState extends State<BooksScreen> {
     context.read<BooksBloc>().add(DeleteBook(book.id!));
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
-    final isPortrait = MediaQuery.of(context).size.height > MediaQuery.of(context).size.width;
-    
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, authState) {
-        return Scaffold(
-          appBar: CustomAppBar(
-          title: Text(
-            'Books',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+  Widget? _buildFAB(AuthState authState) {
+    if (authState is! AuthSuccess) return null;
 
-            ),
-            actions: [
-              SizedBox(
-                width: MediaQuery.of(context).size.width * (isSmallScreen ? 0.5 : 0.4),
-                child: CustomSearchBar(
-                  hintText: 'Search books...',
-                  onChanged: (query) {
-                    if (query.isEmpty) {
-                      context.read<BooksBloc>().add(LoadBooks());
-                    } else {
-                      context.read<BooksBloc>().add(SearchBooks(query));
-                    }
-                  },
-                ),
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _adminCheckStream,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        
+        final userData = snapshot.data!.data() as Map<String, dynamic>?;
+        final isAdmin = userData?['role'] == 'admin';
+
+        return isAdmin 
+          ? FloatingActionButton(
+              onPressed: () => _showAddBookDialog(context),
+              child: Icon(
+                Icons.add,
+                size: _isSmallScreen ? 20 : 24,
               ),
-              if (!isPortrait && !isSmallScreen)
-                IconButton(
-                  icon: Icon(
-                    _viewType.icon,
-                    size: isSmallScreen ? 20 : 24,
-                  ),
-                  onPressed: () => _toggleViewType(),
-                ),
-            ],
-          ),
-          body: BlocBuilder<BooksBloc, BooksState>(
-            builder: (context, state) {
-              if (state is BooksLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (state is BooksError) {
-                return Center(
-                  child: Text(
-                    state.message,
-                    style: TextStyle(
-                      fontSize: isSmallScreen ? 14 : 16,
-                    ),
-                  ),
-                );
-              }
-              if (state is BooksLoaded) {
-                return _buildBooksList(context, state.books);
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-          floatingActionButton: authState is AuthSuccess 
-            ? StreamBuilder<DocumentSnapshot>(
-                stream: _firestore.collection('users').doc(authState.user.uid).snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const SizedBox.shrink();
-                  
-                  final userData = snapshot.data!.data() as Map<String, dynamic>?;
-                  final isAdmin = userData?['role'] == 'admin';
-
-                  return isAdmin 
-                    ? FloatingActionButton(
-                        onPressed: () => _showAddBookDialog(context),
-                        child: Icon(
-                          Icons.add,
-                          size: isSmallScreen ? 20 : 24,
-                        ),
-                      )
-                    : const SizedBox.shrink();
-                },
-              )
-            : null,
-        );
+            )
+          : const SizedBox.shrink();
       },
     );
   }
@@ -133,22 +92,18 @@ class _BooksScreenState extends State<BooksScreen> {
   Widget _buildBooksList(BuildContext context, List<Book> books) {
     final authState = context.read<AuthBloc>().state;
     final userId = authState is AuthSuccess ? authState.user.uid : '';
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
-    final isPortrait = MediaQuery.of(context).size.height > MediaQuery.of(context).size.width;
     
     return StreamBuilder<DocumentSnapshot>(
-      stream: authState is AuthSuccess 
-        ? _firestore.collection('users').doc(authState.user.uid).snapshots()
-        : const Stream.empty(),
+      stream: _adminCheckStream,
       builder: (context, snapshot) {
         final isAdmin = snapshot.hasData && 
           (snapshot.data!.data() as Map<String, dynamic>?)?['role'] == 'admin';
 
-        // Use mobile view for small screens or portrait orientation
-        if (isSmallScreen || isPortrait) {
+        if (_isSmallScreen || _isPortrait) {
           return Padding(
-            padding: EdgeInsets.all(isSmallScreen ? 8.0 : 16.0),
+            padding: EdgeInsets.all(_isSmallScreen ? 8.0 : 16.0),
             child: MobileBooksGrid(
+              key: ValueKey('mobile-${books.length}'),
               books: books,
               userId: userId,
               isAdmin: isAdmin,
@@ -157,42 +112,44 @@ class _BooksScreenState extends State<BooksScreen> {
           );
         }
 
-        // Use selected view type for landscape orientation on larger screens
-        Widget content;
-        switch (_viewType) {
-          case BookViewType.mobile:
-            content = MobileBooksGrid(
-              books: books,
-              userId: userId,
-              isAdmin: isAdmin,
-              onDeleteBook: _handleDeleteBook,
-            );
-            break;
-          case BookViewType.table:
-            content = TableBooksView(
-              books: books,
-              userId: userId,
-              isAdmin: isAdmin,
-              onDeleteBook: _handleDeleteBook,
-            );
-            break;
-          case BookViewType.desktop:
-          default:
-            content = DesktopBooksGrid(
-              books: books,
-              userId: userId,
-              isAdmin: isAdmin,
-              onDeleteBook: _handleDeleteBook,
-            );
-            break;
-        }
-
+        final content = _buildViewContent(books, userId, isAdmin);
+        
         return Padding(
-          padding: EdgeInsets.all(isSmallScreen ? 8.0 : 16.0),
+          padding: EdgeInsets.all(_isSmallScreen ? 8.0 : 16.0),
           child: content,
         );
       },
     );
+  }
+
+  Widget _buildViewContent(List<Book> books, String userId, bool isAdmin) {
+    switch (_viewType) {
+      case BookViewType.mobile:
+        return MobileBooksGrid(
+          key: ValueKey('mobile-${books.length}'),
+          books: books,
+          userId: userId,
+          isAdmin: isAdmin,
+          onDeleteBook: _handleDeleteBook,
+        );
+      case BookViewType.table:
+        return TableBooksView(
+          key: ValueKey('table-${books.length}'),
+          books: books,
+          userId: userId,
+          isAdmin: isAdmin,
+          onDeleteBook: _handleDeleteBook,
+        );
+      case BookViewType.desktop:
+      default:
+        return DesktopBooksGrid(
+          key: ValueKey('desktop-${books.length}'),
+          books: books,
+          userId: userId,
+          isAdmin: isAdmin,
+          onDeleteBook: _handleDeleteBook,
+        );
+    }
   }
 
   void _showAddBookDialog(BuildContext context) {
@@ -216,5 +173,57 @@ class _BooksScreenState extends State<BooksScreen> {
         (_viewType.index + 1) % BookViewType.values.length
       ];
     });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = context.read<AuthBloc>().state;
+
+    return Scaffold(
+      appBar: CustomAppBar(
+        title: const Text('Books'),
+        actions: !_isSmallScreen && !_isPortrait 
+          ? [
+              IconButton(
+                icon: Icon(_getViewTypeIcon()),
+                onPressed: _toggleViewType,
+              ),
+            ]
+          : null,
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: BlocBuilder<BooksBloc, BooksState>(
+              builder: (context, state) {
+                if (state is BooksLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (state is BooksError) {
+                  return Center(child: Text(state.message));
+                }
+                if (state is BooksLoaded) {
+                  return _buildBooksList(context, state.books);
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: _buildFAB(authState),
+    );
+  }
+
+  IconData _getViewTypeIcon() {
+    switch (_viewType) {
+      case BookViewType.mobile:
+        return Icons.grid_view;
+      case BookViewType.table:
+        return Icons.table_rows;
+      case BookViewType.desktop:
+      default:
+        return Icons.dashboard;
+    }
   }
 }

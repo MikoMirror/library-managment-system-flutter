@@ -31,7 +31,6 @@ void main() async {
   final firestore = FirebaseFirestore.instance;
   final reservationsRepository = ReservationsRepository(firestore: firestore);
   
-  // Start the reservation check service
   final reservationCheckService = ReservationCheckService(reservationsRepository);
   reservationCheckService.startChecking();
 

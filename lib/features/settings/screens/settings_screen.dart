@@ -54,22 +54,6 @@ class SettingsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (isAdmin) ...[
-                      const Text(
-                        'Email Settings',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildEmailSettings(
-                        context, 
-                        userData,
-                        SettingsService(),
-                      ),
-                    ],
-                    const SizedBox(height: 24),
                     const Text(
                       'App Settings',
                       style: TextStyle(
@@ -159,19 +143,6 @@ class SettingsScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildEmailSettings(
-    BuildContext context,
-    Map<String, dynamic> settings,
-    SettingsService service,
-  ) {
-    return const Card(
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Text('Email settings coming soon'),
       ),
     );
   }

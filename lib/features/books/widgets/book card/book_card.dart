@@ -51,16 +51,18 @@ class _BookCardState extends State<BookCard> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => BookDetailsScreen(bookId: widget.book.id),
-          ),
-        );
-      },
-      child: widget.isMobile ? _buildMobileCard() : _buildDesktopCard(),
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BookDetailsScreen(bookId: widget.book.id),
+            ),
+          );
+        },
+        child: widget.isMobile ? _buildMobileCard() : _buildDesktopCard(),
+      ),
     );
   }
 
