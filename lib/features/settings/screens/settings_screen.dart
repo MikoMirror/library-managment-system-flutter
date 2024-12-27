@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
-import '../../../core/services/settings/settings_service.dart';
 import '../../../features/users/models/user_model.dart';
 import '../widgets/cache_management_widget.dart';
-import '../../../core/widgets/simple_app_bar.dart';
 import '../../../core/theme/cubit/theme_cubit.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../../../core/widgets/custom_app_bar.dart';
 
 class SettingsScreen extends StatelessWidget {

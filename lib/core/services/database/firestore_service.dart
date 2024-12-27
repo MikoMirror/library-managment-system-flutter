@@ -346,11 +346,8 @@ class FirestoreService {
     required String status,
   }) async {
     try {
-      debugPrint('Fetching $status trends from ${startDate.toIso8601String()} to ${endDate.toIso8601String()}');
-      
       Query query;
       if (status == 'borrowed') {
-        // For borrowed trends, show all books that were borrowed on each date
         query = _firestore
             .collection(RESERVATIONS_COLLECTION)
             .where(
@@ -360,7 +357,6 @@ class FirestoreService {
             )
             .orderBy('borrowedDate');
       } else {
-        // For returned trends, only show books that were actually returned
         query = _firestore
             .collection(RESERVATIONS_COLLECTION)
             .where('status', isEqualTo: 'returned')
@@ -373,7 +369,6 @@ class FirestoreService {
       }
 
       final querySnapshot = await query.get();
-      debugPrint('Found ${querySnapshot.docs.length} documents for $status trends');
 
       // Group by day
       final Map<DateTime, int> dailyCounts = {};
@@ -389,11 +384,8 @@ class FirestoreService {
           
           final quantity = doc.get('quantity') as int;
           dailyCounts[date] = (dailyCounts[date] ?? 0) + quantity;
-          
-          debugPrint('Added ${quantity} books for date ${date}');
         } catch (e) {
-          debugPrint('Error processing document ${doc.id}: $e');
-          debugPrint('Document data: ${doc.data()}');
+          continue;
         }
       }
 
@@ -418,14 +410,8 @@ class FirestoreService {
         );
       }).toList()..sort((a, b) => a.timestamp.compareTo(b.timestamp));
       
-      debugPrint('Generated ${trends.length} trend points');
-      trends.forEach((point) {
-        debugPrint('${point.timestamp}: ${point.count}');
-      });
-      
       return trends;
     } catch (e) {
-      debugPrint('Error getting $status trends: $e');
       return [];
     }
   }
@@ -499,7 +485,7 @@ class FirestoreService {
 
       for (var doc in reservedQuery.docs) {
         final createdAt = doc.data()['borrowedDate'] as Timestamp;
-        final expiryTime = 24 * 60 * 60; // 24 hours in seconds
+        const expiryTime = 24 * 60 * 60; // 24 hours in seconds
         
         if (now.seconds - createdAt.seconds > expiryTime) {
           batch.update(doc.reference, {
@@ -527,7 +513,7 @@ class FirestoreService {
 
   Future<void> cleanupExpiredReservations() async {
     final batch = _firestore.batch();
-    final thirtyDaysAgo = DateTime.now().subtract(Duration(days: 30));
+    final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
 
     try {
       final expiredQuery = await _firestore

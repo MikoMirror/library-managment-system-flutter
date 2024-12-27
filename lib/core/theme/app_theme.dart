@@ -91,12 +91,10 @@ class AppTheme {
         brightness: isDarkMode ? Brightness.dark : Brightness.light,
         primary: colors.primary,
         secondary: colors.secondary,
-        background: colors.background,
         surface: colors.surface,
         error: colors.error,
         onPrimary: colors.onPrimary,
         onSecondary: colors.onSecondary,
-        onBackground: colors.onBackground,
         onSurface: colors.onSurface,
         onError: isDarkMode ? Colors.black : Colors.white,
       ),
@@ -128,10 +126,10 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: colors.primary.withOpacity(0.1),
         indicatorColor: colors.selected,
-        labelTextStyle: MaterialStateProperty.all(
+        labelTextStyle: WidgetStateProperty.all(
           TextStyle(color: colors.primary),
         ),
-        iconTheme: MaterialStateProperty.all(
+        iconTheme: WidgetStateProperty.all(
           IconThemeData(color: colors.primary),
         ),
       ),

@@ -17,6 +17,9 @@ import '../widgets/book_details/book_description.dart';
 import '../widgets/book_details/book_quantity.dart';
 import '../widgets/rating_bottom_sheet.dart';
 import '../../../core/services/image/image_cache_service.dart';
+import '../cubit/book_details_cubit.dart';
+import '../widgets/book_reservation_dialog.dart';
+import '../../../features/users/models/user_model.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final String? bookId;
@@ -101,12 +104,12 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
         }
 
         final book = Book.fromMap(bookData, snapshot.data!.id);
-        return _buildContent(book);
+        return _buildContent(book, null);
       },
     );
   }
 
-  PreferredSizeWidget _buildAppBar(Book book) {
+  PreferredSizeWidget _buildAppBar(Book book, UserModel? userModel) {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -115,42 +118,22 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
         onPressed: () => Navigator.of(context).pop(),
       ),
       actions: [
-        BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            if (state is AuthSuccess) {
-              return StreamBuilder<DocumentSnapshot>(
-                stream: _firestoreService.getUserStream(state.user.uid),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const CircularProgressIndicator();
-                  }
-                  final userData = snapshot.data!.data() as Map<String, dynamic>;
-                  final userModel = UserModel.fromMap(userData);
-
-                  return Row(
-                    children: [
-                      if (userModel.role == 'admin')
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.white),
-                          onPressed: () => _navigateToEditBook(context, book),
-                        ),
-                      if (userModel.role != 'admin')
-                        IconButton(
-                          icon: const Icon(Icons.star, color: Colors.white),
-                          onPressed: () => _showRatingDialog(
-                            context,
-                            userModel.userId,
-                            book.id!,
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              );
-            }
-            return const SizedBox.shrink();
-          },
-        ),
+        if (userModel != null) ...[
+          if (userModel.role == 'admin')
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.white),
+              onPressed: () => _navigateToEditBook(context, book),
+            ),
+          if (userModel.role != 'admin')
+            IconButton(
+              icon: const Icon(Icons.star, color: Colors.white),
+              onPressed: () => _showRatingDialog(
+                context,
+                userModel.userId,
+                book.id!,
+              ),
+            ),
+        ],
         const SizedBox(width: 8),
       ],
     );
@@ -218,7 +201,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               image: DecorationImage(
                 image: imageProvider,
                 fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
+                colorFilter: const ColorFilter.mode(
                   Colors.black45,
                   BlendMode.darken,
                 ),
@@ -238,6 +221,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   Widget _buildGradientOverlay() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final overlayColor = isDark ? Colors.black : Colors.white;
+    
     return Positioned.fill(
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -246,8 +232,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             end: Alignment.bottomCenter,
             colors: [
               Colors.transparent,
-              Colors.black.withOpacity(0.3),
-              Colors.black.withOpacity(0.7),
+              overlayColor.withAlpha(200),
+              overlayColor.withAlpha(255),
             ],
             stops: const [0.0, 0.5, 1.0],
           ),
@@ -256,7 +242,10 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     );
   }
 
-  Widget _buildScrollableContent(Book book) {
+  Widget _buildScrollableContent(Book book, UserModel? userModel) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final overlayColor = isDark ? Colors.black : Colors.white;
+    
     return RepaintBoundary(
       child: SingleChildScrollView(
         controller: _scrollController,
@@ -267,62 +256,75 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               end: Alignment.bottomCenter,
               colors: [
                 Colors.transparent,
-                Colors.black.withOpacity(0.6),
+                overlayColor.withOpacity(0.6),
               ],
               stops: const [0.0, 0.3],
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: kToolbarHeight + 32),
-                RepaintBoundary(
-                  child: Hero(
-                    tag: 'book_image_${book.id}',
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: _imageCacheService.buildCachedImage(
-                        imageUrl: book.coverUrl,
-                        width: 200,
-                        height: 300,
-                        fit: BoxFit.cover,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: kToolbarHeight + 32),
+                    RepaintBoundary(
+                      child: Hero(
+                        tag: 'book_image_${book.id}',
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: _imageCacheService.buildCachedImage(
+                            imageUrl: book.coverUrl,
+                            width: 200,
+                            height: 300,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 24),
+                    RepaintBoundary(child: BookHeader(book: book)),
+                    const SizedBox(height: 24),
+                    RepaintBoundary(child: BookInfoRow(book: book)),
+                    const SizedBox(height: 24),
+                    RepaintBoundary(child: BookQuantity(book: book)),
+                    const SizedBox(height: 24),
+                    RepaintBoundary(child: BookDescription(book: book)),
+                    const SizedBox(height: 32),
+                    if (book.booksQuantity > 0)
+                      RepaintBoundary(
+                        child: SizedBox(
+                          width: 300,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => BookBookingDialog(
+                                  book: book,
+                                  isAdmin: userModel?.role == 'admin',
+                                  userId: userModel?.userId ?? '',
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 16,
+                              ),
+                            ),
+                            child: const Text(
+                              'Reserve Book',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                RepaintBoundary(child: BookHeader(book: book)),
-                const SizedBox(height: 24),
-                RepaintBoundary(child: BookInfoRow(book: book)),
-                const SizedBox(height: 24),
-                RepaintBoundary(child: BookQuantity(book: book)),
-                const SizedBox(height: 24),
-                RepaintBoundary(child: BookDescription(book: book)),
-                const SizedBox(height: 32),
-                if (book.booksQuantity > 0)
-                  RepaintBoundary(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/reserve',
-                          arguments: book,
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        minimumSize: const Size(double.infinity, 48),
-                      ),
-                      child: const Text(
-                        'Reserve Book',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 32),
-              ],
+              ),
             ),
           ),
         ),
@@ -332,20 +334,49 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return _cachedBook != null
-        ? _buildContent(_cachedBook!)
-        : _buildStreamContent();
+    return BlocProvider(
+      create: (context) => BookDetailsCubit(
+        firestoreService: _firestoreService,
+      )..initialize(
+          widget.bookId,
+          widget.book,
+          context.read<AuthBloc>().state is AuthSuccess
+              ? (context.read<AuthBloc>().state as AuthSuccess).user.uid
+              : null,
+        ),
+      child: BlocBuilder<BookDetailsCubit, BookDetailsState>(
+        builder: (context, state) {
+          if (state is BookDetailsLoading) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          
+          if (state is BookDetailsError) {
+            return Scaffold(
+              body: Center(child: Text(state.message)),
+            );
+          }
+          
+          if (state is BookDetailsLoaded) {
+            return _buildContent(state.book, state.userModel);
+          }
+          
+          return const SizedBox.shrink();
+        },
+      ),
+    );
   }
 
-  Widget _buildContent(Book book) {
+  Widget _buildContent(Book book, UserModel? userModel) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: _buildAppBar(book),
+      appBar: _buildAppBar(book, userModel),
       body: Stack(
         children: [
           _buildParallaxBackground(book),
           _buildGradientOverlay(),
-          _buildScrollableContent(book),
+          _buildScrollableContent(book, userModel),
           if (_isLoading)
             Container(
               color: Colors.black26,

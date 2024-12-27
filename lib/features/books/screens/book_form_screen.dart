@@ -93,9 +93,9 @@ class BookFormScreenState extends State<BookFormScreen> {
     // Initialize image URL from book or generate new one if ISBN exists
     if (book?.externalImageUrl != null) {
       _imageUrl = book?.externalImageUrl;
-    } else if (book?.isbn != null && book!.isbn!.isNotEmpty) {
+    } else if (book?.isbn != null && book!.isbn.isNotEmpty) {
       _imageUrl = BookCoverUtils.getOpenLibraryCover(
-        book.isbn!,
+        book.isbn,
         size: CoverSize.large,
       );
     }

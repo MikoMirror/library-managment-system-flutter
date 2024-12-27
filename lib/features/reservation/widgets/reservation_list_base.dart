@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/reservation_bloc.dart';
-import '../cubit/reservation_filter_cubit.dart';
 import '../models/reservation.dart';
 import 'reservation_table.dart';
 import 'reservation_filter_section.dart';
-import '../../../core/theme/app_theme.dart';
+
 
 class ReservationListBase extends StatelessWidget {
   final String title;
@@ -25,7 +24,7 @@ class ReservationListBase extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        ReservationFilterSection(),
+        const ReservationFilterSection(),
         Expanded(
           child: BlocBuilder<ReservationBloc, ReservationState>(
             builder: (context, state) {

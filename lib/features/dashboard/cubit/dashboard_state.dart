@@ -13,12 +13,9 @@ abstract class DashboardState {
 
 class DashboardInitial extends DashboardState {
   DashboardInitial({
-    required DateTime selectedStartDate,
-    required DateTime selectedEndDate,
-  }) : super(
-    selectedStartDate: selectedStartDate,
-    selectedEndDate: selectedEndDate,
-  );
+    required super.selectedStartDate,
+    required super.selectedEndDate,
+  });
 }
 
 class DashboardLoading extends DashboardState {
@@ -48,12 +45,9 @@ class DashboardLoaded extends DashboardState {
     required this.reservedBooks,
     required this.borrowedBooks,
     required this.overdueBooks,
-    required DateTime selectedStartDate,
-    required DateTime selectedEndDate,
-  }) : super(
-    selectedStartDate: selectedStartDate,
-    selectedEndDate: selectedEndDate,
-  );
+    required super.selectedStartDate,
+    required super.selectedEndDate,
+  });
 }
 
 class DashboardError extends DashboardState {

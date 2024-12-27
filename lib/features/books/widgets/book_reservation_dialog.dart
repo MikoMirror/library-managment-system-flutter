@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../bloc/reservation_bloc.dart';
+import '../../reservation/bloc/reservation_bloc.dart';
 import '../../users/models/user_model.dart';
-import '../../books/models/book.dart';
+import '../models/book.dart';
 import '../../../core/services/database/firestore_service.dart';
 import 'package:intl/intl.dart';
 

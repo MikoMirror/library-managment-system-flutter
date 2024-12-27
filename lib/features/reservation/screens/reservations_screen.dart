@@ -41,8 +41,8 @@ class ReservationsScreen extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(80),
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(80),
             child: ReservationFilterSection(),
           ),
         ),

@@ -26,9 +26,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final currentState = context.read<DashboardCubit>().state;
     
     // Only load if we're in initial state or dates are missing
-    if (currentState is DashboardInitial || 
-        currentState.selectedStartDate == null || 
-        currentState.selectedEndDate == null) {
+    if (currentState is DashboardInitial) {
       final now = DateTime.now();
       final endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
       final startDate = DateTime(
@@ -194,7 +192,6 @@ class _DashboardContent extends StatelessWidget {
         alignment: WrapAlignment.center,
         children: [
           StatCard(
-            key: const ValueKey('unique_books'),
             width: cardWidth,
             title: 'Unique Books',
             value: '${state.uniqueBooks}',
@@ -202,7 +199,6 @@ class _DashboardContent extends StatelessWidget {
             color: AppTheme.light.info,
           ),
           StatCard(
-            key: const ValueKey('available_books'),
             width: cardWidth,
             title: 'Available Books',
             value: '${state.totalBooks - (state.reservedBooks + state.borrowedBooks)}/${state.totalBooks}',
@@ -210,7 +206,6 @@ class _DashboardContent extends StatelessWidget {
             color: AppTheme.light.primary,
           ),
           StatCard(
-            key: const ValueKey('reserved_books'),
             width: cardWidth,
             title: 'Reserved Books',
             value: '${state.reservedBooks}',
@@ -218,7 +213,6 @@ class _DashboardContent extends StatelessWidget {
             color: AppTheme.light.warning,
           ),
           StatCard(
-            key: const ValueKey('borrowed_books'),
             width: cardWidth,
             title: 'Borrowed Books',
             value: '${state.borrowedBooks}',
@@ -226,7 +220,6 @@ class _DashboardContent extends StatelessWidget {
             color: AppTheme.light.success,
           ),
           StatCard(
-            key: const ValueKey('overdue_books'),
             width: cardWidth,
             title: 'Overdue Books',
             value: '${state.overdueBooks}',

@@ -1,11 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dashboard_state.dart';
 import '../../../core/services/database/firestore_service.dart';
-import 'dart:developer' as developer;
-import 'dart:developer';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 
 class DashboardCubit extends Cubit<DashboardState> {
   final FirestoreService _firestoreService;
@@ -53,7 +48,7 @@ class DashboardCubit extends Cubit<DashboardState> {
       ));
     } catch (e) {
       emit(DashboardError(
-        e.toString(),
+        'Failed to load dashboard data',
         startDate: state.selectedStartDate,
         endDate: state.selectedEndDate,
       ));

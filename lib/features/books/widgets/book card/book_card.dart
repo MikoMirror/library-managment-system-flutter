@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../models/book.dart';
-import 'book_card_styles.dart';
 import '../../../../core/services/image/image_cache_service.dart';
 import '../../screens/book_details_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -38,8 +37,14 @@ class _BookCardState extends State<BookCard> {
   void initState() {
     super.initState();
     _bookCardBloc = BookCardBloc(context.read<BooksRepository>());
+    
+    // Defer Firestore operations to after frame
     if (!widget.isAdmin && widget.userId != null) {
-      _bookCardBloc.add(LoadFavoriteStatus(widget.userId!, widget.book.id!));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _bookCardBloc.add(LoadFavoriteStatus(widget.userId!, widget.book.id!));
+        }
+      });
     }
   }
 
@@ -131,24 +136,9 @@ class _BookCardState extends State<BookCard> {
             bottom: 0,
             child: ClipRRect(
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
                 child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      stops: const [0.0, 0.3, 0.7],
-                      colors: isDark ? [
-                        coreColors.surface.withOpacity(0.1),
-                        coreColors.surface.withOpacity(0.3),
-                        coreColors.surface.withOpacity(0.7),
-                      ] : [
-                        coreColors.surface.withOpacity(0.05),
-                        coreColors.surface.withOpacity(0.2),
-                        coreColors.surface.withOpacity(0.4),
-                      ],
-                    ),
-                  ),
+                  color: Colors.black.withOpacity(0.7),
                   padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,10 +147,10 @@ class _BookCardState extends State<BookCard> {
                         height: 48,
                         child: Text(
                           widget.book.title,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: coreColors.onSurface,
+                            color: Colors.white,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -169,9 +159,9 @@ class _BookCardState extends State<BookCard> {
                       const SizedBox(height: 4),
                       Text(
                         widget.book.author,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
-                          color: isDark ? Colors.white70 : Colors.black54,
+                          color: Colors.white70,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -187,7 +177,7 @@ class _BookCardState extends State<BookCard> {
     );
   }
 
-  Widget _buildMobileCard() {
+   Widget _buildMobileCard() {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
@@ -274,6 +264,7 @@ class _BookCardState extends State<BookCard> {
       ),
     );
   }
+  
 
   TextStyle mobileAuthorStyle(BuildContext context) {
     return TextStyle(

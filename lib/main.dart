@@ -19,28 +19,32 @@ import 'features/users/repositories/users_repository.dart';
 import 'features/auth/screens/initial_admin_setup_screen.dart';
 import 'core/theme/cubit/theme_cubit.dart';
 import 'core/services/background/reservation_check_service.dart';
-import 'package:flutter/services.dart';
+import 'dart:async';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    
+    final firestore = FirebaseFirestore.instance;
+    final reservationsRepository = ReservationsRepository(firestore: firestore);
+    
+    final reservationCheckService = ReservationCheckService(reservationsRepository);
+    reservationCheckService.startChecking();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+    final usersRepository = UsersRepository(
+      firestore: FirebaseFirestore.instance,
+    );
 
-  final firestore = FirebaseFirestore.instance;
-  final reservationsRepository = ReservationsRepository(firestore: firestore);
-  
-  final reservationCheckService = ReservationCheckService(reservationsRepository);
-  reservationCheckService.startChecking();
+    final adminExists = await usersRepository.adminExists();
 
-  final usersRepository = UsersRepository(
-    firestore: FirebaseFirestore.instance,
-  );
-
-  final adminExists = await usersRepository.adminExists();
-
-  runApp(MyApp(adminExists: adminExists));
+    runApp(MyApp(adminExists: adminExists));
+  }, (error, stack) {
+    print('Error in runZonedGuarded: $error\n$stack');
+  });
 }
 
 class MyApp extends StatelessWidget {

@@ -4,6 +4,7 @@ import '../cubit/rating/rating_cubit.dart';
 import '../cubit/rating/rating_state.dart';
 import '../repositories/books_repository.dart';
 
+
 class BookRatingWidget extends StatelessWidget {
   final String bookId;
   final String userId;
@@ -17,11 +18,18 @@ class BookRatingWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => RatingCubit(
-        bookId: bookId,
-        userId: userId,
-        repository: context.read<BooksRepository>(),
-      )..loadRating(),
+      create: (context) {
+        final cubit = RatingCubit(
+          bookId: bookId,
+          userId: userId,
+          repository: context.read<BooksRepository>(),
+        );
+        // Defer Firestore operation
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          cubit.loadRating();
+        });
+        return cubit;
+      },
       child: BlocBuilder<RatingCubit, RatingState>(
         builder: (context, state) {
           if (state is RatingLoading) {

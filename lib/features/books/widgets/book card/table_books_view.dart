@@ -6,7 +6,7 @@ import '../../repositories/books_repository.dart';
 import '../../screens/book_details_screen.dart';
 import '../../../../core/services/image/image_cache_service.dart';
 
-class TableBooksView extends StatelessWidget {
+class TableBooksView extends StatefulWidget {
   final List<Book> books;
   final bool isAdmin;
   final String? userId;
@@ -20,6 +20,11 @@ class TableBooksView extends StatelessWidget {
     this.onDeleteBook,
   });
 
+  @override
+  State<TableBooksView> createState() => _TableBooksViewState();
+}
+
+class _TableBooksViewState extends State<TableBooksView> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -44,7 +49,7 @@ class TableBooksView extends StatelessWidget {
               DataColumn(label: Text('Rating')),
               DataColumn(label: Text('Actions')),
             ],
-            rows: books.map((book) => _buildBookRow(context, book)).toList(),
+            rows: widget.books.map((book) => _buildBookRow(context, book)).toList(),
           ),
         ),
       ),
@@ -53,7 +58,7 @@ class TableBooksView extends StatelessWidget {
 
   DataRow _buildBookRow(BuildContext context, Book book) {
     return DataRow.byIndex(
-      index: books.indexOf(book),
+      index: widget.books.indexOf(book),
       cells: [
         DataCell(
           SizedBox(
@@ -95,32 +100,36 @@ class TableBooksView extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (!isAdmin)
-                BlocBuilder<BookCardBloc, BookCardState>(
-                  bloc: BookCardBloc(context.read<BooksRepository>())
-                    ..add(LoadFavoriteStatus(userId!, book.id!)),
-                  builder: (context, state) {
-                    bool isFavorite = false;
-                    if (state is FavoriteStatusLoaded) {
-                      isFavorite = state.isFavorite;
-                    }
-                    return IconButton(
-                      icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: Colors.red,
-                      ),
-                      onPressed: () {
-                        context.read<BookCardBloc>().add(
-                              ToggleFavorite(userId!, book.id!),
-                            );
-                      },
-                    );
+              if (!widget.isAdmin && widget.userId != null)
+                BlocProvider(
+                  create: (context) {
+                    final bloc = BookCardBloc(context.read<BooksRepository>());
+                    // Defer Firestore operation
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (bloc.state is! FavoriteStatusLoaded) {
+                        bloc.add(LoadFavoriteStatus(widget.userId!, book.id!));
+                      }
+                    });
+                    return bloc;
                   },
+                  child: BlocBuilder<BookCardBloc, BookCardState>(
+                    builder: (context, state) {
+                      bool isFavorite = state is FavoriteStatusLoaded ? state.isFavorite : false;
+                      return IconButton(
+                        icon: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: Colors.red,
+                        ),
+                        onPressed: () => context.read<BookCardBloc>()
+                            .add(ToggleFavorite(widget.userId!, book.id!)),
+                      );
+                    },
+                  ),
                 ),
-              if (isAdmin && onDeleteBook != null)
+              if (widget.isAdmin && widget.onDeleteBook != null)
                 IconButton(
                   icon: const Icon(Icons.delete),
-                  onPressed: () => onDeleteBook?.call(context, book),
+                  onPressed: () => widget.onDeleteBook?.call(context, book),
                   color: Colors.grey[800],
                 ),
             ],

@@ -17,12 +17,11 @@ import '../../books/repositories/books_repository.dart';
 import '../../../core/navigation/cubit/navigation_state.dart';
 import '../../reservation/bloc/reservation_bloc.dart';
 import '../../reservation/repositories/reservation_repository.dart';
-import '../../reservation/bloc/reservation_bloc.dart';
-import '../../reservation/repositories/reservation_repository.dart';
 import '../../reservation/screens/reservations_screen.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
 import '../../dashboard/cubit/dashboard_cubit.dart';
 import '../../../core/services/database/firestore_service.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -39,6 +38,9 @@ class _HomeScreenState extends State<HomeScreen> {
   late final DashboardCubit _dashboardCubit;
   late final BooksBloc _booksBloc;
   late final ReservationBloc _reservationBloc;
+  Stream<DocumentSnapshot>? _adminCheckStream;
+  bool _isSmallScreen = false;
+  bool _isPortrait = false;
 
   @override
   void initState() {
@@ -167,6 +169,24 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     navigationMap[index]?.call();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final mediaQuery = MediaQuery.of(context);
+    _isSmallScreen = mediaQuery.size.width < 600;
+    _isPortrait = mediaQuery.orientation == Orientation.portrait;
+    
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthSuccess && _adminCheckStream == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _adminCheckStream = _firestore
+            .collection('users')
+            .doc(authState.user.uid)
+            .snapshots();
+      });
+    }
   }
 
   @override

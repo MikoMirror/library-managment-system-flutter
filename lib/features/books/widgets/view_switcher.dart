@@ -4,6 +4,7 @@ import '../enums/book_view_type.dart';
 import '../cubit/view/view_cubit.dart';
 import '../cubit/view/view_state.dart';
 
+
 class ViewSwitcher extends StatelessWidget {
   const ViewSwitcher({super.key});
 

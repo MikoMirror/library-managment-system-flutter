@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../features/dashboard/cubit/dashboard_cubit.dart';
-import '../../../features/dashboard/cubit/dashboard_state.dart';
-import '../models/borrowing_trend_point.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'dart:math' show max, min;
 import 'package:library_management_system/features/dashboard/widgets/date_range_selector.dart';
@@ -38,7 +34,6 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
   late List<FlSpot> _processedBorrowedSpots;
   late List<FlSpot> _processedReturnedSpots;
   final ScrollController _scrollController = ScrollController();
-  bool _isScrollControllerReady = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -49,13 +44,8 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
     _processDataPoints();
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() {
-          _isScrollControllerReady = true;
-        });
-        if (_scrollController.hasClients) {
-          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-        }
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       }
     });
   }
@@ -181,13 +171,12 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
               child: SizedBox(
                 height: 400,
                 width: widget.width,
-                child: _isScrollControllerReady ? Builder(
+                child: Builder(
                   builder: (context) {
                     final daysCount = widget.endDate.difference(widget.startDate).inDays + 1;
-                    final minWidth = widget.width - 32; // Account for padding
+                    final minWidth = widget.width - 32;
                     final desiredWidth = daysCount * 40.0;
                     
-                    // If the desired width is less than available width, show centered chart
                     if (desiredWidth <= minWidth) {
                       return Padding(
                         padding: const EdgeInsets.only(right: 16.0, bottom: 24.0),
@@ -195,7 +184,6 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
                       );
                     }
 
-                    // Otherwise, show scrollable chart
                     return Scrollbar(
                       thumbVisibility: true,
                       trackVisibility: true,
@@ -210,8 +198,6 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
                       ),
                     );
                   },
-                ) : const Center(
-                  child: CircularProgressIndicator(),
                 ),
               ),
             ),
@@ -233,7 +219,7 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
         maxX: maxX,
         minY: 0,
         maxY: maxY,
-        clipData: FlClipData.all(),
+        clipData: const FlClipData.all(),
         gridData: FlGridData(
           show: true,
           drawVerticalLine: true,
@@ -250,10 +236,10 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
               getTitlesWidget: (value, meta) => _bottomTitleWidgets(value, meta, colors),
             ),
           ),
-          rightTitles: AxisTitles(
+          rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
-          topTitles: AxisTitles(
+          topTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
           leftTitles: AxisTitles(
@@ -276,7 +262,7 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
             color: _showBorrowed ? colors.primary : colors.success,
             barWidth: 2,
             isStrokeCapRound: true,
-            dotData: FlDotData(show: true),
+            dotData: const FlDotData(show: true),
             belowBarData: BarAreaData(
               show: true,
               color: (_showBorrowed ? colors.primary : colors.success).withOpacity(0.1),
