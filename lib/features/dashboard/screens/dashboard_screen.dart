@@ -9,6 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/custom_app_bar.dart';
 import '../widgets/borrowing_trends_chart.dart';
 import '../widgets/date_range_selector.dart';
+import '../../../features/reports/widgets/report_generation_dialog.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -137,15 +138,19 @@ class _DashboardContent extends StatelessWidget {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Center(
-                  child: Text(
-                    'Library Statistics',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Library Statistics',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
                     ),
-                  ),
+                    _buildActions(context),
+                  ],
                 ),
               ),
               AnimatedPadding(
@@ -228,6 +233,29 @@ class _DashboardContent extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActions(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        ElevatedButton.icon(
+          onPressed: () => _showReportDialog(context),
+          icon: const Icon(Icons.assessment),
+          label: const Text('Generate Report'),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showReportDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const ReportGenerationDialog(),
     );
   }
 } 

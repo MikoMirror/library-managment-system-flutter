@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../../features/books/models/book.dart';
 import '../../../features/users/models/user_model.dart';
+import '../../../features/reservation/models/reservation.dart';
 import 'package:intl/intl.dart';
 import '../../../features/dashboard/models/borrowing_trend_point.dart';
 
@@ -532,5 +533,84 @@ class FirestoreService {
       print('Error cleaning up reservations: $e');
       throw Exception('Failed to cleanup reservations');
     }
+  }
+
+  Future<List<Reservation>> getReservations({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final querySnapshot = await _firestore
+        .collection(RESERVATIONS_COLLECTION)
+        .where('borrowedDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+        .where('borrowedDate', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
+        .get();
+
+    List<Reservation> reservations = [];
+
+    for (var doc in querySnapshot.docs) {
+      final data = doc.data();
+      final bookId = data['bookId'] as String;
+      final userId = data['userId'] as String;
+
+      // Get book details
+      final bookDoc = await _firestore
+          .collection(BOOKS_COLLECTION)
+          .doc(bookId)
+          .get();
+
+      // Get user details
+      final userDoc = await _firestore
+          .collection(USERS_COLLECTION)
+          .doc(userId)
+          .get();
+
+      if (bookDoc.exists && userDoc.exists) {
+        final bookData = bookDoc.data()!;
+        final userData = userDoc.data()!;
+
+        // Create reservation with book and user details
+        reservations.add(Reservation.fromMap({
+          ...data,
+          'bookTitle': bookData['title'],
+          'userName': userData['name'],
+          'userLibraryNumber': userData['libraryNumber'],
+        }, doc.id));
+      }
+    }
+
+    return reservations;
+  }
+
+  Future<List<Reservation>> getReservationsForReport(DateTime startDate, DateTime endDate) async {
+    final querySnapshot = await _firestore
+        .collection(RESERVATIONS_COLLECTION)
+        .where('borrowedDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+        .where('borrowedDate', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
+        .get();
+
+    List<Reservation> reservations = [];
+
+    for (var doc in querySnapshot.docs) {
+      final data = doc.data();
+      final bookId = data['bookId'] as String;
+      final userId = data['userId'] as String;
+
+      final bookDoc = await _firestore.collection(BOOKS_COLLECTION).doc(bookId).get();
+      final userDoc = await _firestore.collection(USERS_COLLECTION).doc(userId).get();
+
+      if (bookDoc.exists && userDoc.exists) {
+        final bookData = bookDoc.data()!;
+        final userData = userDoc.data()!;
+
+        reservations.add(Reservation.fromMap({
+          ...data,
+          'bookTitle': bookData['title'],
+          'userName': userData['name'],
+          'userLibraryNumber': userData['libraryNumber'],
+        }, doc.id));
+      }
+    }
+
+    return reservations;
   }
 }

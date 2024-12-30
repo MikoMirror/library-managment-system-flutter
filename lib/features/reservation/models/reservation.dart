@@ -7,23 +7,31 @@ class Reservation {
   final String status;
   final Timestamp borrowedDate;
   final Timestamp dueDate;
+  final Timestamp? returnedDate;
   final int quantity;
   final String? bookTitle;
   final String? userName;
   final String? userLibraryNumber;
 
- Reservation({
+  Reservation({
     this.id,
     required this.userId,
     required this.bookId,
     required this.status,
     required this.borrowedDate,
     required this.dueDate,
+    this.returnedDate,
     required this.quantity,
     this.bookTitle,
     this.userName,
     this.userLibraryNumber,
   });
+
+  Timestamp get displayDate {
+    return status == 'returned' && returnedDate != null 
+        ? returnedDate! 
+        : dueDate;
+  }
 
   String get formattedBorrowedDate {
     return _formatDate(borrowedDate.toDate());
@@ -57,6 +65,7 @@ class Reservation {
       status: map['status'],
       borrowedDate: map['borrowedDate'],
       dueDate: map['dueDate'],
+      returnedDate: map['returnedDate'],
       quantity: map['quantity'],
       bookTitle: map['bookTitle'],
       userName: map['userName'],
@@ -76,6 +85,7 @@ class Reservation {
       'bookTitle': bookTitle,
       'userName': userName,
       'userLibraryNumber': userLibraryNumber,
+      'displayDate': displayDate,
     };
   }
 
@@ -90,6 +100,7 @@ class Reservation {
     String? bookTitle,
     String? userName,
     String? userLibraryNumber,
+    Timestamp? displayDate,
   }) {
     return Reservation(
       id: id ?? this.id,
@@ -102,6 +113,7 @@ class Reservation {
       bookTitle: bookTitle ?? this.bookTitle,
       userName: userName ?? this.userName,
       userLibraryNumber: userLibraryNumber ?? this.userLibraryNumber,
+    
     );
   }
 } 
