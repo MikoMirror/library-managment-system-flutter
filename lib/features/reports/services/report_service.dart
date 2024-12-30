@@ -42,26 +42,22 @@ class ReportService {
     int totalReturned = returnedTrends.fold(0, (sum, trend) => sum + trend.count);
 
     // Get all reservations for the period
-    final reservations = await _firestoreService.getReservations(
-      startDate: startDate,
-      endDate: endDate,
+    final reservations = await _firestoreService.getReservationsForReport(
+      startDate,
+      endDate,
     );
 
-    // Sort reservations by date, handling null values
-    reservations.sort((a, b) {
-      if (a?.borrowedDate == null || b?.borrowedDate == null) return 0;
-      return b!.borrowedDate.compareTo(a!.borrowedDate);
-    });
-
-    // Filter out null values
-    final validReservations = reservations.where((r) => r != null).toList();
+    // Sort reservations by date
+    reservations.sort((a, b) => 
+      b.borrowedDate.compareTo(a.borrowedDate)
+    );
 
     return ReportData(
       startDate: startDate,
       endDate: endDate,
       totalBorrowed: totalBorrowed,
       totalReturned: totalReturned,
-      reservations: validReservations,
+      reservations: reservations,
     );
   }
 } 

@@ -13,6 +13,7 @@ import '../../auth/bloc/auth/auth_bloc.dart';
 import '../../users/models/user_model.dart';
 import '../repositories/reservation_repository.dart';
 import '../../../core/widgets/custom_app_bar.dart';
+import '../../../core/theme/cubit/test_mode_cubit.dart';
 
 
 class ReservationsScreen extends StatelessWidget {
@@ -81,6 +82,63 @@ class _ReservationsScreenContent extends StatelessWidget {
 
             return Column(
               children: [
+                if (isAdmin) ...[
+                  BlocBuilder<TestModeCubit, bool>(
+                    builder: (context, isTestMode) {
+                      if (!isTestMode) return const SizedBox.shrink();
+                      
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isSmallScreen = constraints.maxWidth < 600;
+                            
+                            return Center(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: isSmallScreen ? double.infinity : 300,
+                                ),
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    final repository = context.read<ReservationsRepository>();
+                                    repository.checkExpiredReservations();
+                                    repository.checkAndUpdateOverdueReservations();
+                                    
+                                    context.read<ReservationBloc>().add(LoadReservations());
+                                    
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Reservation statuses have been updated'),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.refresh),
+                                  label: Text(
+                                    isSmallScreen ? 'Update Status' : 'Force Status Update',
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Theme.of(context).colorScheme.error,
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: isSmallScreen ? 12 : 16,
+                                      horizontal: isSmallScreen ? 16 : 24,
+                                    ),
+                                    minimumSize: Size(
+                                      isSmallScreen ? double.infinity : 200,
+                                      0,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ],
                 Expanded(
                   child: BlocBuilder<ReservationBloc, ReservationState>(
                     builder: (context, state) {

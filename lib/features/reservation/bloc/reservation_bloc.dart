@@ -48,6 +48,8 @@ class DeleteReservation extends ReservationEvent {
 
 class RefreshReservations extends ReservationEvent {}
 
+class CheckReservationStatuses extends ReservationEvent {}
+
 // States
 abstract class ReservationState {}
 
@@ -89,6 +91,14 @@ class ReservationBloc extends Bloc<ReservationEvent, ReservationState> {
         emit(ReservationError(e.toString()));
       }
     });
+    on<CheckReservationStatuses>((event, emit) async {
+      try {
+        await repository.checkAndUpdateOverdueReservations();
+        add(RefreshReservations());
+      } catch (e) {
+        emit(ReservationError(e.toString()));
+      }
+    });
   }
 
   Future<void> _onCreateReservation(CreateReservation event, Emitter<ReservationState> emit) async {
@@ -109,7 +119,11 @@ class ReservationBloc extends Bloc<ReservationEvent, ReservationState> {
     }
   }
 
-  Future<void> _onUpdateReservationStatus(UpdateReservationStatus event, Emitter<ReservationState> emit) async {
+  Future<void> _onUpdateReservationStatus(
+    UpdateReservationStatus event, 
+    Emitter<ReservationState> emit
+  ) async {
+    emit(ReservationLoading());
     try {
       await repository.updateReservationStatus(
         reservationId: event.reservationId,
@@ -124,6 +138,7 @@ class ReservationBloc extends Bloc<ReservationEvent, ReservationState> {
       }).toList();
       
       emit(ReservationsLoaded(_currentReservations));
+      add(RefreshReservations());
     } catch (e) {
       emit(ReservationError(e.toString()));
     }

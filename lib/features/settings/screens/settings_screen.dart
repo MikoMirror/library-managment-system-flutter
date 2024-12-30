@@ -6,6 +6,7 @@ import '../../../features/users/models/user_model.dart';
 import '../widgets/cache_management_widget.dart';
 import '../../../core/theme/cubit/theme_cubit.dart';
 import '../../../core/widgets/custom_app_bar.dart';
+import '../../../core/theme/cubit/test_mode_cubit.dart';
 
 class SettingsScreen extends StatelessWidget {
   static final _firestore = FirebaseFirestore.instance;
@@ -59,7 +60,7 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildThemeSettings(context),
+                    _buildThemeSettings(context, isAdmin),
                     const SizedBox(height: 16),
                     const CacheManagementWidget(),
                     const SizedBox(height: 32),
@@ -112,7 +113,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildThemeSettings(BuildContext context) {
+  Widget _buildThemeSettings(BuildContext context, bool isAdmin) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -138,6 +139,21 @@ class SettingsScreen extends StatelessWidget {
                 );
               },
             ),
+            if (isAdmin) ...[
+              const Divider(),
+              BlocBuilder<TestModeCubit, bool>(
+                builder: (context, isTestMode) {
+                  return SwitchListTile(
+                    title: const Text('Test Mode'),
+                    subtitle: const Text('Enable past dates selection in reservations'),
+                    value: isTestMode,
+                    onChanged: (_) {
+                      context.read<TestModeCubit>().toggleTestMode();
+                    },
+                  );
+                },
+              ),
+            ],
           ],
         ),
       ),

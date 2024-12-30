@@ -123,6 +123,25 @@ class BooksRepository implements BaseRepository {
             .toList());
   }
 
+  Future<void> incrementBookQuantity(
+    String bookId,
+    int incrementBy,
+    Transaction transaction,
+  ) async {
+    final bookRef = _firestore.collection('books').doc(bookId);
+    final bookDoc = await transaction.get(bookRef);
+
+    if (!bookDoc.exists) {
+      throw Exception('Book not found');
+    }
+
+    final currentQuantity = bookDoc.data()?['booksQuantity'] ?? 0;
+    
+    transaction.update(bookRef, {
+      'booksQuantity': currentQuantity + incrementBy,
+    });
+  }
+
   @override
   void dispose() {
     // Clean up any resources if needed
