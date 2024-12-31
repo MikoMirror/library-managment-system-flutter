@@ -8,12 +8,12 @@ import '../bloc/reservation_bloc.dart';
 import '../cubit/reservation_filter_cubit.dart';
 import '../../../core/services/database/firestore_service.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/custom_app_bar.dart';
+import '../../../core/widgets/app_bar.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
 import '../../users/models/user_model.dart';
 import '../repositories/reservation_repository.dart';
-import '../../../core/widgets/custom_app_bar.dart';
 import '../../../core/theme/cubit/test_mode_cubit.dart';
+import '../../../core/widgets/custom_search_bar.dart';
 
 
 class ReservationsScreen extends StatelessWidget {
@@ -35,17 +35,24 @@ class ReservationsScreen extends StatelessWidget {
         ),
       ],
       child: Scaffold(
-        appBar: CustomAppBar(
+        appBar: UnifiedAppBar(
           title: Text(
             'Reservations',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
-          bottom: const PreferredSize(
-            preferredSize: Size.fromHeight(80),
-            child: ReservationFilterSection(),
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(
+              MediaQuery.of(context).size.width < 600 ? 56 : 72
+            ),
+            child: const ReservationFilterSection(),
           ),
+          searchHint: 'Search reservations...',
+          onSearch: (query) {
+            context.read<ReservationBloc>().add(SearchReservations(query));
+          },
+          isSimple: false,
         ),
         backgroundColor: isDarkMode 
           ? AppTheme.dark.background 

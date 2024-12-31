@@ -5,7 +5,7 @@ import '../../auth/bloc/auth/auth_bloc.dart';
 import '../../../features/users/models/user_model.dart';
 import '../widgets/cache_management_widget.dart';
 import '../../../core/theme/cubit/theme_cubit.dart';
-import '../../../core/widgets/custom_app_bar.dart';
+import '../../../core/widgets/app_bar.dart';
 import '../../../core/theme/cubit/test_mode_cubit.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -21,7 +21,8 @@ class SettingsScreen extends StatelessWidget {
         }
 
         return Scaffold(
-         appBar: CustomAppBar(
+         appBar: UnifiedAppBar(
+          isSimple: true,
           title: Text(
             'Settings',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(

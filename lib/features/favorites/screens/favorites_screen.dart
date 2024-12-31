@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
 import '../../books/models/book.dart';
-import '../../../core/widgets/custom_app_bar.dart';
+import '../../../core/widgets/app_bar.dart';
 import '../../books/enums/book_view_type.dart';
 import '../../books/widgets/book card/desktop_books_grid.dart';
 import '../../books/widgets/book card/mobile_books_grid.dart';
@@ -19,7 +19,7 @@ class FavoritesScreen extends StatefulWidget {
   State<FavoritesScreen> createState() => _FavoritesScreenState();
 }
 
-class _FavoritesScreenState extends State<FavoritesScreen> {
+class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProviderStateMixin {
   final _firestore = FirebaseFirestore.instance;
   final _favoritesRepository = FavoritesRepository();
   final _searchController = TextEditingController();
@@ -27,40 +27,82 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   UserModel? _cachedUserModel;
   final Map<String, Book> _bookCache = {};
   String _searchQuery = '';
+  bool _isSearchVisible = false;
+
+  // Add animation controller
+  late final AnimationController _animationController;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _animation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     _favoritesRepository.dispose();
+    _animationController.dispose();
     super.dispose();
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearchVisible = !_isSearchVisible;
+      if (_isSearchVisible) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+        _searchController.clear();
+        setState(() {
+          _searchQuery = '';
+        });
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width >= 1024;
     
-    
     return Scaffold(
-      appBar: CustomAppBar(
-      title: Text(
-        'Favorites',
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.bold,
+      appBar: UnifiedAppBar(
+        title: Row(
+          children: [
+            if (!_isSearchVisible)
+              Text(
+                'Favorites',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            if (isDesktop)
+              Expanded(
+                child: CustomSearchBar(
+                  hintText: 'Search favorites...',
+                  controller: _searchController,
+                  isVisible: _isSearchVisible,
+                  animation: _animation,
+                  onChanged: (query) {
+                    setState(() {
+                      _searchQuery = query;
+                    });
+                  },
+                  onClear: _toggleSearch,
+                ),
+              ),
+          ],
         ),
-      ),
-      actions: [
-          SizedBox(
-            width: MediaQuery.of(context).size.width * 0.4,
-            child: CustomSearchBar(
-              hintText: 'Search favorites...',
-              onChanged: (query) {
-                setState(() {
-                  _searchQuery = query;
-                });
-              },
-            ),
-          ),
-          if (isDesktop)
+        actions: [
+          if (isDesktop && !_isSearchVisible)
             IconButton(
               icon: Icon(_viewType.icon),
               onPressed: () {
@@ -71,8 +113,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 });
               },
             ),
-          const SizedBox(width: 8),
         ],
+        onSearch: (query) {
+          setState(() {
+            _searchQuery = query;
+          });
+        },
       ),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {

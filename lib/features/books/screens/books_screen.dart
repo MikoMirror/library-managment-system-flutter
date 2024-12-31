@@ -11,8 +11,9 @@ import '../widgets/book card/mobile_books_grid.dart';
 import '../widgets/book card/desktop_books_grid.dart';
 import '../enums/book_view_type.dart';
 import '../widgets/book card/table_books_view.dart';
-import '../../../core/widgets/custom_app_bar.dart';
+import '../../../core/widgets/app_bar.dart';
 import 'dart:async';
+import '../../../core/widgets/custom_search_bar.dart';
 
 class BooksScreen extends StatefulWidget {
   const BooksScreen({super.key});
@@ -21,9 +22,10 @@ class BooksScreen extends StatefulWidget {
   State<BooksScreen> createState() => _BooksScreenState();
 }
 
-class _BooksScreenState extends State<BooksScreen> {
+class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStateMixin {
   late final _firestore = FirebaseFirestore.instance;
   late final _searchController = TextEditingController();
+  bool _isSearchVisible = false;
   
   late bool _isSmallScreen;
   late bool _isPortrait;
@@ -33,10 +35,25 @@ class _BooksScreenState extends State<BooksScreen> {
   
   BookViewType _viewType = BookViewType.desktop;
 
+  // Add animation controller
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+
   @override
   void initState() {
     super.initState();
     
+    // Initialize animation controller
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    
+    _animation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Load books through bloc
       context.read<BooksBloc>().add(LoadBooks());
@@ -83,6 +100,7 @@ class _BooksScreenState extends State<BooksScreen> {
 
   @override
   void dispose() {
+    _animationController.dispose();
     _adminStreamSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
@@ -198,21 +216,39 @@ class _BooksScreenState extends State<BooksScreen> {
     });
   }
 
+  // Add method to toggle search
+  void _toggleSearch() {
+    setState(() {
+        _isSearchVisible = !_isSearchVisible;
+        if (_isSearchVisible) {
+            _animationController.forward();
+        } else {
+            _animationController.reverse();
+            _searchController.clear();
+            context.read<BooksBloc>().add(LoadBooks());
+        }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = context.read<AuthBloc>().state;
 
     return Scaffold(
-      appBar: CustomAppBar(
+      appBar: UnifiedAppBar(
         title: const Text('Books'),
-        actions: !_isSmallScreen && !_isPortrait 
-          ? [
-              IconButton(
-                icon: Icon(_getViewTypeIcon()),
-                onPressed: _toggleViewType,
-              ),
-            ]
-          : null,
+        searchHint: 'Search books...',
+        onSearch: (query) {
+          context.read<BooksBloc>().add(SearchBooks(query));
+        },
+        actions: [
+          if (!_isSmallScreen && !_isPortrait)
+            IconButton(
+              icon: Icon(_getViewTypeIcon()),
+              onPressed: _toggleViewType,
+            ),
+        ],
+        isSimple: false,
       ),
       body: Column(
         children: [

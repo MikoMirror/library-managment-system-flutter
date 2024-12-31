@@ -9,10 +9,13 @@ class ReservationFilterSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    final isMobileView = MediaQuery.of(context).size.width < 800;
     
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: isMobileView ? 8 : 18,
+      ),
       decoration: BoxDecoration(
         color: isDarkMode 
             ? AppTheme.dark.primary.withAlpha(25)
@@ -28,17 +31,16 @@ class ReservationFilterSection extends StatelessWidget {
       child: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: isSmallScreen
+          child: isMobileView
               ? _buildDropdownFilter(context, isDarkMode)
-              : Center(
-                  child: Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: ReservationFilter.values.map((filter) {
-                      return _buildFilterChip(context, filter, isDarkMode);
-                    }).toList(),
-                  ),
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: ReservationFilter.values.map((filter) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: _buildFilterChip(context, filter, isDarkMode),
+                    );
+                  }).toList(),
                 ),
         ),
       ),
@@ -51,6 +53,8 @@ class ReservationFilterSection extends StatelessWidget {
         final isSelected = currentFilter == filter;
         
         return FilterChip(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 4),
           label: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

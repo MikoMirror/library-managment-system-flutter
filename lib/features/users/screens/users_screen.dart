@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/users_bloc.dart';
 import '../bloc/users_event.dart';
 import '../bloc/users_state.dart';
-import '../../../core/widgets/custom_app_bar.dart';
+import '../../../core/widgets/app_bar.dart';
 
 import '../widgets/users_table.dart';
 import '../../../core/widgets/custom_search_bar.dart';
@@ -17,9 +17,6 @@ class UsersScreen extends StatefulWidget {
 }
 
 class _UsersScreenState extends State<UsersScreen> {
-  final _searchController = TextEditingController();
- 
-
   @override
   void initState() {
     super.initState();
@@ -30,38 +27,18 @@ class _UsersScreenState extends State<UsersScreen> {
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(
-          title: Text(
-            'Users',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        
-        actions: [
-          SizedBox(
-            width: MediaQuery.of(context).size.width * 0.4, // Adjust width as needed
-            child: CustomSearchBar(
-              hintText: 'Search users...',
-              onChanged: (query) {
-                if (query.isEmpty) {
-                  context.read<UsersBloc>().add(LoadUsers());
-                } else {
-                  context.read<UsersBloc>().add(SearchUsers(query));
-                }
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
+      appBar: UnifiedAppBar(
+        title: const Text('Users'),
+        searchHint: 'Search users...',
+        onSearch: (query) {
+          if (query.isEmpty) {
+            context.read<UsersBloc>().add(LoadUsers());
+          } else {
+            context.read<UsersBloc>().add(SearchUsers(query));
+          }
+        },
       ),
       body: BlocBuilder<UsersBloc, UsersState>(
         builder: (context, state) {

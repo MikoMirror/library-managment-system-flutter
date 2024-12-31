@@ -50,6 +50,11 @@ class RefreshReservations extends ReservationEvent {}
 
 class CheckReservationStatuses extends ReservationEvent {}
 
+class SearchReservations extends ReservationEvent {
+  final String query;
+  SearchReservations(this.query);
+}
+
 // States
 abstract class ReservationState {}
 
@@ -69,12 +74,14 @@ class ReservationsLoaded extends ReservationState {
 class ReservationBloc extends Bloc<ReservationEvent, ReservationState> {
   final ReservationsRepository repository;
   List<Reservation> _currentReservations = [];
+  List<Reservation> _allReservations = [];
 
   ReservationBloc({required this.repository}) : super(ReservationInitial()) {
     on<LoadReservations>((event, emit) async {
       try {
         emit(ReservationLoading());
         _currentReservations = await repository.getReservations();
+        _allReservations = _currentReservations;
         emit(ReservationsLoaded(_currentReservations));
       } catch (e) {
         emit(ReservationError(e.toString()));
@@ -98,6 +105,29 @@ class ReservationBloc extends Bloc<ReservationEvent, ReservationState> {
       } catch (e) {
         emit(ReservationError(e.toString()));
       }
+    });
+    on<SearchReservations>((event, emit) {
+      if (_allReservations.isEmpty) {
+        _allReservations = _currentReservations;
+      }
+
+      if (event.query.isEmpty) {
+        emit(ReservationsLoaded(_allReservations));
+        return;
+      }
+
+      final searchQuery = event.query.toLowerCase();
+      final filteredReservations = _allReservations.where((reservation) {
+        final bookTitle = reservation.bookTitle?.toLowerCase() ?? '';
+        final userName = reservation.userName?.toLowerCase() ?? '';
+        final userLibraryNumber = reservation.userLibraryNumber?.toLowerCase() ?? '';
+        
+        return bookTitle.contains(searchQuery) ||
+               userName.contains(searchQuery) ||
+               userLibraryNumber.contains(searchQuery);
+      }).toList();
+
+      emit(ReservationsLoaded(filteredReservations));
     });
   }
 

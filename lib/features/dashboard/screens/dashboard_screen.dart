@@ -6,7 +6,7 @@ import '../cubit/dashboard_state.dart';
 import '../models/borrowing_trend_point.dart';
 import '../widgets/stat_card.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/custom_app_bar.dart';
+import '../../../core/widgets/app_bar.dart';
 import '../widgets/borrowing_trends_chart.dart';
 import '../widgets/date_range_selector.dart';
 import '../../../features/reports/widgets/report_generation_dialog.dart';
@@ -47,7 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(
+      appBar: UnifiedAppBar(
         title: Text(
           'System Overview',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
