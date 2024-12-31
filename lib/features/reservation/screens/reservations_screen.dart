@@ -6,7 +6,6 @@ import '../widgets/reservation_filter_section.dart';
 import '../models/reservation.dart';
 import '../bloc/reservation_bloc.dart';
 import '../cubit/reservation_filter_cubit.dart';
-import '../../../core/services/database/firestore_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_bar.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
@@ -14,12 +13,22 @@ import '../../users/models/user_model.dart';
 import '../repositories/reservation_repository.dart';
 import '../../../core/theme/cubit/test_mode_cubit.dart';
 import '../../../core/widgets/custom_search_bar.dart';
-
+import '../../../core/services/firestore/reservations_firestore_service.dart';
+import '../../../core/services/firestore/users_firestore_service.dart';
+import '../../../core/services/firestore/books_firestore_service.dart';
+import '../../../core/services/firestore/reservations_firestore_service.dart';
 
 class ReservationsScreen extends StatelessWidget {
-  final FirestoreService firestoreService = FirestoreService();
+  final ReservationsFirestoreService reservationsService;
+  final BooksFirestoreService booksService;
+  final UsersFirestoreService usersService;
 
-  ReservationsScreen({super.key});
+  const ReservationsScreen({
+    super.key,
+    required this.reservationsService,
+    required this.booksService,
+    required this.usersService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +39,11 @@ class ReservationsScreen extends StatelessWidget {
         BlocProvider(create: (context) => ReservationFilterCubit()),
         BlocProvider(
           create: (context) => ReservationBloc(
-            repository: ReservationsRepository(firestore: FirebaseFirestore.instance),
+            repository: ReservationsRepository(
+              reservationsService: reservationsService,
+              booksService: booksService,
+              usersService: usersService,
+            ),
           )..add(LoadReservations()),
         ),
       ],
@@ -57,16 +70,26 @@ class ReservationsScreen extends StatelessWidget {
         backgroundColor: isDarkMode 
           ? AppTheme.dark.background 
           : AppTheme.light.background,
-        body: _ReservationsScreenContent(firestoreService: firestoreService),
+        body: _ReservationsScreenContent(
+          reservationsService: reservationsService,
+          booksService: booksService,
+          usersService: usersService,
+        ),
       ),
     );
   }
 }
 
 class _ReservationsScreenContent extends StatelessWidget {
-  final FirestoreService firestoreService;
+  final ReservationsFirestoreService reservationsService;
+  final BooksFirestoreService booksService;
+  final UsersFirestoreService usersService;
 
-  const _ReservationsScreenContent({required this.firestoreService});
+  const _ReservationsScreenContent({
+    required this.reservationsService,
+    required this.booksService,
+    required this.usersService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -77,14 +100,20 @@ class _ReservationsScreenContent extends StatelessWidget {
         }
 
         return StreamBuilder<DocumentSnapshot>(
-          stream: firestoreService.getUserStream(authState.user.uid),
+          stream: usersService.getUserStream(authState.user.uid),
           builder: (context, userSnapshot) {
-            if (!userSnapshot.hasData) {
+            if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final userData = userSnapshot.data!.data() as Map<String, dynamic>;
-            final userModel = UserModel.fromMap(userData);
+            final userData = userSnapshot.data!.data();
+            if (userData == null) {
+              return const Center(
+                child: Text('User data not found'),
+              );
+            }
+
+            final userModel = UserModel.fromMap(userData as Map<String, dynamic>);
             final isAdmin = userModel.role == 'admin';
 
             return Column(
@@ -96,7 +125,10 @@ class _ReservationsScreenContent extends StatelessWidget {
                       
                       return Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 8.0
+                        ),
                         child: LayoutBuilder(
                           builder: (context, constraints) {
                             final isSmallScreen = constraints.maxWidth < 600;

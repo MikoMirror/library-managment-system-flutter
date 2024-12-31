@@ -13,7 +13,6 @@ import '../enums/book_view_type.dart';
 import '../widgets/book card/table_books_view.dart';
 import '../../../core/widgets/app_bar.dart';
 import 'dart:async';
-import '../../../core/widgets/custom_search_bar.dart';
 
 class BooksScreen extends StatefulWidget {
   const BooksScreen({super.key});

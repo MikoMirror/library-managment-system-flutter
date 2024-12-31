@@ -1,19 +1,26 @@
 import 'dart:io';
 import '../models/report_data.dart';
 import 'pdf_service.dart';
-import '../../../core/services/database/firestore_service.dart';
+import '../../../core/services/firestore/books_firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../features/reservation/models/reservation.dart';
+import '../../../core/services/firestore/users_firestore_service.dart';
 
 class ReportService {
-  final FirestoreService _firestoreService;
+  final BooksFirestoreService _firestoreService;
   final PdfService _pdfService;
+  final UsersFirestoreService _usersService;
+  final BooksFirestoreService _booksService;
 
   ReportService({
-    FirestoreService? firestoreService,
+    BooksFirestoreService? firestoreService,
     PdfService? pdfService,
-  })  : _firestoreService = firestoreService ?? FirestoreService(),
-        _pdfService = pdfService ?? PdfService();
+    UsersFirestoreService? usersService,
+    BooksFirestoreService? booksService,
+  })  : _firestoreService = firestoreService ?? BooksFirestoreService(),
+        _pdfService = pdfService ?? PdfService(),
+        _usersService = usersService ?? UsersFirestoreService(),
+        _booksService = booksService ?? BooksFirestoreService();
 
   Future<File?> generateReport({
     required DateTime startDate,
@@ -24,40 +31,91 @@ class ReportService {
   }
 
   Future<ReportData> _gatherReportData(DateTime startDate, DateTime endDate) async {
-    // Get trends data for totals
-    final borrowedTrends = await _firestoreService.getBorrowingTrends(
-      startDate: startDate,
-      endDate: endDate,
-      status: 'borrowed',
-    );
+    try {
+      // Get reservations for the period
+      final reservations = await _firestoreService.getReservationsForReport(
+        startDate,
+        endDate,
+      );
 
-    final returnedTrends = await _firestoreService.getBorrowingTrends(
-      startDate: startDate,
-      endDate: endDate,
-      status: 'returned',
-    );
+      // Fetch book and user details for each reservation
+      final enrichedReservations = await Future.wait(
+        reservations.map((reservation) async {
+          try {
+            // Ensure we have valid IDs
+            if (reservation.userId == null || reservation.bookId == null) {
+              print('Missing ID - UserID: ${reservation.userId}, BookID: ${reservation.bookId}');
+              return reservation;
+            }
 
-    // Calculate totals from trends
-    int totalBorrowed = borrowedTrends.fold(0, (sum, trend) => sum + trend.count);
-    int totalReturned = returnedTrends.fold(0, (sum, trend) => sum + trend.count);
+            // Get user details
+            final userDoc = await _usersService.getUserById(reservation.userId!);
+            
+            // Get book details
+            final bookDoc = await _booksService.getDocument(
+              BooksFirestoreService.COLLECTION,
+              reservation.bookId!
+            );
+            final bookData = bookDoc.data() as Map<String, dynamic>?;
 
-    // Get all reservations for the period
-    final reservations = await _firestoreService.getReservationsForReport(
-      startDate,
-      endDate,
-    );
+            // Update reservation with book and user details
+            return reservation.copyWith(
+              bookTitle: bookData?['title'] ?? 'Unknown',
+              userName: userDoc?.name ?? 'Unknown',
+              userLibraryNumber: userDoc?.libraryNumber ?? 'N/A',
+            );
+          } catch (e) {
+            print('Error processing reservation ${reservation.id}: $e');
+            return reservation;
+          }
+        }),
+      );
 
-    // Sort reservations by date
-    reservations.sort((a, b) => 
-      b.borrowedDate.compareTo(a.borrowedDate)
-    );
+      // Calculate totals with quantities
+      int totalBorrowed = enrichedReservations
+          .where((r) => r.status == 'borrowed')
+          .length;
+      
+      int totalReturned = enrichedReservations
+          .where((r) => r.status == 'returned')
+          .length;
 
-    return ReportData(
-      startDate: startDate,
-      endDate: endDate,
-      totalBorrowed: totalBorrowed,
-      totalReturned: totalReturned,
-      reservations: reservations,
-    );
+      // Calculate total books for each status
+      int totalBorrowedBooks = enrichedReservations
+          .where((r) => r.status == 'borrowed')
+          .fold(0, (sum, r) => sum + r.quantity);
+      
+      int totalReturnedBooks = enrichedReservations
+          .where((r) => r.status == 'returned')
+          .fold(0, (sum, r) => sum + r.quantity);
+      
+      int totalOverdueBooks = enrichedReservations
+          .where((r) => r.currentStatus == 'overdue')
+          .fold(0, (sum, r) => sum + r.quantity);
+      
+      int totalExpiredBooks = enrichedReservations
+          .where((r) => r.status == 'expired')
+          .fold(0, (sum, r) => sum + r.quantity);
+
+      // Sort reservations by date
+      enrichedReservations.sort((a, b) => 
+        b.borrowedDate.compareTo(a.borrowedDate)
+      );
+
+      return ReportData(
+        startDate: startDate,
+        endDate: endDate,
+        totalBorrowed: totalBorrowed,
+        totalReturned: totalReturned,
+        totalBorrowedBooks: totalBorrowedBooks,
+        totalReturnedBooks: totalReturnedBooks,
+        totalOverdueBooks: totalOverdueBooks,
+        totalExpiredBooks: totalExpiredBooks,
+        reservations: enrichedReservations,
+      );
+    } catch (e) {
+      print('Error gathering report data: $e');
+      rethrow;
+    }
   }
 } 

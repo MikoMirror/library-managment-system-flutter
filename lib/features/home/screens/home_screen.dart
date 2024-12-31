@@ -20,8 +20,11 @@ import '../../reservation/repositories/reservation_repository.dart';
 import '../../reservation/screens/reservations_screen.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
 import '../../dashboard/cubit/dashboard_cubit.dart';
-import '../../../core/services/database/firestore_service.dart';
+import '../../../core/services/firestore/books_firestore_service.dart';
 import 'dart:async';
+import '../../../core/services/firestore/users_firestore_service.dart';
+import '../../../core/services/firestore/reservations_firestore_service.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,7 +35,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  final _firestore = FirebaseFirestore.instance;
   UserModel? _cachedUserModel;
   List<NavigationItem>? _cachedNavigationItems;
   late final DashboardCubit _dashboardCubit;
@@ -41,14 +43,23 @@ class _HomeScreenState extends State<HomeScreen> {
   Stream<DocumentSnapshot>? _adminCheckStream;
   bool _isSmallScreen = false;
   bool _isPortrait = false;
+  late final BooksFirestoreService _firestoreService;
+  late final UsersFirestoreService _usersService;
+  late final ReservationsFirestoreService _reservationsService;
 
   @override
   void initState() {
     super.initState();
-    _dashboardCubit = DashboardCubit(FirestoreService());
-    _booksBloc = BooksBloc(repository: BooksRepository(firestore: _firestore));
+    _firestoreService = context.read<BooksFirestoreService>();
+    _usersService = context.read<UsersFirestoreService>();
+    _reservationsService = context.read<ReservationsFirestoreService>();
+    
+    _dashboardCubit = DashboardCubit(_firestoreService);
+    _booksBloc = BooksBloc(
+      repository: context.read<BooksRepository>(),
+    );
     _reservationBloc = ReservationBloc(
-      repository: ReservationsRepository(firestore: _firestore),
+      repository: context.read<ReservationsRepository>(),
     );
   }
 
@@ -129,7 +140,11 @@ class _HomeScreenState extends State<HomeScreen> {
             2: () => const UsersScreen(),
             3: () => BlocProvider.value(
                   value: _reservationBloc..add(LoadReservations()),
-                  child: ReservationsScreen(),
+                  child: ReservationsScreen(
+                    reservationsService: _reservationsService,
+                    booksService: _firestoreService,
+                    usersService: _usersService,
+                  ),
                 ),
             4: () => const SettingsScreen(),
           }
@@ -141,7 +156,11 @@ class _HomeScreenState extends State<HomeScreen> {
             1: () => const FavoritesScreen(),
             2: () => BlocProvider.value(
                   value: _reservationBloc..add(LoadReservations()),
-                  child: ReservationsScreen(),
+                  child: ReservationsScreen(
+                    reservationsService: _reservationsService,
+                    booksService: _firestoreService,
+                    usersService: _usersService,
+                  ),
                 ),
             3: () => const SettingsScreen(),
           };
@@ -181,10 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess && _adminCheckStream == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _adminCheckStream = _firestore
-            .collection('users')
-            .doc(authState.user.uid)
-            .snapshots();
+        _adminCheckStream = _usersService.getUserStream(authState.user.uid);
       });
     }
   }
@@ -227,21 +243,33 @@ class _HomeScreenState extends State<HomeScreen> {
             return const LoginScreen();
           }
 
-          // Use cached data if available
           if (_cachedUserModel != null) {
             return _buildHomeContentWithUser(_cachedUserModel!);
           }
 
+          print('Fetching user data for userId: ${state.user.uid}');
+
           return FutureBuilder<DocumentSnapshot>(
-            future: _firestore.collection('users').doc(state.user.uid).get(),
+            future: _usersService.getDocument('users', state.user.uid),
             builder: (context, snapshot) {
-              if (!snapshot.hasData) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              final userData = snapshot.data!.data() as Map<String, dynamic>;
-              _cachedUserModel = UserModel.fromMap(userData);
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
 
+              if (!snapshot.hasData || !snapshot.data!.exists) {
+                return const Center(child: Text('User data not found'));
+              }
+
+              final userData = snapshot.data!.data() as Map<String, dynamic>?;
+              if (userData == null) {
+                return const Center(child: Text('User data is null'));
+              }
+
+              _cachedUserModel = UserModel.fromMap(userData);
               return _buildHomeContentWithUser(_cachedUserModel!);
             },
           );
@@ -308,5 +336,9 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+  Future<void> someMethod() async {
+    final doc = await _firestoreService.getDocument('collection', 'id');
   }
 }

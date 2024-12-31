@@ -1,4 +1,3 @@
-
 class UserModel {
   final String userId;
   final String name;

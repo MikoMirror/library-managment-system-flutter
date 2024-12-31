@@ -6,7 +6,6 @@ import '../bloc/users_state.dart';
 import '../../../core/widgets/app_bar.dart';
 
 import '../widgets/users_table.dart';
-import '../../../core/widgets/custom_search_bar.dart';
 import '../../../core/navigation/cubit/navigation_cubit.dart';
 
 class UsersScreen extends StatefulWidget {

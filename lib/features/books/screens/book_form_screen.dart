@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/services/database/firestore_service.dart';
 import '../models/book.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,6 +7,7 @@ import '../../../core/constants/language_constants.dart';
 import '../widgets/language_management_dialog.dart';
 import 'dart:async';
 import '../utils/book_cover_utils.dart';
+import '../../../core/services/firestore/books_firestore_service.dart';
 
 enum FormMode { add, edit }
 
@@ -29,7 +29,7 @@ class BookFormScreen extends StatefulWidget {
 
 class BookFormScreenState extends State<BookFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final FirestoreService _firestoreService = FirestoreService();
+  final _booksService = BooksFirestoreService();
   bool _isLoading = false;
 
   late TextEditingController _titleController;
@@ -146,9 +146,9 @@ class BookFormScreenState extends State<BookFormScreen> {
         );
 
         if (widget.mode == FormMode.edit) {
-          await _firestoreService.updateBook(widget.collectionId, bookData);
+          await _booksService.updateBook(bookData);
         } else {
-          await _firestoreService.addBook(widget.collectionId, bookData);
+          await _booksService.addBook(bookData);
         }
 
         if (mounted) {
@@ -168,7 +168,7 @@ class BookFormScreenState extends State<BookFormScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error ${widget.mode == FormMode.edit ? 'updating' : 'adding'} book: $e'),
+              content: Text('Error: $e'),
               backgroundColor: Colors.red,
             ),
           );

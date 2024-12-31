@@ -7,19 +7,17 @@ import '../../auth/bloc/auth/auth_bloc.dart';
 import '../cubit/rating/rating_cubit.dart';
 import '../cubit/rating/rating_state.dart';
 import '../../users/models/user_model.dart';
-import '../../../core/services/database/firestore_service.dart';
+import '../../../core/services/firestore/books_firestore_service.dart';
 import '../repositories/books_repository.dart';
 import 'book_form_screen.dart';
 import '../widgets/book_details/book_header.dart';
 import '../widgets/book_details/book_info_row.dart';
-import '../widgets/book_details/book_image.dart';
 import '../widgets/book_details/book_description.dart';
 import '../widgets/book_details/book_quantity.dart';
-import '../widgets/rating_bottom_sheet.dart';
 import '../../../core/services/image/image_cache_service.dart';
 import '../cubit/book_details_cubit.dart';
 import '../widgets/book_reservation_dialog.dart';
-import '../../../features/users/models/user_model.dart';
+import '../../../core/services/firestore/users_firestore_service.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final String? bookId;
@@ -36,7 +34,8 @@ class BookDetailsScreen extends StatefulWidget {
 }
 
 class _BookDetailsScreenState extends State<BookDetailsScreen> {
-  final _firestoreService = FirestoreService();
+  final _booksService = BooksFirestoreService();
+  final _usersService = UsersFirestoreService();
   final _imageCacheService = ImageCacheService();
   final _scrollController = ScrollController();
   double _scrollOffset = 0.0;
@@ -87,8 +86,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   Widget _buildStreamContent() {
     if (widget.bookId == null) return const SizedBox.shrink();
 
-    return StreamBuilder<DocumentSnapshot>(
-      stream: _firestoreService.getBookStream(widget.bookId!),
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: _booksService.getDocumentStream(widget.bookId!),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
@@ -336,7 +335,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => BookDetailsCubit(
-        firestoreService: _firestoreService,
+        booksService: _booksService,
+        usersService: _usersService,
       )..initialize(
           widget.bookId,
           widget.book,

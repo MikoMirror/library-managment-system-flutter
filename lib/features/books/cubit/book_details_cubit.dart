@@ -2,7 +2,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
 import '../models/book.dart';
 import '../../users/models/user_model.dart';
-import '../../../core/services/database/firestore_service.dart';
+import '../../../core/services/firestore/books_firestore_service.dart';
+import '../../../core/services/firestore/users_firestore_service.dart';
 import 'package:flutter/widgets.dart';
 
 // States
@@ -41,13 +42,16 @@ class BookDetailsError extends BookDetailsState {
 
 // Cubit
 class BookDetailsCubit extends Cubit<BookDetailsState> {
-  final FirestoreService _firestoreService;
+  final BooksFirestoreService _booksService;
+  final UsersFirestoreService _usersService;
   StreamSubscription? _bookSubscription;
   StreamSubscription? _userSubscription;
 
   BookDetailsCubit({
-    required FirestoreService firestoreService,
-  }) : _firestoreService = firestoreService,
+    required BooksFirestoreService booksService,
+    required UsersFirestoreService usersService,
+  }) : _booksService = booksService,
+       _usersService = usersService,
        super(BookDetailsInitial());
 
   void initialize(String? bookId, Book? initialBook, String? userId) {
@@ -64,8 +68,8 @@ class BookDetailsCubit extends Cubit<BookDetailsState> {
   void _subscribeToBookUpdates(String bookId, String? userId) {
     emit(BookDetailsLoading());
     
-    _bookSubscription = _firestoreService
-        .getBookStream(bookId)
+    _bookSubscription = _booksService
+        .getDocumentStream(bookId)
         .listen(
           (snapshot) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -95,7 +99,7 @@ class BookDetailsCubit extends Cubit<BookDetailsState> {
   }
 
   void _subscribeToUserUpdates(String userId) {
-    _userSubscription = _firestoreService
+    _userSubscription = _usersService
         .getUserStream(userId)
         .listen(
           (snapshot) {

@@ -3,7 +3,6 @@ import '../repositories/books_repository.dart';
 import 'books_event.dart';
 import 'books_state.dart';
 import '../models/book.dart';
-import 'package:flutter/widgets.dart';
 import 'dart:async';
 
 class BooksBloc extends Bloc<BooksEvent, BooksState> {
@@ -21,14 +20,7 @@ class BooksBloc extends Bloc<BooksEvent, BooksState> {
     emit(BooksLoading());
     try {
       await emit.forEach(
-        _repository.getAllBooks().map((books) {
-          scheduleMicrotask(() {
-            if (!WidgetsBinding.instance.isRootWidgetAttached) {
-              WidgetsBinding.instance.scheduleFrame();
-            }
-          });
-          return books;
-        }),
+        _repository.getAllBooks(),
         onData: (List<Book> books) => BooksLoaded(books),
         onError: (error, stackTrace) => BooksError(error.toString()),
       );

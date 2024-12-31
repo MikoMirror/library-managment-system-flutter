@@ -8,7 +8,6 @@ import '../widgets/stat_card.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_bar.dart';
 import '../widgets/borrowing_trends_chart.dart';
-import '../widgets/date_range_selector.dart';
 import '../../../features/reports/widgets/report_generation_dialog.dart';
 
 class DashboardScreen extends StatefulWidget {

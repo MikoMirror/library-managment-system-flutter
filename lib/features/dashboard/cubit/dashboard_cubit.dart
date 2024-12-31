@@ -1,9 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dashboard_state.dart';
-import '../../../core/services/database/firestore_service.dart';
+import '../../../core/services/firestore/books_firestore_service.dart';
 
 class DashboardCubit extends Cubit<DashboardState> {
-  final FirestoreService _firestoreService;
+  final BooksFirestoreService _firestoreService;
 
   DashboardCubit(this._firestoreService) : super(DashboardInitial(
     selectedStartDate: DateTime.now().subtract(const Duration(days: 29)),

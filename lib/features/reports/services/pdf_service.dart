@@ -72,12 +72,6 @@ class PdfService {
   }
 
   pw.Widget _buildSummaryGrid(ReportData data) {
-    final totalReservations = data.reservations.length;
-    final totalBorrowed = data.reservations.where((r) => r.status == 'borrowed').length;
-    final totalReturned = data.reservations.where((r) => r.status == 'returned').length;
-    final totalOverdue = data.reservations.where((r) => r.currentStatus == 'overdue').length;
-    final totalExpired = data.reservations.where((r) => r.status == 'expired').length;
-
     return pw.Container(
       padding: const pw.EdgeInsets.all(15),
       decoration: pw.BoxDecoration(
@@ -86,11 +80,16 @@ class PdfService {
       ),
       child: pw.Column(
         children: [
-          _buildSummaryRow('Total Reservations', '$totalReservations'),
-          _buildSummaryRow('Total Borrowed', '$totalBorrowed'),
-          _buildSummaryRow('Total Returned', '$totalReturned'),
-          _buildSummaryRow('Total Overdue', '$totalOverdue'),
-          _buildSummaryRow('Total Expired', '$totalExpired'),
+          _buildSummaryRow('Total Reservations', '${data.reservations.length}'),
+          _buildSummaryRow('Borrowed Reservations', '${data.totalBorrowed}'),
+          _buildSummaryRow('Returned Reservations', '${data.totalReturned}'),
+          pw.SizedBox(height: 10),
+          pw.Divider(),
+          pw.SizedBox(height: 10),
+          _buildSummaryRow('Total Books Borrowed', '${data.totalBorrowedBooks}'),
+          _buildSummaryRow('Total Books Returned', '${data.totalReturnedBooks}'),
+          _buildSummaryRow('Total Books Overdue', '${data.totalOverdueBooks}'),
+          _buildSummaryRow('Total Books Expired', '${data.totalExpiredBooks}'),
         ],
       ),
     );
@@ -122,7 +121,7 @@ class PdfService {
                 padding: const pw.EdgeInsets.only(right: 5),
                 child: pw.Text(
                   value.toStringAsFixed(0),
-                  style: pw.TextStyle(fontSize: 8),
+                  style: const pw.TextStyle(fontSize: 8),
                 ),
               )).toList(),
             ),
@@ -289,7 +288,7 @@ class PdfService {
         fontWeight: pw.FontWeight.bold,
         color: PdfColors.black,
       ),
-      headerDecoration: pw.BoxDecoration(
+      headerDecoration: const pw.BoxDecoration(
         color: PdfColors.grey200,
       ),
       cellHeight: 30,
@@ -297,14 +296,16 @@ class PdfService {
         0: pw.Alignment.centerLeft,    // Book Title
         1: pw.Alignment.centerLeft,    // User Name
         2: pw.Alignment.center,        // Library ID
-        3: pw.Alignment.center,        // Borrowed Date
-        4: pw.Alignment.center,        // Return/Due Date
-        5: pw.Alignment.center,        // Status
+        3: pw.Alignment.center,        // Quantity
+        4: pw.Alignment.center,        // Borrowed Date
+        5: pw.Alignment.center,        // Return/Due Date
+        6: pw.Alignment.center,        // Status
       },
       headers: [
         'Book Title',
         'User Name',
         'Library ID',
+        'Quantity',
         'Borrowed Date',
         'Return/Due Date',
         'Status'
@@ -313,6 +314,7 @@ class PdfService {
         res.bookTitle ?? 'Unknown',
         res.userName ?? 'Unknown',
         res.userLibraryNumber ?? 'N/A',
+        res.quantity.toString(),
         res.formattedBorrowedDate,
         res.status == 'returned' && res.returnedDate != null
             ? _formatDate(res.returnedDate!.toDate())
@@ -323,9 +325,10 @@ class PdfService {
         0: const pw.FlexColumnWidth(3),    // Book Title
         1: const pw.FlexColumnWidth(2.5),  // User Name
         2: const pw.FlexColumnWidth(1.5),  // Library ID
-        3: const pw.FlexColumnWidth(1.8),  // Borrowed Date
-        4: const pw.FlexColumnWidth(1.8),  // Return/Due Date
-        5: const pw.FlexColumnWidth(1.5),  // Status
+        3: const pw.FlexColumnWidth(1.0),  // Quantity
+        4: const pw.FlexColumnWidth(1.8),  // Borrowed Date
+        5: const pw.FlexColumnWidth(1.8),  // Return/Due Date
+        6: const pw.FlexColumnWidth(1.5),  // Status
       },
     );
   }

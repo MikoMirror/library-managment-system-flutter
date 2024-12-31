@@ -2,85 +2,83 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/book.dart';
 import '../../../core/repositories/base_repository.dart';
 import 'package:logger/logger.dart';
+import '../../../core/services/firestore/books_firestore_service.dart';
 
 class BooksRepository implements BaseRepository {
-  final FirebaseFirestore _firestore;
+  final BooksFirestoreService _firestoreService;
   final _logger = Logger();
+  static const String COLLECTION = 'books';
 
-  BooksRepository({required FirebaseFirestore firestore}) : _firestore = firestore;
+  BooksRepository({
+    required BooksFirestoreService firestoreService,
+  }) : _firestoreService = firestoreService;
 
   Future<void> addBook(Book book) async {
-    await _firestore.collection('books').add(book.toMap());
-  }
-
-  Future<void> updateBook(Book book) async {
-    if (book.id != null) {
-      try {
-        await _firestore.collection('books').doc(book.id).update(book.toMap());
-      } catch (e) {
-        throw Exception('Failed to update book: $e');
-      }
-    } else {
-      throw Exception('Book ID is required for update');
-    }
-  }
-
-  Future<void> deleteBook(String bookId) async {
-    try {
-      await _firestore.collection('books').doc(bookId).delete();
-    } catch (e) {
-      throw Exception('Failed to delete book: $e');
-    }
+    await _firestoreService.addDocument(COLLECTION, book.toMap());
   }
 
   Stream<List<Book>> getAllBooks() {
-    return _firestore
-        .collection('books')
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Book.fromMap(doc.data(), doc.id))
-            .toList());
+    return _firestoreService.getCollectionStream(
+      collection: COLLECTION,
+      fromMap: (data, id) => Book.fromMap(data, id),
+    );
+  }
+
+  Stream<List<Book>> searchBooks(String query) {
+    return _firestoreService.getCollectionStream(
+      collection: COLLECTION,
+      fromMap: (data, id) => Book.fromMap(data, id),
+    ).map((books) => books.where((book) => 
+      book.title.toLowerCase().contains(query.toLowerCase()) ||
+      book.author.toLowerCase().contains(query.toLowerCase())
+    ).toList());
+  }
+
+  Future<void> deleteBook(String bookId) async {
+    await _firestoreService.deleteDocument(COLLECTION, bookId);
   }
 
   Future<void> updateBookQuantity(String bookId, int quantity) async {
-    final bookRef = _firestore.collection('books').doc(bookId);
-    
-    return _firestore.runTransaction((transaction) async {
-      final bookDoc = await transaction.get(bookRef);
-      if (!bookDoc.exists) {
-        throw Exception('Book not found');
-      }
-
-      final currentQuantity = bookDoc.data()?['availableQuantity'] ?? 0;
-      if (currentQuantity < quantity) {
-        throw Exception('Not enough books available');
-      }
-
-      transaction.update(bookRef, {
-        'availableQuantity': currentQuantity - quantity,
-      });
-    });
+    await _firestoreService.updateDocument(
+      COLLECTION, 
+      bookId, 
+      {'booksQuantity': quantity}
+    );
   }
 
   Future<void> rateBook(String bookId, String userId, double rating) async {
-    await _firestore.collection('books').doc(bookId).update({
+    await _firestoreService.updateDocument(COLLECTION, bookId, {
       'ratings.$userId': rating,
     });
   }
 
   Future<Map<String, double>> getBookRatings(String bookId) async {
-    final doc = await _firestore.collection('books').doc(bookId).get();
-    return Map<String, double>.from(doc.data()?['ratings'] ?? {});
+    try {
+      final doc = await _firestoreService.getDocument(COLLECTION, bookId);
+      final data = doc.data() as Map<String, dynamic>;
+      final ratings = data['ratings'] as Map<String, dynamic>? ?? {};
+      return Map<String, double>.fromEntries(
+        ratings.entries.map(
+          (entry) => MapEntry(
+            entry.key, 
+            (entry.value as num).toDouble(),
+          ),
+        ),
+      );
+    } catch (e) {
+      _logger.e('Error getting book ratings:', error: e);
+      return {};
+    }
   }
 
   Future<bool> getFavoriteStatus(String userId, String bookId) async {
     try {
-      final doc = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('favorites')
-          .doc(bookId)
-          .get();
+      final doc = await _firestoreService.getNestedDocument(
+        'users', 
+        userId, 
+        'favorites', 
+        bookId
+      );
       return doc.exists;
     } catch (e) {
       _logger.e('Error getting favorite status:', error: e);
@@ -90,11 +88,12 @@ class BooksRepository implements BaseRepository {
 
   Future<void> toggleFavorite(String userId, String bookId) async {
     try {
-      final docRef = _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('favorites')
-          .doc(bookId);
+      final docRef = _firestoreService.getNestedDocumentReference(
+        'users', 
+        userId, 
+        'favorites', 
+        bookId
+      );
       
       final doc = await docRef.get();
       if (doc.exists) {
@@ -108,34 +107,20 @@ class BooksRepository implements BaseRepository {
     }
   }
 
-  Stream<List<Book>> searchBooks(String query) {
-    query = query.toLowerCase();
-    return _firestore
-        .collection('books')
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Book.fromMap(doc.data(), doc.id))
-            .where((book) =>
-                book.title.toLowerCase().contains(query) ||
-                book.author.toLowerCase().contains(query) ||
-                book.isbn.toLowerCase().contains(query) ||
-                book.categories.toLowerCase().contains(query))
-            .toList());
-  }
-
   Future<void> incrementBookQuantity(
     String bookId,
     int incrementBy,
     Transaction transaction,
   ) async {
-    final bookRef = _firestore.collection('books').doc(bookId);
+    final bookRef = _firestoreService.getDocumentReference(COLLECTION, bookId);
     final bookDoc = await transaction.get(bookRef);
 
     if (!bookDoc.exists) {
       throw Exception('Book not found');
     }
 
-    final currentQuantity = bookDoc.data()?['booksQuantity'] ?? 0;
+    final data = bookDoc.data() as Map<String, dynamic>;
+    final currentQuantity = data['booksQuantity'] as int? ?? 0;
     
     transaction.update(bookRef, {
       'booksQuantity': currentQuantity + incrementBy,
@@ -144,6 +129,6 @@ class BooksRepository implements BaseRepository {
 
   @override
   void dispose() {
-    // Clean up any resources if needed
+    
   }
 }

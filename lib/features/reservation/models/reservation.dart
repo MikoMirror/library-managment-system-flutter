@@ -57,7 +57,7 @@ class Reservation {
     return dueDate.toDate().isBefore(now);
   }
 
-  factory Reservation.fromMap(Map<String, dynamic> map, String? id) {
+  factory Reservation.fromMap(Map<String, dynamic> map, String id) {
     return Reservation(
       id: id,
       userId: map['userId'],
@@ -67,9 +67,9 @@ class Reservation {
       dueDate: map['dueDate'],
       returnedDate: map['returnedDate'],
       quantity: map['quantity'],
-      bookTitle: map['bookTitle'],
-      userName: map['userName'],
-      userLibraryNumber: map['userLibraryNumber'],
+      bookTitle: map['bookTitle'] ?? 'Unknown',
+      userName: map['userName'] ?? 'Unknown',
+      userLibraryNumber: map['userLibraryNumber'] ?? 'N/A',
     );
   }
 

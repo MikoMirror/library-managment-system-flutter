@@ -4,9 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../reservation/bloc/reservation_bloc.dart';
 import '../../users/models/user_model.dart';
 import '../models/book.dart';
-import '../../../core/services/database/firestore_service.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/cubit/test_mode_cubit.dart';
+import '../../../core/services/firestore/users_firestore_service.dart';
 
 
 class BookBookingDialog extends StatefulWidget {
@@ -27,6 +27,7 @@ class BookBookingDialog extends StatefulWidget {
 
 class _BookBookingDialogState extends State<BookBookingDialog> {
   final _formKey = GlobalKey<FormState>();
+  final _usersService = UsersFirestoreService();
   final _quantityController = TextEditingController(text: '1');
   String? _selectedUserId;
   final _borrowedDateController = TextEditingController();
@@ -171,15 +172,14 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
 
                             // Keep existing user selection code
                             if (widget.isAdmin) ...[
-                              StreamBuilder<QuerySnapshot>(
-                                stream: FirestoreService().getUsers(),
+                              StreamBuilder<List<UserModel>>(
+                                stream: _usersService.getUsersStream(),
                                 builder: (context, snapshot) {
                                   if (!snapshot.hasData) {
                                     return const CircularProgressIndicator();
                                   }
 
-                                  final users = snapshot.data!.docs
-                                      .map((doc) => UserModel.fromMap(doc.data() as Map<String, dynamic>))
+                                  final users = snapshot.data!
                                       .where((user) => user.role != 'admin')
                                       .where((user) => 
                                         user.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||

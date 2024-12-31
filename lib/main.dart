@@ -10,7 +10,7 @@ import 'features/auth/screens/login_screen.dart';
 import 'core/navigation/cubit/navigation_cubit.dart';
 import 'core/navigation/navigation_handler.dart';
 import 'features/books/repositories/books_repository.dart';
-import 'core/services/database/firestore_service.dart';
+import 'core/services/firestore/base_firestore_service.dart';
 import 'features/reservation/bloc/reservation_bloc.dart';
 import 'features/reservation/repositories/reservation_repository.dart';
 import 'features/books/bloc/books_bloc.dart';
@@ -22,6 +22,12 @@ import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/cubit/test_mode_cubit.dart';
+import 'core/services/firestore/base_firestore_service.dart';
+import 'core/services/firestore/books_firestore_service.dart';
+import 'core/services/firestore/users_firestore_service.dart';
+import 'core/services/firestore/reservations_firestore_service.dart';
+import 'features/books/cubit/book_details_cubit.dart';
+
 
 void main() async {
   runZonedGuarded(() async {
@@ -31,18 +37,45 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     
-    final firestore = FirebaseFirestore.instance;
-    final reservationsRepository = ReservationsRepository(firestore: firestore);
-    final usersRepository = UsersRepository(firestore: firestore);
+    final booksFirestoreService = BooksFirestoreService();
+    final usersFirestoreService = UsersFirestoreService();
+    final reservationsFirestoreService = ReservationsFirestoreService();
     final prefs = await SharedPreferences.getInstance();
+    
+    final usersRepository = UsersRepository(
+      firestoreService: usersFirestoreService
+    );
     final adminExists = await usersRepository.adminExists();
-
+    
     runApp(
       MultiProvider(
         providers: [
           Provider<SharedPreferences>.value(value: prefs),
-          Provider<ReservationsRepository>(
-            create: (_) => reservationsRepository,
+          RepositoryProvider<BooksFirestoreService>(
+            create: (context) => booksFirestoreService,
+          ),
+          RepositoryProvider<UsersFirestoreService>(
+            create: (context) => usersFirestoreService,
+          ),
+          RepositoryProvider<ReservationsFirestoreService>(
+            create: (context) => reservationsFirestoreService,
+          ),
+          RepositoryProvider<BooksRepository>(
+            create: (context) => BooksRepository(
+              firestoreService: context.read<BooksFirestoreService>(),
+            ),
+          ),
+          RepositoryProvider<ReservationsRepository>(
+            create: (context) => ReservationsRepository(
+              reservationsService: context.read<ReservationsFirestoreService>(),
+              booksService: context.read<BooksFirestoreService>(),
+              usersService: context.read<UsersFirestoreService>(),
+            ),
+          ),
+          RepositoryProvider<UsersRepository>(
+            create: (context) => UsersRepository(
+              firestoreService: context.read<UsersFirestoreService>(),
+            ),
           ),
         ],
         child: MultiBlocProvider(
@@ -56,22 +89,9 @@ void main() async {
                 repository: context.read<ReservationsRepository>(),
               ),
             ),
-            RepositoryProvider<FirestoreService>(
-              create: (context) => FirestoreService(),
-            ),
-            RepositoryProvider<BooksRepository>(
-              create: (context) => BooksRepository(
-                firestore: FirebaseFirestore.instance,
-              ),
-            ),
             BlocProvider(
               create: (context) => BooksBloc(
                 repository: context.read<BooksRepository>(),
-              ),
-            ),
-            RepositoryProvider<UsersRepository>(
-              create: (context) => UsersRepository(
-                firestore: FirebaseFirestore.instance,
               ),
             ),
             BlocProvider(
@@ -85,6 +105,12 @@ void main() async {
             BlocProvider<TestModeCubit>(
               create: (context) => TestModeCubit(
                 context.read<SharedPreferences>(),
+              ),
+            ),
+            BlocProvider(
+              create: (context) => BookDetailsCubit(
+                booksService: context.read<BooksFirestoreService>(),
+                usersService: context.read<UsersFirestoreService>(),
               ),
             ),
           ],
@@ -126,76 +152,32 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (context) => AuthBloc()..add(CheckAuthStatus()),
-        ),
-        BlocProvider(create: (context) => NavigationCubit()),
-        BlocProvider(
-          create: (context) => ReservationBloc(
-            repository: context.read<ReservationsRepository>(),
-          ),
-        ),
-        RepositoryProvider<FirestoreService>(
-          create: (context) => FirestoreService(),
-        ),
-        RepositoryProvider<BooksRepository>(
-          create: (context) => BooksRepository(
-            firestore: FirebaseFirestore.instance,
-          ),
-        ),
-        BlocProvider(
-          create: (context) => BooksBloc(
-            repository: context.read<BooksRepository>(),
-          ),
-        ),
-        RepositoryProvider<UsersRepository>(
-          create: (context) => UsersRepository(
-            firestore: FirebaseFirestore.instance,
-          ),
-        ),
-        BlocProvider(
-          create: (context) => UsersBloc(
-            repository: context.read<UsersRepository>(),
-          ),
-        ),
-        BlocProvider(
-          create: (_) => ThemeCubit(),
-        ),
-        BlocProvider<TestModeCubit>(
-          create: (context) => TestModeCubit(
-            context.read<SharedPreferences>(),
-          ),
-        ),
-      ],
-      child: BlocBuilder<ThemeCubit, ThemeState>(
-        builder: (context, state) {
-          return MaterialApp(
-            title: 'Library Management System',
-            theme: AppTheme.getTheme(false),
-            darkTheme: AppTheme.getTheme(true),
-            themeMode: state.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            home: widget.adminExists 
-              ? NavigationHandler(
-                  child: BlocBuilder<AuthBloc, AuthState>(
-                    builder: (context, state) {
-                      if (state is AuthSuccess) {
-                        return const HomeScreen();
-                      }
-                      return const LoginScreen();
-                    },
-                  ),
-                )
-              : BlocProvider(
-                  create: (context) => NavigationCubit(),
-                  child: const NavigationHandler(
-                    child: InitialAdminSetupScreen(),
-                  ),
+    return BlocBuilder<ThemeCubit, ThemeState>(
+      builder: (context, state) {
+        return MaterialApp(
+          title: 'Library Management System',
+          theme: AppTheme.getTheme(false),
+          darkTheme: AppTheme.getTheme(true),
+          themeMode: state.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          home: widget.adminExists 
+            ? NavigationHandler(
+                child: BlocBuilder<AuthBloc, AuthState>(
+                  builder: (context, state) {
+                    if (state is AuthSuccess) {
+                      return const HomeScreen();
+                    }
+                    return const LoginScreen();
+                  },
                 ),
-          );
-        },
-      ),
+              )
+            : BlocProvider(
+                create: (context) => NavigationCubit(),
+                child: const NavigationHandler(
+                  child: InitialAdminSetupScreen(),
+                ),
+              ),
+        );
+      },
     );
   }
 }

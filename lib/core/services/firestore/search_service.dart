@@ -29,7 +29,7 @@ class SearchService {
 
     // If using individual fields
     return baseQuery.where(searchFields.first, isGreaterThanOrEqualTo: query)
-        .where(searchFields.first, isLessThanOrEqualTo: query + '\uf8ff')
+        .where(searchFields.first, isLessThanOrEqualTo: '$query\uf8ff')
         .snapshots();
   }
 } 

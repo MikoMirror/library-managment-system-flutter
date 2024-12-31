@@ -1,4 +1,3 @@
-import 'package:equatable/equatable.dart';
 import '../models/borrowing_trend_point.dart';
 
 abstract class DashboardState {
