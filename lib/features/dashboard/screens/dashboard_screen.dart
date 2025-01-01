@@ -25,16 +25,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     final currentState = context.read<DashboardCubit>().state;
     
-    // Only load if we're in initial state or dates are missing
     if (currentState is DashboardInitial) {
       final now = DateTime.now();
+      // Set end date to end of current day
       final endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      
+      // Set start date to 13 days before (for 14 days total)
       final startDate = DateTime(
-        now.year, 
-        now.month, 
-        now.day - 29,
-        0, 0, 0
+        now.year,
+        now.month,
+        now.day - 13,
+        0, 0, 0,
       );
+      
+      print('Initial date range: ${startDate.toString()} - ${endDate.toString()}'); // Debug print
       
       context.read<DashboardCubit>().loadDashboard(
         startDate: startDate,

@@ -43,8 +43,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
       setState(() {
         _adminEmail = currentUser.email;
       });
-      // Note: We'll need to get the admin password from the form
-      // since we can't retrieve it from Firebase
     }
   }
 

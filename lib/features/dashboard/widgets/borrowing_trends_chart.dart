@@ -21,8 +21,8 @@ class BorrowingTrendsChart extends StatefulWidget {
     required this.endDate,
     required this.borrowedTrends,
     required this.returnedTrends,
+    required this.isMobile,
     required this.onDateRangeChanged,
-    this.isMobile = false,
   });
 
   @override
@@ -42,6 +42,16 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
   void initState() {
     super.initState();
     _processDataPoints();
+    
+    final now = DateTime.now();
+    final endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final startDate = DateTime(now.year, now.month, now.day - 13, 0, 0, 0);
+    
+    if (widget.startDate != startDate || widget.endDate != endDate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onDateRangeChanged(startDate, endDate);
+      });
+    }
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -64,20 +74,32 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
     
     // Initialize all days with 0
     for (int i = 0; i < totalDays; i++) {
-      final date = widget.startDate.add(Duration(days: i));
-      valueMap[DateTime(date.year, date.month, date.day)] = 0;
+      final date = DateTime(
+        widget.startDate.year,
+        widget.startDate.month,
+        widget.startDate.day + i,
+      );
+      valueMap[date] = 0;
     }
     
     // Fill in actual values
     for (var spot in trends) {
-      final date = widget.startDate.add(Duration(days: spot.x.toInt()));
-      valueMap[DateTime(date.year, date.month, date.day)] = spot.y;
+      final date = DateTime(
+        widget.startDate.year,
+        widget.startDate.month,
+        widget.startDate.day + spot.x.toInt(),
+      );
+      valueMap[date] = spot.y;
     }
     
     // Convert back to FlSpots
     return valueMap.entries
         .map((entry) {
-          final days = entry.key.difference(widget.startDate).inDays;
+          final days = entry.key.difference(DateTime(
+            widget.startDate.year,
+            widget.startDate.month,
+            widget.startDate.day,
+          )).inDays;
           return FlSpot(days.toDouble(), entry.value);
         })
         .toList()

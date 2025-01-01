@@ -6,8 +6,18 @@ class DashboardCubit extends Cubit<DashboardState> {
   final BooksFirestoreService _firestoreService;
 
   DashboardCubit(this._firestoreService) : super(DashboardInitial(
-    selectedStartDate: DateTime.now().subtract(const Duration(days: 29)),
-    selectedEndDate: DateTime.now(),
+    selectedStartDate: DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day - 13,
+      0, 0, 0,
+    ),
+    selectedEndDate: DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+      23, 59, 59,
+    ),
   ));
 
   Future<void> loadDashboard({DateTime? startDate, DateTime? endDate}) async {

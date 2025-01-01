@@ -122,37 +122,53 @@ class BooksFirestoreService extends BaseFirestoreService {
     required DateTime endDate,
     required String status,
   }) async {
-    final startTimestamp = Timestamp.fromDate(startDate);
-    final endTimestamp = Timestamp.fromDate(endDate);
+    try {
+      final querySnapshot = await firestore
+          .collection('books_reservation')
+          .where('status', whereIn: status == 'borrowed' 
+              ? ['borrowed', 'returned', 'overdue'] // Include all borrowed books
+              : [status])
+          .where('borrowedDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('borrowedDate', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
+          .get();
 
-    final querySnapshot = await firestore
-        .collection('books_reservation')
-        .where('status', isEqualTo: status)
-        .where('borrowedDate', isGreaterThanOrEqualTo: startTimestamp)
-        .where('borrowedDate', isLessThanOrEqualTo: endTimestamp)
-        .orderBy('borrowedDate')
-        .get();
+      final trendsMap = <DateTime, int>{};
+      
+      // Sort documents by date to process them chronologically
+      final sortedDocs = querySnapshot.docs
+        ..sort((a, b) => (a.data()['borrowedDate'] as Timestamp)
+            .compareTo(b.data()['borrowedDate'] as Timestamp));
 
-    // Group by date
-    final trendsMap = <DateTime, int>{};
-    for (var doc in querySnapshot.docs) {
-      final data = doc.data();
-      final date = (data['borrowedDate'] as Timestamp).toDate();
-      // Remove time component to group by day
-      final dateOnly = DateTime(date.year, date.month, date.day);
-      final quantity = data['quantity'] as int;
+      // Track running total of borrowed books
+      int runningTotal = 0;
+      
+      for (var doc in sortedDocs) {
+        final data = doc.data();
+        final date = (data['borrowedDate'] as Timestamp).toDate();
+        final dateOnly = DateTime(date.year, date.month, date.day);
+        final quantity = data['quantity'] as int;
+        
+        if (status == 'borrowed') {
+          // For borrowed trend, accumulate the total
+          runningTotal += quantity;
+          trendsMap[dateOnly] = runningTotal;
+        } else {
+          // For returned trend, just count daily returns
+          trendsMap[dateOnly] = (trendsMap[dateOnly] ?? 0) + quantity;
+        }
+      }
 
-      trendsMap[dateOnly] = (trendsMap[dateOnly] ?? 0) + quantity;
+      return trendsMap.entries
+          .map((entry) => BorrowingTrendPoint(
+                timestamp: entry.key,
+                count: entry.value,
+              ))
+          .toList()
+        ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    } catch (e) {
+      print('Error getting borrowing trends: $e');
+      return [];
     }
-
-    // Convert to BorrowingTrendPoint list and sort
-    return trendsMap.entries
-        .map((entry) => BorrowingTrendPoint(
-              timestamp: entry.key,
-              count: entry.value,
-            ))
-        .toList()
-      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
   }
 
   Future<List<Reservation>> getReservationsForReport(

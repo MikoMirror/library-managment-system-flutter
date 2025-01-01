@@ -57,14 +57,22 @@ class ReservationCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              reservation.bookTitle ?? 'Loading...',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontSize: MediaQuery.of(context).size.width < 600 ? 14 : 16,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    reservation.bookTitle ?? 'Loading...',
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: MediaQuery.of(context).size.width < 600 ? 14 : 16,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                _buildQuantityBadge(context),
+                              ],
                             ),
                             if (reservation.isOverdue) ...[
                               const SizedBox(height: 4),
@@ -261,6 +269,34 @@ class ReservationCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildQuantityBadge(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 6 : 8,
+        vertical: isSmallScreen ? 2 : 4,
+      ),
+      decoration: BoxDecoration(
+        color: (isDarkMode ? AppTheme.dark.primary : AppTheme.light.primary).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: (isDarkMode ? AppTheme.dark.primary : AppTheme.light.primary).withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        'Qty: ${reservation.quantity}',
+        style: TextStyle(
+          color: isDarkMode ? AppTheme.dark.primary : AppTheme.light.primary,
+          fontSize: isSmallScreen ? 11 : 13,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
