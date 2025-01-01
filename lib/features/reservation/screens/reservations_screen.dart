@@ -17,6 +17,7 @@ import '../../../core/services/firestore/reservations_firestore_service.dart';
 import '../../../core/services/firestore/users_firestore_service.dart';
 import '../../../core/services/firestore/books_firestore_service.dart';
 import '../../../core/services/firestore/reservations_firestore_service.dart';
+import '../cubit/reservation_selection_cubit.dart';
 
 class ReservationsScreen extends StatelessWidget {
   final ReservationsFirestoreService reservationsService;
@@ -32,10 +33,9 @@ class ReservationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
     return MultiBlocProvider(
       providers: [
+        BlocProvider(create: (context) => ReservationSelectionCubit()),
         BlocProvider(create: (context) => ReservationFilterCubit()),
         BlocProvider(
           create: (context) => ReservationBloc(
@@ -47,34 +47,86 @@ class ReservationsScreen extends StatelessWidget {
           )..add(LoadReservations()),
         ),
       ],
-      child: Scaffold(
-        appBar: UnifiedAppBar(
-          title: Text(
-            'Reservations',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          bottom: PreferredSize(
-            preferredSize: Size.fromHeight(
-              MediaQuery.of(context).size.width < 600 ? 56 : 72
-            ),
-            child: const ReservationFilterSection(),
-          ),
-          searchHint: 'Search reservations...',
-          onSearch: (query) {
-            context.read<ReservationBloc>().add(SearchReservations(query));
-          },
-          isSimple: false,
-        ),
-        backgroundColor: isDarkMode 
-          ? AppTheme.dark.background 
-          : AppTheme.light.background,
-        body: _ReservationsScreenContent(
-          reservationsService: reservationsService,
-          booksService: booksService,
-          usersService: usersService,
-        ),
+      child: Builder(
+        builder: (context) {
+          return BlocBuilder<ReservationSelectionCubit, ReservationSelectionState>(
+            builder: (context, selectionState) {
+              return Scaffold(
+                appBar: UnifiedAppBar(
+                  title: Text(
+                    selectionState.isSelectionMode
+                      ? '${selectionState.selectedIds.length} selected'
+                      : 'Reservations',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  actions: [
+                    if (selectionState.isSelectionMode) ...[
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              title: const Text('Delete Reservations'),
+                              content: Text(
+                                'Delete ${selectionState.selectedIds.length} selected reservations?'
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(dialogContext);
+                                    // Delete all selected reservations
+                                    for (final id in selectionState.selectedIds) {
+                                      context.read<ReservationBloc>()
+                                        .add(DeleteReservation(reservationId: id));
+                                    }
+                                    context.read<ReservationSelectionCubit>().clearSelection();
+                                  },
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          context.read<ReservationSelectionCubit>().clearSelection();
+                        },
+                      ),
+                    ],
+                  ],
+                  bottom: PreferredSize(
+                    preferredSize: Size.fromHeight(
+                      MediaQuery.of(context).size.width < 600 ? 56 : 72
+                    ),
+                    child: const ReservationFilterSection(),
+                  ),
+                  searchHint: 'Search reservations...',
+                  onSearch: (query) {
+                    context.read<ReservationBloc>().add(SearchReservations(query));
+                  },
+                  isSimple: false,
+                ),
+                backgroundColor: Theme.of(context).brightness == Brightness.dark 
+                  ? AppTheme.dark.background 
+                  : AppTheme.light.background,
+                body: _ReservationsScreenContent(
+                  reservationsService: reservationsService,
+                  booksService: booksService,
+                  usersService: usersService,
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

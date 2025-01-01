@@ -5,12 +5,16 @@ import '../widgets/delete_reservation_dialog.dart';
 import '../bloc/reservation_card_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import '../cubit/reservation_selection_cubit.dart';
 
 class ReservationCard extends StatelessWidget {
   final Reservation reservation;
   final bool isAdmin;
   final Function(String, String) onStatusChange;
   final Function(String)? onDelete;
+  final bool isSelected;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onTap;
 
   const ReservationCard({
     super.key,
@@ -18,204 +22,349 @@ class ReservationCard extends StatelessWidget {
     required this.isAdmin,
     required this.onStatusChange,
     this.onDelete,
+    this.isSelected = false,
+    this.onLongPress,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => ReservationCardBloc(
-        reservationId: reservation.id!,
-        onStatusChange: onStatusChange,
-        onDelete: onDelete,
-      ),
-      child: BlocBuilder<ReservationCardBloc, ReservationCardState>(
-        builder: (context, state) {
-          if (state is ReservationCardLoading) {
-            return const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ExpansionTile(
-                  title: Row(
-                    children: [
-                      Icon(
-                        Icons.book_outlined,
-                        size: 20,
-                        color: Theme.of(context).brightness == Brightness.dark 
-                            ? AppTheme.dark.secondary 
-                            : AppTheme.light.secondary,
+    return BlocBuilder<ReservationSelectionCubit, ReservationSelectionState>(
+      builder: (context, selectionState) {
+        return GestureDetector(
+          onLongPress: onLongPress,
+          onTap: () {
+            if (selectionState.isSelectionMode) {
+              // In selection mode, just toggle selection
+              onTap?.call();
+            } else {
+              // Only show details when NOT in selection mode
+              _showReservationDetails(context);
+            }
+          },
+          child: Card(
+            elevation: isSelected ? 4 : 1,
+            color: isSelected 
+              ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+              : null,
+            child: BlocProvider(
+              create: (context) => ReservationCardBloc(
+                reservationId: reservation.id!,
+                onStatusChange: onStatusChange,
+                onDelete: onDelete,
+              ),
+              child: BlocBuilder<ReservationCardBloc, ReservationCardState>(
+                builder: (context, state) {
+                  if (state is ReservationCardLoading) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  
+                  if (selectionState.isSelectionMode) {
+                    // In selection mode, use ListTile with the same layout as ExpansionTile
+                    return ListTile(
+                      title: Row(
+                        children: [
+                          Icon(
+                            Icons.book_outlined,
+                            size: 20,
+                            color: Theme.of(context).brightness == Brightness.dark 
+                                ? AppTheme.dark.secondary 
+                                : AppTheme.light.secondary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        reservation.bookTitle ?? 'Loading...',
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: MediaQuery.of(context).size.width < 600 ? 14 : 16,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _buildQuantityBadge(context),
+                                  ],
+                                ),
+                                if (reservation.isOverdue) ...[
+                                  const SizedBox(height: 4),
+                                  _buildOverdueBanner(context),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildStatusChip(context),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
+                      subtitle: Row(
+                        children: [
+                          Icon(
+                            Icons.person_outline,
+                            size: 16,
+                            color: Theme.of(context).brightness == Brightness.dark 
+                                ? AppTheme.dark.secondary 
+                                : AppTheme.light.secondary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${reservation.userName ?? 'Loading...'} (${reservation.userLibraryNumber ?? 'N/A'})',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontSize: MediaQuery.of(context).size.width < 600 ? 12 : 14,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  
+                  // Normal mode with ExpansionTile
+                  return ExpansionTile(
+                    title: Row(
+                      children: [
+                        Icon(
+                          Icons.book_outlined,
+                          size: 20,
+                          color: Theme.of(context).brightness == Brightness.dark 
+                              ? AppTheme.dark.secondary 
+                              : AppTheme.light.secondary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      reservation.bookTitle ?? 'Loading...',
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: MediaQuery.of(context).size.width < 600 ? 14 : 16,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _buildQuantityBadge(context),
+                                ],
+                              ),
+                              if (reservation.isOverdue) ...[
+                                const SizedBox(height: 4),
+                                _buildOverdueBanner(context),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildStatusChip(context),
+                      ],
+                    ),
+                    subtitle: Row(
+                      children: [
+                        Icon(
+                          Icons.person_outline,
+                          size: 16,
+                          color: Theme.of(context).brightness == Brightness.dark 
+                              ? AppTheme.dark.secondary 
+                              : AppTheme.light.secondary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${reservation.userName ?? 'Loading...'} (${reservation.userLibraryNumber ?? 'N/A'})',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontSize: MediaQuery.of(context).size.width < 600 ? 12 : 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            _buildInfoRow(
+                              context,
+                              'Borrowed',
+                              DateFormat('dd/MM/yyyy').format(reservation.borrowedDate.toDate()),
+                              Icons.calendar_today,
+                            ),
+                            _buildInfoRow(
+                              context,
+                              'Due',
+                              DateFormat('dd/MM/yyyy').format(reservation.dueDate.toDate()),
+                              Icons.event,
+                              isOverdue: reservation.isOverdue,
+                            ),
+                            const SizedBox(height: 16),
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                Expanded(
-                                  child: Text(
-                                    reservation.bookTitle ?? 'Loading...',
-                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: MediaQuery.of(context).size.width < 600 ? 14 : 16,
+                                if (reservation.status == 'reserved') ...[
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      context.read<ReservationCardBloc>().add(
+                                        UpdateCardStatus('borrowed'),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.check_circle_outline),
+                                    label: const Text('Confirm'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Theme.of(context).colorScheme.primary,
                                     ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                _buildQuantityBadge(context),
+                                  const SizedBox(width: 8),
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Delete Reservation'),
+                                          content: const Text('Are you sure you want to delete this reservation?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                                context.read<ReservationCardBloc>().add(DeleteCard());
+                                              },
+                                              child: const Text('Delete'),
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: Theme.of(context).colorScheme.error,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.delete_outline),
+                                    label: const Text('Remove'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Theme.of(context).colorScheme.error,
+                                    ),
+                                  ),
+                                ] else if (reservation.status == 'borrowed' || reservation.status == 'overdue') ...[
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      context.read<ReservationCardBloc>().add(
+                                        UpdateCardStatus('returned'),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.assignment_return_outlined),
+                                    label: const Text('Return Book'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Delete Reservation'),
+                                          content: const Text('Are you sure you want to delete this reservation?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                                context.read<ReservationCardBloc>().add(DeleteCard());
+                                              },
+                                              child: const Text('Delete'),
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: Theme.of(context).colorScheme.error,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.delete_outline),
+                                    label: const Text('Remove'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Theme.of(context).colorScheme.error,
+                                    ),
+                                  ),
+                                ] else if (reservation.status == 'returned' || reservation.status == 'expired') ...[
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Delete Reservation'),
+                                          content: const Text('Are you sure you want to delete this reservation?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                                context.read<ReservationCardBloc>().add(DeleteCard());
+                                              },
+                                              child: const Text('Delete'),
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: Theme.of(context).colorScheme.error,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.delete_outline),
+                                    label: const Text('Remove'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Theme.of(context).colorScheme.error,
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
-                            if (reservation.isOverdue) ...[
-                              const SizedBox(height: 4),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.yellow[800],
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.warning_amber_rounded,
-                                      size: 16,
-                                      color: Colors.black87,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'OVERDUE',
-                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: Colors.black87,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      _buildStatusChip(context),
                     ],
-                  ),
-                  subtitle: Row(
-                    children: [
-                      Icon(
-                        Icons.person_outline,
-                        size: 16,
-                        color: Theme.of(context).brightness == Brightness.dark 
-                            ? AppTheme.dark.secondary 
-                            : AppTheme.light.secondary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '${reservation.userName ?? 'Loading...'} (${reservation.userLibraryNumber ?? 'N/A'})',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontSize: MediaQuery.of(context).size.width < 600 ? 12 : 14,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildInfoRow(
-                            context,
-                            'Borrowed',
-                            reservation.formattedBorrowedDate,
-                            Icons.date_range,
-                          ),
-                          _buildInfoRow(
-                            context,
-                            'Due',
-                            reservation.formattedDueDate,
-                            Icons.calendar_today,
-                            isOverdue: reservation.isOverdue,
-                          ),
-                          if (isAdmin) ...[
-                            const SizedBox(height: 16),
-                            const Divider(height: 1),
-                            const SizedBox(height: 8),
-                            BlocBuilder<ReservationCardBloc, ReservationCardState>(
-                              builder: (context, state) {
-                                if (state is ReservationCardLoading) {
-                                  return const Center(child: CircularProgressIndicator());
-                                }
-                                return Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    if (reservation.status != 'borrowed' && 
-                                        reservation.status != 'returned' &&
-                                        reservation.status != 'expired')
-                                      TextButton.icon(
-                                        onPressed: () {
-                                          context.read<ReservationCardBloc>()
-                                            .add(UpdateCardStatus('borrowed'));
-                                        },
-                                        icon: const Icon(Icons.check_circle_outline),
-                                        label: const Text('Accept'),
-                                      ),
-                                    if (reservation.status == 'borrowed')
-                                      TextButton.icon(
-                                        onPressed: () {
-                                          context.read<ReservationCardBloc>()
-                                            .add(UpdateCardStatus('returned'));
-                                        },
-                                        icon: const Icon(Icons.assignment_return_outlined),
-                                        label: const Text('Return'),
-                                      ),
-                                    TextButton.icon(
-                                      onPressed: () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) => DeleteBookingDialog(
-                                            bookTitle: reservation.bookTitle ?? 'Unknown Book',
-                                          ),
-                                        ).then((confirmed) {
-                                          if (confirmed == true) {
-                                            context.read<ReservationCardBloc>()
-                                              .add(DeleteCard());
-                                          }
-                                        });
-                                      },
-                                      icon: const Icon(Icons.delete_outline),
-                                      label: const Text('Remove'),
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                  );
+                },
+              ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
+  }
+
+  void _showReservationDetails(BuildContext context) {
+    // Your existing details dialog logic
   }
 
   Widget _buildInfoRow(
@@ -331,6 +480,44 @@ class ReservationCard extends StatelessWidget {
           fontSize: isSmallScreen ? 11 : 13,
           fontWeight: FontWeight.bold,
         ),
+      ),
+    );
+  }
+
+  Widget _buildOverdueBanner(BuildContext context) {
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 6 : 8,
+        vertical: isSmallScreen ? 2 : 4,
+      ),
+      decoration: BoxDecoration(
+        color: AppTheme.light.error.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: AppTheme.light.error.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.warning,
+            size: isSmallScreen ? 12 : 14,
+            color: AppTheme.light.error,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'Overdue',
+            style: TextStyle(
+              color: AppTheme.light.error,
+              fontSize: isSmallScreen ? 11 : 13,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
