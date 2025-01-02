@@ -8,89 +8,89 @@ class AdvanceReservationSetting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Advance Reservation',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Maximum number of days users can reserve in advance',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 16),
-            StreamBuilder<int>(
-              stream: _settingsService.getMaxAdvanceReservationDays(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+    final isDesktop = MediaQuery.of(context).size.width > 600;
 
-                final currentDays = snapshot.data ?? 5;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: StreamBuilder<int>(
+        stream: _settingsService.getMaxAdvanceReservationDays(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-                return Column(
+          final currentDays = snapshot.data ?? 5;
+
+          return Row(
+            children: [
+              // Left side - Text and Icon
+              Expanded(
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Slider(
-                            value: currentDays.toDouble(),
-                            min: 1,
-                            max: 30,
-                            divisions: 29,
-                            label: '$currentDays days',
-                            onChanged: (value) {
-                              _settingsService.updateMaxAdvanceReservationDays(value.round());
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Container(
-                          width: 60,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '$currentDays',
-                            textAlign: TextAlign.center,
+                    Icon(
+                      Icons.calendar_today,
+                      color: Theme.of(context).primaryColor,
+                      size: isDesktop ? 24 : 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Advance Reservation',
                             style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).primaryColor,
+                              fontSize: isDesktop ? 16 : 14,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      'Maximum ${currentDays} days in advance',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
+                          Text(
+                            'Maximum days in advance',
+                            style: TextStyle(
+                              fontSize: isDesktop ? 14 : 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                );
-              },
-            ),
-          ],
-        ),
+                ),
+              ),
+              // Right side - Dropdown
+              Container(
+                constraints: BoxConstraints(
+                  maxWidth: isDesktop ? 120 : 100,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).dividerColor,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: currentDays,
+                    isExpanded: true,
+                    items: List.generate(30, (index) => index + 1)
+                        .map((days) => DropdownMenuItem(
+                              value: days,
+                              child: Text('$days days'),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        _settingsService.updateMaxAdvanceReservationDays(value);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
-} 
+}
