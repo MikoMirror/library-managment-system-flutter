@@ -7,6 +7,7 @@ import '../widgets/cache_management_widget.dart';
 import '../../../core/theme/cubit/theme_cubit.dart';
 import '../../../core/widgets/app_bar.dart';
 import '../../../core/theme/cubit/test_mode_cubit.dart';
+import '../widgets/advance_reservation_setting.dart';
 
 class SettingsScreen extends StatelessWidget {
   static final _firestore = FirebaseFirestore.instance;
@@ -154,6 +155,8 @@ class SettingsScreen extends StatelessWidget {
                   );
                 },
               ),
+              const Divider(),
+              AdvanceReservationSetting(),
             ],
           ],
         ),

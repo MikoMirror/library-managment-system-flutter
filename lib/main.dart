@@ -24,6 +24,7 @@ import 'core/services/firestore/books_firestore_service.dart';
 import 'core/services/firestore/users_firestore_service.dart';
 import 'core/services/firestore/reservations_firestore_service.dart';
 import 'features/books/cubit/book_details_cubit.dart';
+import 'features/settings/services/library_settings_service.dart';
 
 
 void main() async {
@@ -73,6 +74,9 @@ void main() async {
             create: (context) => UsersRepository(
               firestoreService: context.read<UsersFirestoreService>(),
             ),
+          ),
+          Provider<LibrarySettingsService>(
+            create: (_) => LibrarySettingsService(),
           ),
         ],
         child: MultiBlocProvider(

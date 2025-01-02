@@ -57,4 +57,28 @@ class ReservationsFirestoreService extends BaseFirestoreService {
   Future<void> deleteReservation(String id) async {
     await deleteDocument(COLLECTION, id);
   }
+
+  Future<bool> validateReservationDate(DateTime reservationDate) async {
+    try {
+      // Get the settings document
+      final settingsDoc = await firestore
+          .collection('library_settings')
+          .doc('general')
+          .get();
+      
+      final maxAdvanceDays = settingsDoc.data()?['maxAdvanceReservationDays'] as int? ?? 5;
+
+      final now = DateTime.now();
+      final lastAllowedDate = DateTime(
+        now.year,
+        now.month,
+        now.day + maxAdvanceDays,
+      );
+
+      return reservationDate.isBefore(lastAllowedDate.add(const Duration(days: 1)));
+    } catch (e) {
+      print('Error validating reservation date: $e');
+      return false;
+    }
+  }
 } 

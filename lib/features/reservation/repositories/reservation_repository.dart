@@ -347,6 +347,10 @@ class ReservationsRepository implements BaseRepository {
     }
   }
 
+  Future<bool> validateReservationDate(DateTime reservationDate) async {
+    return await _reservationsService.validateReservationDate(reservationDate);
+  }
+
   @override
   void dispose() {
     _periodicCheckTimer?.cancel();

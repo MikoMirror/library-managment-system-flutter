@@ -7,6 +7,7 @@ import '../models/book.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/cubit/test_mode_cubit.dart';
 import '../../../core/services/firestore/users_firestore_service.dart';
+import '../../../features/settings/services/library_settings_service.dart';
 
 
 class BookBookingDialog extends StatefulWidget {
@@ -37,22 +38,54 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
   @override
   void initState() {
     super.initState();
-    // Set default dates
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeDates();
+    });
+  }
+
+  Future<void> _initializeDates() async {
     final now = DateTime.now();
-    _borrowedDateController.text = DateFormat('dd/MM/yyyy').format(now);
-    _dueDateController.text = DateFormat('dd/MM/yyyy').format(now.add(const Duration(days: 14)));
+    _borrowedDateController.text = DateFormat('yyyy-MM-dd').format(now);
+
+    // Get the max advance days from settings
+    final settingsService = context.read<LibrarySettingsService>();
+    final maxAdvanceDays = await settingsService.getMaxAdvanceReservationDays().first;
+    
+    // Set due date based on the settings
+    final dueDate = now.add(Duration(days: maxAdvanceDays));
+    _dueDateController.text = DateFormat('yyyy-MM-dd').format(dueDate);
   }
 
   Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
-    final isTestMode = context.read<TestModeCubit>().state;
+    final now = DateTime.now();
+    
+    // Get the max advance days from settings
+    final maxAdvanceDays = await context
+        .read<LibrarySettingsService>()
+        .getMaxAdvanceReservationDays()
+        .first;
+    
+    final lastAllowedDate = DateTime(
+      now.year,
+      now.month,
+      now.day + maxAdvanceDays,
+    );
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateFormat('dd/MM/yyyy').parse(controller.text),
-      firstDate: isTestMode ? DateTime(2024) : DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: now,
+      firstDate: now,
+      lastDate: lastAllowedDate,
+      selectableDayPredicate: (DateTime date) {
+        // Allow selection only up to maxAdvanceDays from now
+        return date.isBefore(lastAllowedDate.add(const Duration(days: 1)));
+      },
     );
+
     if (picked != null) {
-      controller.text = DateFormat('dd/MM/yyyy').format(picked);
+      setState(() {
+        controller.text = DateFormat('yyyy-MM-dd').format(picked);
+      });
     }
   }
 

@@ -134,6 +134,16 @@ class ReservationBloc extends Bloc<ReservationEvent, ReservationState> {
   Future<void> _onCreateReservation(CreateReservation event, Emitter<ReservationState> emit) async {
     emit(ReservationLoading());
     try {
+      // Validate the reservation date
+      final isValidDate = await repository.validateReservationDate(
+        event.borrowedDate.toDate(),
+      );
+
+      if (!isValidDate) {
+        emit(ReservationError('Cannot reserve more than the allowed days in advance'));
+        return;
+      }
+
       await repository.createReservation(
         userId: event.selectedUserId ?? event.userId,
         bookId: event.bookId,
