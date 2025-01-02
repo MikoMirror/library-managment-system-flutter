@@ -66,7 +66,7 @@ class ReservationCardBloc extends Bloc<ReservationCardEvent, ReservationCardStat
   }
 
   bool _isValidStatusTransition(String newStatus) {
-    return ['reserved', 'borrowed', 'returned', 'expired', 'overdue']
+    return ['reserved', 'borrowed', 'returned', 'expired', 'overdue', 'canceled']
         .contains(newStatus);
   }
 }

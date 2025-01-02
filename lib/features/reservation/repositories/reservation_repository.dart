@@ -186,34 +186,37 @@ class ReservationsRepository implements BaseRepository {
 
   Future<void> deleteReservation(String reservationId) async {
     try {
-      // Get the reservation details before deletion
+      // Get the reservation before deleting
       final reservationDoc = await _reservationsService
-          .getDocumentReference(ReservationsFirestoreService.COLLECTION, reservationId)
+          .collection('books_reservation')
+          .doc(reservationId)
           .get();
-      final reservationData = reservationDoc.data() as Map<String, dynamic>?;
-      
-      if (reservationData != null) {
-        final status = reservationData['status'] as String;
-        final bookId = reservationData['bookId'] as String;
-        final quantity = reservationData['quantity'] as int;
 
-        // Start a batch write
-        final batch = _reservationsService.batch();
-
-        // Delete the reservation
-        batch.delete(reservationDoc.reference);
-
-        // If the reservation was not returned, increment the book quantity
-        if (status != 'returned') {
-          final bookRef = _booksService.getDocumentReference(BooksFirestoreService.COLLECTION, bookId);
-          batch.update(bookRef, {
-            'booksQuantity': FieldValue.increment(quantity),
-          });
-        }
-
-        // Commit the batch
-        await batch.commit();
+      if (!reservationDoc.exists) {
+        throw Exception('Reservation not found');
       }
+
+      final reservationData = reservationDoc.data()!;
+      final status = reservationData['status'] as String;
+      final bookId = reservationData['bookId'] as String;
+      final quantity = reservationData['quantity'] as int;
+
+      // Start a batch operation
+      final batch = _reservationsService.batch();
+
+      // Delete the reservation
+      batch.delete(_reservationsService.collection('books_reservation').doc(reservationId));
+
+      // Only update book quantity for active reservations
+      if (['borrowed', 'reserved', 'overdue'].contains(status)) {
+        final bookRef = _booksService.getDocumentReference('books', bookId);
+        batch.update(bookRef, {
+          'booksQuantity': FieldValue.increment(quantity),
+        });
+      }
+
+      // Commit the batch
+      await batch.commit();
     } catch (e) {
       throw Exception('Failed to delete reservation: $e');
     }

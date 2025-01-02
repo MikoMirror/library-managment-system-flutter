@@ -14,5 +14,6 @@ class BookingConstants {
     'returned': 'Returned',
     'overdue': 'Overdue',
     'expired': 'Expired',
+    'canceled': 'Canceled',
   };
 } 

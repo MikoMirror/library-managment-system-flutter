@@ -221,132 +221,77 @@ class ReservationCard extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                if (reservation.status == 'reserved') ...[
+                                if (isAdmin) 
+                                  ...(reservation.status.toLowerCase() == 'reserved' ? [
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        context.read<ReservationCardBloc>().add(
+                                          UpdateCardStatus('borrowed'),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.check_circle_outline),
+                                      label: const Text('Confirm'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Theme.of(context).colorScheme.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    TextButton.icon(
+                                      onPressed: () => _showDeleteDialog(context),
+                                      icon: const Icon(Icons.delete_outline),
+                                      label: const Text('Remove'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Theme.of(context).colorScheme.error,
+                                      ),
+                                    ),
+                                  ] : reservation.status.toLowerCase() == 'borrowed' || 
+                                      reservation.status.toLowerCase() == 'overdue' ? [
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        context.read<ReservationCardBloc>().add(
+                                          UpdateCardStatus('returned'),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.assignment_return_outlined),
+                                      label: const Text('Return Book'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Theme.of(context).colorScheme.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    TextButton.icon(
+                                      onPressed: () => _showDeleteDialog(context),
+                                      icon: const Icon(Icons.delete_outline),
+                                      label: const Text('Remove'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Theme.of(context).colorScheme.error,
+                                      ),
+                                    ),
+                                  ] : reservation.status.toLowerCase() == 'returned' || 
+                                      reservation.status.toLowerCase() == 'expired' || 
+                                      reservation.status.toLowerCase() == 'cancelled' ? [
+                                    TextButton.icon(
+                                      onPressed: () => _showDeleteDialog(context),
+                                      icon: const Icon(Icons.delete_outline),
+                                      label: const Text('Remove'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Theme.of(context).colorScheme.error,
+                                      ),
+                                    ),
+                                  ] : [])
+                                else if (reservation.status.toLowerCase() == 'reserved')
                                   TextButton.icon(
                                     onPressed: () {
                                       context.read<ReservationCardBloc>().add(
-                                        UpdateCardStatus('borrowed'),
+                                        UpdateCardStatus('cancelled'),
                                       );
                                     },
-                                    icon: const Icon(Icons.check_circle_outline),
-                                    label: const Text('Confirm'),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Theme.of(context).colorScheme.primary,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  TextButton.icon(
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Delete Reservation'),
-                                          content: const Text('Are you sure you want to delete this reservation?'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(context),
-                                              child: const Text('Cancel'),
-                                            ),
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                                context.read<ReservationCardBloc>().add(DeleteCard());
-                                              },
-                                              child: const Text('Delete'),
-                                              style: TextButton.styleFrom(
-                                                foregroundColor: Theme.of(context).colorScheme.error,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.delete_outline),
-                                    label: const Text('Remove'),
+                                    icon: const Icon(Icons.cancel_outlined),
+                                    label: const Text('Cancel'),
                                     style: TextButton.styleFrom(
                                       foregroundColor: Theme.of(context).colorScheme.error,
                                     ),
                                   ),
-                                ] else if (reservation.status == 'borrowed' || reservation.status == 'overdue') ...[
-                                  TextButton.icon(
-                                    onPressed: () {
-                                      context.read<ReservationCardBloc>().add(
-                                        UpdateCardStatus('returned'),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.assignment_return_outlined),
-                                    label: const Text('Return Book'),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Theme.of(context).colorScheme.primary,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  TextButton.icon(
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Delete Reservation'),
-                                          content: const Text('Are you sure you want to delete this reservation?'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(context),
-                                              child: const Text('Cancel'),
-                                            ),
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                                context.read<ReservationCardBloc>().add(DeleteCard());
-                                              },
-                                              child: const Text('Delete'),
-                                              style: TextButton.styleFrom(
-                                                foregroundColor: Theme.of(context).colorScheme.error,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.delete_outline),
-                                    label: const Text('Remove'),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Theme.of(context).colorScheme.error,
-                                    ),
-                                  ),
-                                ] else if (reservation.status == 'returned' || reservation.status == 'expired') ...[
-                                  TextButton.icon(
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Delete Reservation'),
-                                          content: const Text('Are you sure you want to delete this reservation?'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(context),
-                                              child: const Text('Cancel'),
-                                            ),
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                                context.read<ReservationCardBloc>().add(DeleteCard());
-                                              },
-                                              child: const Text('Delete'),
-                                              style: TextButton.styleFrom(
-                                                foregroundColor: Theme.of(context).colorScheme.error,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.delete_outline),
-                                    label: const Text('Remove'),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Theme.of(context).colorScheme.error,
-                                    ),
-                                  ),
-                                ],
                               ],
                             ),
                           ],
@@ -365,6 +310,32 @@ class ReservationCard extends StatelessWidget {
 
   void _showReservationDetails(BuildContext context) {
     // Your existing details dialog logic
+  }
+
+  void _showDeleteDialog(BuildContext cardContext) {
+    showDialog(
+      context: cardContext,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Reservation'),
+        content: const Text('Are you sure you want to delete this reservation?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              cardContext.read<ReservationCardBloc>().add(DeleteCard());
+            },
+            child: const Text('Delete'),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(cardContext).colorScheme.error,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildInfoRow(
@@ -453,15 +424,16 @@ class ReservationCard extends StatelessWidget {
   Widget _buildStatusChip(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
-    final coreColors = isDarkMode ? AppTheme.dark : AppTheme.light;
     
     final colors = {
-      'pending': coreColors.warning,
-      'borrowed': coreColors.success,
-      'returned': coreColors.info,
-      'rejected': coreColors.error,
-      'overdue': coreColors.error,
-      'expired': coreColors.expired,
+      'pending': AppTheme.reservationStatus.pending,
+      'borrowed': AppTheme.reservationStatus.borrowed,
+      'returned': AppTheme.reservationStatus.returned,
+      'rejected': AppTheme.reservationStatus.rejected,
+      'overdue': AppTheme.reservationStatus.overdue,
+      'expired': AppTheme.reservationStatus.expired,
+      'cancelled': AppTheme.reservationStatus.cancelled,
+      'canceled': AppTheme.reservationStatus.cancelled,
     };
 
     return Container(
@@ -470,7 +442,7 @@ class ReservationCard extends StatelessWidget {
         vertical: isSmallScreen ? 4 : 6,
       ),
       decoration: BoxDecoration(
-        color: colors[reservation.status]?.withOpacity(0.8) ?? Colors.grey,
+        color: colors[reservation.status.toLowerCase()]?.withOpacity(0.8) ?? Colors.grey,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(

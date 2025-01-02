@@ -6,7 +6,8 @@ enum ReservationFilter {
   borrowed,
   returned,
   overdue,
-  expired;
+  expired,
+  canceled;
 
   String get displayName {
     switch (this) {
@@ -22,6 +23,8 @@ enum ReservationFilter {
         return 'Overdue';
       case ReservationFilter.expired:
         return 'Expired';
+      case ReservationFilter.canceled:
+        return 'Canceled';
     }
   }
 }

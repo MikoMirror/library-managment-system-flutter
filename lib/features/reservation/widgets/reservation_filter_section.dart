@@ -165,6 +165,8 @@ class ReservationFilterSection extends StatelessWidget {
         return Icons.assignment_returned;
       case ReservationFilter.expired:
         return Icons.timer_off;
+      case ReservationFilter.canceled:
+        return Icons.cancel_outlined;
     }
   }
 }
