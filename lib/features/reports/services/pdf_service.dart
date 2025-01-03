@@ -1,15 +1,10 @@
 import 'dart:io';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import '../models/report_data.dart';
 import '../../../features/reservation/models/reservation.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:pdf/widgets.dart' as pw;
-import 'package:pdf/pdf.dart';
 import 'dart:math' show max;
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Conditional import for web
 import 'pdf_web.dart' if (dart.library.io) 'pdf_mobile.dart';

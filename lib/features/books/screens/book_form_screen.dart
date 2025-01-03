@@ -36,7 +36,7 @@ class BookFormScreenState extends State<BookFormScreen> {
   late TextEditingController _authorController;
   late TextEditingController _isbnController;
   late TextEditingController _descriptionController;
-  late TextEditingController _categoriesController;
+  final List<String> _selectedCategories = [];
   late TextEditingController _pageCountController;
   late TextEditingController _publishedDateController;
   late TextEditingController _quantityController;
@@ -53,6 +53,11 @@ class BookFormScreenState extends State<BookFormScreen> {
     
     // Add listener to ISBN controller
     _isbnController.addListener(_onIsbnChanged);
+
+    final book = widget.book;
+    if (book != null) {
+      _selectedCategories.addAll(book.categories);
+    }
   }
 
   @override
@@ -62,7 +67,6 @@ class BookFormScreenState extends State<BookFormScreen> {
     _authorController.dispose();
     _isbnController.dispose();
     _descriptionController.dispose();
-    _categoriesController.dispose();
     _pageCountController.dispose();
     _publishedDateController.dispose();
     _quantityController.dispose();
@@ -84,7 +88,6 @@ class BookFormScreenState extends State<BookFormScreen> {
     _authorController = TextEditingController(text: book?.author ?? '');
     _isbnController = TextEditingController(text: book?.isbn ?? '');
     _descriptionController = TextEditingController(text: book?.description ?? '');
-    _categoriesController = TextEditingController(text: book?.categories ?? '');
     _pageCountController = TextEditingController(text: book?.pageCount.toString() ?? '');
     _quantityController = TextEditingController(text: book?.booksQuantity.toString() ?? '0');
 
@@ -136,7 +139,7 @@ class BookFormScreenState extends State<BookFormScreen> {
           author: _authorController.text,
           isbn: _isbnController.text,
           description: _descriptionController.text,
-          categories: _categoriesController.text,
+          categories: _selectedCategories,
           pageCount: int.tryParse(_pageCountController.text) ?? 0,
           booksQuantity: int.tryParse(_quantityController.text) ?? 0,
           publishedDate: _selectedDate,
@@ -316,49 +319,65 @@ class BookFormScreenState extends State<BookFormScreen> {
   }
 
   Widget _buildDesktopFields() {
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
+    return Column(
       children: [
-        SizedBox(
-          width: 350,
-          child: _buildTextField(_titleController, 'Title', required: true),
+        // First row: Title and Author
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(_titleController, 'Title', required: true),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildTextField(_authorController, 'Author', required: true),
+            ),
+          ],
         ),
+        const SizedBox(height: 16),
+        
+        // Second row: ISBN centered
         SizedBox(
-          width: 350,
-          child: _buildTextField(_authorController, 'Author', required: true),
-        ),
-        SizedBox(
-          width: 350,
+          width: MediaQuery.of(context).size.width * 0.4, // Adjust width as needed
           child: _buildTextField(_isbnController, 'ISBN'),
         ),
-        SizedBox(
-          width: 350,
-          child: _buildTextField(_categoriesController, 'Categories'),
+        const SizedBox(height: 16),
+        
+        // Third row: Categories full width
+        _buildCategoriesField(),
+        const SizedBox(height: 16),
+        
+        // Fourth row: Page Count and Quantity
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(_pageCountController, 'Page Count', 
+                  keyboardType: TextInputType.number),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildTextField(_quantityController, 'Quantity', 
+                  keyboardType: TextInputType.number),
+            ),
+          ],
         ),
-        SizedBox(
-          width: 350,
-          child: _buildTextField(_pageCountController, 'Page Count', 
-              keyboardType: TextInputType.number),
+        const SizedBox(height: 16),
+        
+        // Fifth row: Published Date and Language
+        Row(
+          children: [
+            Expanded(
+              child: _buildDatePicker(),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildLanguageDropdown(),
+            ),
+          ],
         ),
-        SizedBox(
-          width: 350,
-          child: _buildTextField(_quantityController, 'Quantity', 
-              keyboardType: TextInputType.number),
-        ),
-        SizedBox(
-          width: 350,
-          child: _buildDatePicker(),
-        ),
-        SizedBox(
-          width: double.infinity,
-          child: _buildTextField(_descriptionController, 'Description', 
-              maxLines: 3),
-        ),
-        SizedBox(
-          width: 350,
-          child: _buildLanguageDropdown(),
-        ),
+        const SizedBox(height: 16),
+        
+        // Description takes full width
+        _buildTextField(_descriptionController, 'Description', maxLines: 3),
       ],
     );
   }
@@ -372,7 +391,7 @@ class BookFormScreenState extends State<BookFormScreen> {
         const SizedBox(height: 16),
         _buildTextField(_isbnController, 'ISBN'),
         const SizedBox(height: 16),
-        _buildTextField(_categoriesController, 'Categories'),
+        _buildCategoriesField(),
         const SizedBox(height: 16),
         _buildTextField(_pageCountController, 'Page Count', 
             keyboardType: TextInputType.number),
@@ -478,6 +497,114 @@ class BookFormScreenState extends State<BookFormScreen> {
           tooltip: 'Manage Languages',
         ),
       ],
+    );
+  }
+
+  Widget _buildCategoriesField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Categories',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline,
+            ),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ..._selectedCategories.map((category) => Chip(
+                    label: Text(category),
+                    deleteIcon: const Icon(Icons.close, size: 18),
+                    onDeleted: () {
+                      setState(() {
+                        _selectedCategories.remove(category);
+                      });
+                    },
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  )),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 32,
+                child: TextButton.icon(
+                  onPressed: () => _showAddCategoryDialog(),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add Category'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showAddCategoryDialog() async {
+    final textController = TextEditingController();
+    
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Category'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: textController,
+              decoration: const InputDecoration(
+                hintText: 'Enter category name',
+                border: OutlineInputBorder(),
+                filled: true,
+              ),
+              textCapitalization: TextCapitalization.words,
+              autofocus: true,
+              onSubmitted: (value) {
+                if (value.isNotEmpty) {
+                  setState(() {
+                    _selectedCategories.add(value.trim());
+                  });
+                  Navigator.pop(context);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (textController.text.isNotEmpty) {
+                setState(() {
+                  _selectedCategories.add(textController.text.trim());
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
     );
   }
 } 

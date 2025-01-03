@@ -43,18 +43,18 @@ class ReportService {
         reservations.map((reservation) async {
           try {
             // Ensure we have valid IDs
-            if (reservation.userId == null || reservation.bookId == null) {
+            if (reservation.bookId == null) {
               print('Missing ID - UserID: ${reservation.userId}, BookID: ${reservation.bookId}');
               return reservation;
             }
 
             // Get user details
-            final userDoc = await _usersService.getUserById(reservation.userId!);
+            final userDoc = await _usersService.getUserById(reservation.userId);
             
             // Get book details
             final bookDoc = await _booksService.getDocument(
               BooksFirestoreService.COLLECTION,
-              reservation.bookId!
+              reservation.bookId
             );
             final bookData = bookDoc.data() as Map<String, dynamic>?;
 

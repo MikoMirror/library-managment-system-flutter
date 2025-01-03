@@ -12,11 +12,9 @@ import '../../auth/bloc/auth/auth_bloc.dart';
 import '../../users/models/user_model.dart';
 import '../repositories/reservation_repository.dart';
 import '../../../core/theme/cubit/test_mode_cubit.dart';
-import '../../../core/widgets/custom_search_bar.dart';
 import '../../../core/services/firestore/reservations_firestore_service.dart';
 import '../../../core/services/firestore/users_firestore_service.dart';
 import '../../../core/services/firestore/books_firestore_service.dart';
-import '../../../core/services/firestore/reservations_firestore_service.dart';
 import '../cubit/reservation_selection_cubit.dart';
 
 class ReservationsScreen extends StatelessWidget {

@@ -13,6 +13,7 @@ class BookInfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = isDark ? AppTheme.dark : AppTheme.light;
     
     return RepaintBoundary(
       child: ConstrainedBox(
@@ -52,6 +53,8 @@ class BookInfoRow extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _IsbnBox(isbn: book.isbn ?? 'N/A', isDark: isDark),
+            const SizedBox(height: 16),
+            _CategoriesBox(categories: book.categories, isDark: isDark),
           ],
         ),
       ),
@@ -104,7 +107,7 @@ class _InfoBox extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: colors.primary,
+                color: colors.textSubtle,
               ),
             ),
             const SizedBox(height: 8),
@@ -113,7 +116,7 @@ class _InfoBox extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: colors.primary,
+                color: colors.onBackground,
               ),
               textAlign: TextAlign.center,
               maxLines: 1,
@@ -185,6 +188,100 @@ class _IsbnBox extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoriesBox extends StatelessWidget {
+  final List<String> categories;
+  final bool isDark;
+
+  const _CategoriesBox({
+    required this.categories,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = isDark ? AppTheme.dark : AppTheme.light;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      decoration: BoxDecoration(
+        color: colors.surface.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark 
+              ? colors.primary.withOpacity(0.5)
+              : colors.primary.withOpacity(0.9),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.category, color: Colors.purple, size: 28),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Categories',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: colors.textSubtle,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (categories.isEmpty)
+                  Text(
+                    'N/A',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: colors.onBackground,
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: categories.map((category) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: colors.primary.withOpacity(0.5),
+                        ),
+                      ),
+                      child: Text(
+                        category,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: colors.onBackground,
+                        ),
+                      ),
+                    )).toList(),
+                  ),
+              ],
+            ),
           ),
         ],
       ),

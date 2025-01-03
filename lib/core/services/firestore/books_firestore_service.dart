@@ -71,6 +71,7 @@ class BooksFirestoreService extends BaseFirestoreService {
     await updateDocument(COLLECTION, book.id!, bookData);
   }
 
+  @override
   DocumentReference<Map<String, dynamic>> getDocumentReference(String collection, String documentId) {
     return firestore.collection(collection).doc(documentId);
   }

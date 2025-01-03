@@ -62,7 +62,121 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildThemeSettings(context, isAdmin),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Theme',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            BlocBuilder<ThemeCubit, ThemeState>(
+                              builder: (context, state) {
+                                return SwitchListTile(
+                                  title: const Text('Dark Mode'),
+                                  value: state.isDarkMode,
+                                  onChanged: (_) {
+                                    context.read<ThemeCubit>().toggleTheme();
+                                  },
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (isAdmin) ...[
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Developer Functions',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              BlocBuilder<TestModeCubit, bool>(
+                                builder: (context, isTestMode) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            const Text(
+                                              'Test Mode',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Tooltip(
+                                              message: 'Enable past dates selection in reservations and enable force reservation update button',
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey,
+                                                  ),
+                                                ),
+                                                child: Icon(
+                                                  Icons.info_outline,
+                                                  size: 16,
+                                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Switch(
+                                          value: isTestMode,
+                                          onChanged: (_) {
+                                            context.read<TestModeCubit>().toggleTestMode();
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Library Settings',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              AdvanceReservationSetting(),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     const CacheManagementWidget(),
                     const SizedBox(height: 32),
@@ -112,55 +226,6 @@ class SettingsScreen extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildThemeSettings(BuildContext context, bool isAdmin) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Theme',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            BlocBuilder<ThemeCubit, ThemeState>(
-              builder: (context, state) {
-                return SwitchListTile(
-                  title: const Text('Dark Mode'),
-                  value: state.isDarkMode,
-                  onChanged: (_) {
-                    context.read<ThemeCubit>().toggleTheme();
-                  },
-                );
-              },
-            ),
-            if (isAdmin) ...[
-              const Divider(),
-              BlocBuilder<TestModeCubit, bool>(
-                builder: (context, isTestMode) {
-                  return SwitchListTile(
-                    title: const Text('Test Mode'),
-                    subtitle: const Text('Enable past dates selection in reservations'),
-                    value: isTestMode,
-                    onChanged: (_) {
-                      context.read<TestModeCubit>().toggleTestMode();
-                    },
-                  );
-                },
-              ),
-              const Divider(),
-              AdvanceReservationSetting(),
-            ],
-          ],
-        ),
-      ),
     );
   }
 } 

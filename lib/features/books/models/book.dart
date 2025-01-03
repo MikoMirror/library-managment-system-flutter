@@ -1,4 +1,4 @@
-  import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/services/api/open_library_service.dart';
 
 class Book {
@@ -7,7 +7,7 @@ class Book {
   final String author;
   final String isbn;
   final String description;
-  final String categories;
+  final List<String> categories;
   final int pageCount;
   final String? externalImageUrl;
   final Timestamp? publishedDate;
@@ -53,14 +53,14 @@ class Book {
     };
   }
 
-  factory Book.fromMap(Map<String, dynamic> map, String id) {
+  factory Book.fromMap(Map<String, dynamic> map, [String? id]) {
     return Book(
       id: id,
       title: map['title'] ?? '',
       author: map['author'] ?? '',
       isbn: map['isbn'] ?? '',
       description: map['description'] ?? '',
-      categories: map['categories'] ?? '',
+      categories: List<String>.from(map['categories'] ?? []),
       pageCount: map['pageCount'] ?? 0,
       externalImageUrl: map['externalImageUrl'],
       publishedDate: map['publishedDate'],
@@ -76,7 +76,7 @@ class Book {
     String? author,
     String? isbn,
     String? description,
-    String? categories,
+    List<String>? categories,
     int? pageCount,
     String? externalImageUrl,
     Timestamp? publishedDate,

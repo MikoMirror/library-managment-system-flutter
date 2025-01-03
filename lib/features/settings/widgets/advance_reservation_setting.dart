@@ -8,88 +8,111 @@ class AdvanceReservationSetting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width > 600;
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: StreamBuilder<int>(
-        stream: _settingsService.getMaxAdvanceReservationDays(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return StreamBuilder<int>(
+      stream: _settingsService.getMaxAdvanceReservationDays(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          final currentDays = snapshot.data ?? 5;
+        final currentDays = snapshot.data ?? 5;
 
-          return Row(
-            children: [
-              // Left side - Text and Icon
-              Expanded(
-                child: Row(
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: isSmallScreen
+              ? Column(
                   children: [
-                    Icon(
-                      Icons.calendar_today,
-                      color: Theme.of(context).primaryColor,
-                      size: isDesktop ? 24 : 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Advance Reservation',
-                            style: TextStyle(
-                              fontSize: isDesktop ? 16 : 14,
-                              fontWeight: FontWeight.w500,
-                            ),
+                    Row(
+                      children: [
+                        const Text(
+                          'Maximum days in advance',
+                          style: TextStyle(
+                            fontSize: 16,
                           ),
-                          Text(
-                            'Maximum days in advance',
-                            style: TextStyle(
-                              fontSize: isDesktop ? 14 : 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildInfoIcon(context),
+                      ],
                     ),
+                    const SizedBox(height: 8),
+                    Center(child: _buildDropdown(context, currentDays)),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Maximum days in advance',
+                          style: TextStyle(
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildInfoIcon(context),
+                      ],
+                    ),
+                    _buildDropdown(context, currentDays),
                   ],
                 ),
-              ),
-              // Right side - Dropdown
-              Container(
-                constraints: BoxConstraints(
-                  maxWidth: isDesktop ? 120 : 100,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).dividerColor,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    value: currentDays,
-                    isExpanded: true,
-                    items: List.generate(30, (index) => index + 1)
-                        .map((days) => DropdownMenuItem(
-                              value: days,
-                              child: Text('$days days'),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        _settingsService.updateMaxAdvanceReservationDays(value);
-                      }
-                    },
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoIcon(BuildContext context) {
+    return Tooltip(
+      message: 'Maximum number of days in advance a user can make a reservation',
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey,
+          ),
+        ),
+        child: Icon(
+          Icons.info_outline,
+          size: 16,
+          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown(BuildContext context, int currentDays) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 120),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Theme.of(context).dividerColor,
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: currentDays,
+          isExpanded: true,
+          icon: const Icon(Icons.arrow_drop_down),
+          items: List.generate(30, (index) => index + 1)
+              .map((days) => DropdownMenuItem(
+                    value: days,
+                    child: Text(
+                      '$days days',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ))
+              .toList(),
+          onChanged: (value) {
+            if (value != null) {
+              _settingsService.updateMaxAdvanceReservationDays(value);
+            }
+          },
+        ),
       ),
     );
   }

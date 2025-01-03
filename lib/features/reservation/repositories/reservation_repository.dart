@@ -86,7 +86,7 @@ class ReservationsRepository implements BaseRepository {
         final bookDoc = await _booksService
             .getDocumentReference(BooksFirestoreService.COLLECTION, data['bookId'] as String)
             .get();
-        final bookData = bookDoc.data() as Map<String, dynamic>?;
+        final bookData = bookDoc.data();
         
         // Get user details
         final userDoc = await _reservationsService

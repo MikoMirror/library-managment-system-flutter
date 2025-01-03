@@ -328,10 +328,10 @@ class ReservationCard extends StatelessWidget {
               Navigator.pop(dialogContext);
               cardContext.read<ReservationCardBloc>().add(DeleteCard());
             },
-            child: const Text('Delete'),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(cardContext).colorScheme.error,
             ),
+            child: const Text('Delete'),
           ),
         ],
       ),

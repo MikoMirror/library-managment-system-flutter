@@ -80,7 +80,7 @@ class BookDetailsCubit extends Cubit<BookDetailsState> {
                 return;
               }
 
-              final bookData = snapshot.data() as Map<String, dynamic>?;
+              final bookData = snapshot.data();
               if (bookData == null) {
                 emit(const BookDetailsError('Invalid book data'));
                 return;
@@ -108,7 +108,7 @@ class BookDetailsCubit extends Cubit<BookDetailsState> {
               
               if (!snapshot.exists) return;
 
-              final userData = snapshot.data() as Map<String, dynamic>?;
+              final userData = snapshot.data();
               if (userData == null) return;
 
               final userModel = UserModel.fromMap(userData);

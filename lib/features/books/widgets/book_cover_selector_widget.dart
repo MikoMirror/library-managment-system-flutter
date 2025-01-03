@@ -163,59 +163,128 @@ class _BookCoverSelectorState extends State<BookCoverSelector> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if screen width is small
+    final isSmallScreen = MediaQuery.of(context).size.width < 400;
+
     return Column(
       children: [
         _buildCoverPreview(),
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SegmentedButton<CoverSource>(
-              segments: const [
-                ButtonSegment<CoverSource>(
-                  value: CoverSource.google,
-                  label: Text('Google Books'),
+        Container(
+          constraints: const BoxConstraints(maxWidth: 300),
+          child: Column(
+            children: [
+              if (isSmallScreen)
+                // Dropdown for source selection on small screens
+                DropdownButtonFormField<CoverSource>(
+                  value: _selectedSource,
+                  decoration: const InputDecoration(
+                    labelText: 'Source',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: CoverSource.google,
+                      child: Text('Google Books'),
+                    ),
+                    DropdownMenuItem(
+                      value: CoverSource.openLibrary,
+                      child: Text('Open Library'),
+                    ),
+                  ],
+                  onChanged: (CoverSource? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _selectedSource = newValue;
+                        _isLoading = true;
+                      });
+                      _updateCover();
+                    }
+                  },
+                )
+              else
+                // Segmented button for source selection on larger screens
+                SegmentedButton<CoverSource>(
+                  segments: const [
+                    ButtonSegment<CoverSource>(
+                      value: CoverSource.google,
+                      label: Text('Google Books'),
+                    ),
+                    ButtonSegment<CoverSource>(
+                      value: CoverSource.openLibrary,
+                      label: Text('Open Library'),
+                    ),
+                  ],
+                  selected: {_selectedSource},
+                  onSelectionChanged: (Set<CoverSource> newSelection) {
+                    setState(() {
+                      _selectedSource = newSelection.first;
+                      _isLoading = true;
+                    });
+                    _updateCover();
+                  },
                 ),
-                ButtonSegment<CoverSource>(
-                  value: CoverSource.openLibrary,
-                  label: Text('Open Library'),
+              const SizedBox(height: 8),
+              if (isSmallScreen)
+                // Dropdown for size selection on small screens
+                DropdownButtonFormField<CoverSize>(
+                  value: _selectedSize,
+                  decoration: const InputDecoration(
+                    labelText: 'Size',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: CoverSize.small,
+                      child: Text('Small'),
+                    ),
+                    DropdownMenuItem(
+                      value: CoverSize.medium,
+                      child: Text('Medium'),
+                    ),
+                    DropdownMenuItem(
+                      value: CoverSize.large,
+                      child: Text('Large'),
+                    ),
+                  ],
+                  onChanged: (CoverSize? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _selectedSize = newValue;
+                        _isLoading = true;
+                      });
+                      _updateCover();
+                    }
+                  },
+                )
+              else
+                // Segmented button for size selection on larger screens
+                SegmentedButton<CoverSize>(
+                  segments: const [
+                    ButtonSegment<CoverSize>(
+                      value: CoverSize.small,
+                      label: Text('Small'),
+                    ),
+                    ButtonSegment<CoverSize>(
+                      value: CoverSize.medium,
+                      label: Text('Medium'),
+                    ),
+                    ButtonSegment<CoverSize>(
+                      value: CoverSize.large,
+                      label: Text('Large'),
+                    ),
+                  ],
+                  selected: {_selectedSize},
+                  onSelectionChanged: (Set<CoverSize> newSelection) {
+                    setState(() {
+                      _selectedSize = newSelection.first;
+                      _isLoading = true;
+                    });
+                    _updateCover();
+                  },
                 ),
-              ],
-              selected: {_selectedSource},
-              onSelectionChanged: (Set<CoverSource> newSelection) {
-                setState(() {
-                  _selectedSource = newSelection.first;
-                  _isLoading = true;
-                });
-                _updateCover();
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        SegmentedButton<CoverSize>(
-          segments: const [
-            ButtonSegment<CoverSize>(
-              value: CoverSize.small,
-              label: Text('Small'),
-            ),
-            ButtonSegment<CoverSize>(
-              value: CoverSize.medium,
-              label: Text('Medium'),
-            ),
-            ButtonSegment<CoverSize>(
-              value: CoverSize.large,
-              label: Text('Large'),
-            ),
-          ],
-          selected: {_selectedSize},
-          onSelectionChanged: (Set<CoverSize> newSelection) {
-            setState(() {
-              _selectedSize = newSelection.first;
-              _isLoading = true;
-            });
-            _updateCover();
-          },
+            ],
+          ),
         ),
       ],
     );

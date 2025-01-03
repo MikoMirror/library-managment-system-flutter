@@ -97,7 +97,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final bookData = snapshot.data!.data() as Map<String, dynamic>?;
+        final bookData = snapshot.data!.data();
         if (bookData == null) {
           return const Center(child: Text('Book not found'));
         }

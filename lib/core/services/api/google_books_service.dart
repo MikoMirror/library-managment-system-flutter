@@ -22,7 +22,7 @@ class GoogleBooksService {
           author: bookData['authors']?.join(', ') ?? 'Unknown Author',
           isbn: isbn,
           description: bookData['description'] ?? 'No description available.',
-          categories: bookData['categories']?.join(', ') ?? 'Uncategorized',
+          categories: (bookData['categories'] as List<dynamic>?)?.cast<String>() ?? [],
           pageCount: bookData['pageCount'] ?? 0,
           externalImageUrl: bookData['imageLinks']?['thumbnail'],
           publishedDate: bookData['publishedDate'] != null
