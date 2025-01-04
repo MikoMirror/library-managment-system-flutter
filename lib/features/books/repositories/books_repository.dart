@@ -25,13 +25,20 @@ class BooksRepository implements BaseRepository {
   }
 
   Stream<List<Book>> searchBooks(String query) {
+    if (query.isEmpty) {
+      return getAllBooks();
+    }
+    
     return _firestoreService.getCollectionStream(
       collection: COLLECTION,
       fromMap: (data, id) => Book.fromMap(data, id),
-    ).map((books) => books.where((book) => 
-      book.title.toLowerCase().contains(query.toLowerCase()) ||
-      book.author.toLowerCase().contains(query.toLowerCase())
-    ).toList());
+    ).map((books) {
+      final lowercaseQuery = query.toLowerCase();
+      return books.where((book) => 
+        book.title.toLowerCase().contains(lowercaseQuery) ||
+        book.author.toLowerCase().contains(lowercaseQuery)
+      ).toList();
+    });
   }
 
   Future<void> deleteBook(String bookId) async {

@@ -16,6 +16,9 @@ import 'dart:async';
 import '../../books/bloc/book_card_bloc.dart';
 import '../../books/repositories/books_repository.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/navigation/cubit/navigation_cubit.dart';
+import '../../../core/navigation/cubit/navigation_state.dart';
+import 'package:flutter/gestures.dart' show DragStartBehavior, PointerDeviceKind;
 
 class MainHomeScreen extends StatefulWidget {
   const MainHomeScreen({super.key});
@@ -110,19 +113,23 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
         ? AppTheme.dark 
         : AppTheme.light;
 
-    return BlocBuilder<ThemeCubit, ThemeState>(
-      builder: (context, themeState) {
+    return BlocBuilder<NavigationCubit, NavigationState>(
+      builder: (context, state) {
+        final showBooks = state.params?['showBooks'] ?? false;
+        final sortTypeStr = state.params?['sortType'] as String?;
+        
+        final sortType = sortTypeStr != null
+            ? SortType.values.firstWhere(
+                (type) => type.toString() == sortTypeStr,
+                orElse: () => SortType.none,
+              )
+            : null;
+        
         return Container(
           color: colors.background,
-          child: _showBooksList
+          child: showBooks
             ? BooksScreen(
-                sortType: _currentSortType,
-                onBackPressed: () {
-                  setState(() {
-                    _showBooksList = false;
-                    _currentSortType = null;
-                  });
-                },
+                sortType: sortType,
               )
             : SingleChildScrollView(
                 child: Padding(
@@ -245,20 +252,111 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     );
   }
 
+  Widget _buildBookRail(BuildContext context, {required SortType sortType, required String title, required String subtitle}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          sortType == SortType.rating ? Icons.star : Icons.new_releases,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onBackground,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () => _navigateToBooks(context, sortType),
+                child: Row(
+                  children: [
+                    Text(
+                      'View all',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 280,
+          child: ShaderMask(
+            shaderCallback: (Rect bounds) {
+              return LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  Colors.black,
+                  Colors.transparent,
+                  Colors.transparent,
+                  Colors.black,
+                ],
+                stops: const [0.0, 0.05, 0.95, 1.0],
+              ).createShader(bounds);
+            },
+            blendMode: BlendMode.dstOut,
+            child: _buildBooksList(context, sortType: sortType),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildBooksList(BuildContext context, {required SortType sortType}) {
+    // Get screen width to determine if we're on mobile
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600; // Common breakpoint for mobile devices
+    
     return BlocBuilder<BooksBloc, BooksState>(
       builder: (context, state) {
         if (state is BooksLoading) {
           return const Center(child: CircularProgressIndicator());
         }
-        
+
         if (state is BooksError) {
           return Center(child: Text(state.message));
         }
-        
+
         if (state is BooksLoaded) {
-          final books = state.books;
-          
+          final books = List<Book>.from(state.books);
+
           // Sort books based on type
           if (sortType == SortType.rating) {
             books.sort((a, b) => b.averageRating.compareTo(a.averageRating));
@@ -267,30 +365,39 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 .compareTo(a.publishedDate ?? Timestamp.now()));
           }
 
-          // Take only first 6 books for each section
-          final displayBooks = books.take(6).toList();
+          final displayBooks = books.take(10).toList();
 
-          return ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: displayBooks.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: SizedBox(
-                  width: 200, // Adjust card width as needed
+          return ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(
+              dragDevices: {
+                PointerDeviceKind.touch,
+                PointerDeviceKind.mouse,
+              },
+            ),
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              physics: const AlwaysScrollableScrollPhysics(),
+              dragStartBehavior: DragStartBehavior.down,
+              clipBehavior: Clip.none,
+              itemCount: displayBooks.length,
+              separatorBuilder: (context, index) => SizedBox(width: isMobile ? 8 : 16),
+              itemBuilder: (context, index) {
+                return SizedBox(
+                  width: 180,
                   child: BookCard(
                     book: displayBooks[index],
                     isMobile: false,
                     isAdmin: _isAdmin,
-                    userId: _userId,
+                    userId: _userId ?? '',
                     onDelete: () => _handleBookDelete(context, displayBooks[index]),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           );
         }
-        
+
         return const SizedBox.shrink();
       },
     );
@@ -301,9 +408,6 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   }
 
   void _navigateToBooks(BuildContext context, SortType sortType) {
-    setState(() {
-      _showBooksList = true;
-      _currentSortType = sortType;
-    });
+    context.read<NavigationCubit>().navigateToBooks(sortType);
   }
 } 

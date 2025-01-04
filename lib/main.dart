@@ -25,6 +25,7 @@ import 'core/services/firestore/users_firestore_service.dart';
 import 'core/services/firestore/reservations_firestore_service.dart';
 import 'features/books/cubit/book_details_cubit.dart';
 import 'features/settings/services/library_settings_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 
 void main() async {
@@ -35,6 +36,19 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     
+    // Add auth state listener
+    FirebaseAuth.instance.authStateChanges().listen((User? user) async {
+      if (user != null) {
+        final usersService = UsersFirestoreService();
+        final userDoc = await usersService.getUserById(user.uid);
+        
+        if (userDoc == null) {
+          // User doesn't exist in Firestore, sign out
+          await FirebaseAuth.instance.signOut();
+        }
+      }
+    });
+
     final booksFirestoreService = BooksFirestoreService();
     final usersFirestoreService = UsersFirestoreService();
     final reservationsFirestoreService = ReservationsFirestoreService();

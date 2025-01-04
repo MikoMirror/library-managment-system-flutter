@@ -2,12 +2,14 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import '../../../../core/services/firestore/users_firestore_service.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final UsersFirestoreService _usersService = UsersFirestoreService();
   StreamSubscription<User?>? _authStateSubscription;
 
   AuthBloc() : super(AuthInitial()) {
@@ -27,12 +29,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     CheckAuthStatus event,
     Emitter<AuthState> emit,
   ) async {
-    emit(AuthLoading());
-    final user = _auth.currentUser;
-    if (user != null) {
-      emit(AuthSuccess(user));
-    } else {
-      emit(const AuthUnauthenticated());
+    try {
+      final currentUser = _auth.currentUser;
+      
+      if (currentUser != null) {
+        // Check if user exists in Firestore
+        final userDoc = await _usersService.getUserById(currentUser.uid);
+        
+        if (userDoc == null) {
+          // User exists in Auth but not in Firestore - sign out
+          await _auth.signOut();
+          emit(AuthInitial());
+          return;
+        }
+        
+        emit(AuthSuccess(currentUser));
+      } else {
+        emit(AuthInitial());
+      }
+    } catch (e) {
+      emit(AuthError(e.toString()));
     }
   }
 

@@ -21,6 +21,8 @@ abstract class BookCardState {}
 
 class BookCardInitial extends BookCardState {}
 
+class FavoriteStatusLoading extends BookCardState {}
+
 class FavoriteStatusLoaded extends BookCardState {
   final bool isFavorite;
 
@@ -43,11 +45,10 @@ class BookCardBloc extends Bloc<BookCardEvent, BookCardState> {
 
   Future<void> _onLoadFavoriteStatus(
       LoadFavoriteStatus event, Emitter<BookCardState> emit) async {
+    emit(FavoriteStatusLoading());
     try {
-      await Future(() async {
-        final isFavorite = await _repository.getFavoriteStatus(event.userId, event.bookId);
-        emit(FavoriteStatusLoaded(isFavorite));
-      });
+      final isFavorite = await _repository.getFavoriteStatus(event.userId, event.bookId);
+      emit(FavoriteStatusLoaded(isFavorite));
     } catch (e) {
       emit(BookCardError(e.toString()));
     }
@@ -56,10 +57,8 @@ class BookCardBloc extends Bloc<BookCardEvent, BookCardState> {
   Future<void> _onToggleFavorite(
       ToggleFavorite event, Emitter<BookCardState> emit) async {
     try {
-      await Future(() async {
-        await _repository.toggleFavorite(event.userId, event.bookId);
-        add(LoadFavoriteStatus(event.userId, event.bookId)); // Reload status
-      });
+      await _repository.toggleFavorite(event.userId, event.bookId);
+      add(LoadFavoriteStatus(event.userId, event.bookId)); // Reload status
     } catch (e) {
       emit(BookCardError(e.toString()));
     }

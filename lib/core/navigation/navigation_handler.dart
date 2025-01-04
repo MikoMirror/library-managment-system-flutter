@@ -27,54 +27,22 @@ class NavigationHandler extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<NavigationCubit, NavigationState>(
-      listenWhen: (previous, current) => previous.route != current.route,
-      listener: (context, navigationState) async {
-        switch (navigationState.route) {
-          case RouteNames.home:
-          case RouteNames.dashboard:
-          case RouteNames.users:
-          case RouteNames.favorites:
-          case RouteNames.bookings:
-          case RouteNames.settings:
-            // These routes are handled by the HomeScreen navigation rail
-            // No need to push new routes
-            break;
-
-          case RouteNames.books:
-            final sortType = navigationState.params?['sortType'] != null
-                ? SortType.values.firstWhere(
-                    (type) => type.toString() == navigationState.params!['sortType'],
-                    orElse: () => SortType.none,
-                  )
-                : SortType.none;
-
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                settings: const RouteSettings(name: RouteNames.books),
-                builder: (context) => BooksScreen(sortType: sortType),
-                maintainState: true,
-                fullscreenDialog: false,
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthInitial) {
+          // Check if we were previously logged in
+          final previousState = context.read<AuthBloc>().state;
+          final wasLoggedIn = previousState is AuthSuccess;
+          
+          if (wasLoggedIn) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Your session has expired. Please log in again.'),
+                backgroundColor: Colors.red,
               ),
             );
-            break;
-
-          case RouteNames.bookDetails:
-            // Keep existing book details navigation
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                settings: RouteSettings(
-                  name: RouteNames.bookDetails,
-                  arguments: navigationState.params,
-                ),
-                builder: (context) => BookDetailsScreen(
-                  bookId: navigationState.params?['bookId'],
-                ),
-              ),
-            );
-            break;
-
-          case RouteNames.login:
+            
+            // Navigate to login
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
                 settings: const RouteSettings(name: RouteNames.login),
@@ -82,48 +50,7 @@ class NavigationHandler extends StatelessWidget {
               ),
               (route) => false,
             );
-            break;
-
-          case RouteNames.addUser:
-            final authState = context.read<AuthBloc>().state;
-            if (authState is AuthSuccess) {
-              final userDoc = await FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(authState.user.uid)
-                  .get();
-              final userData = userDoc.data() as Map<String, dynamic>;
-              final isCurrentUserAdmin = userData['role'] == 'admin';
-
-              if (!context.mounted) return;
-              
-              if (isCurrentUserAdmin) {
-                debugPrint('Navigating to AddUserScreen');
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    settings: const RouteSettings(name: RouteNames.addUser),
-                    builder: (context) => const AddUserScreen(isAdmin: false),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Only administrators can add new users'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            }
-            break;
-
-          case RouteNames.initialSetup:
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                settings: const RouteSettings(name: RouteNames.initialSetup),
-                builder: (context) => const InitialAdminSetupScreen(),
-              ),
-              (route) => false,
-            );
-            break;
+          }
         }
       },
       child: child,

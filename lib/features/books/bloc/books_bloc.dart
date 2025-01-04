@@ -34,11 +34,14 @@ class BooksBloc extends Bloc<BooksEvent, BooksState> {
   }
 
   Future<void> _onSearchBooks(SearchBooks event, Emitter<BooksState> emit) async {
-    emit(BooksLoading());
+    if (state is! BooksLoaded) {
+      emit(BooksLoading());
+    }
+    
     try {
       await emit.forEach(
         _repository.searchBooks(event.query),
-        onData: (List<Book> books) => BooksLoaded(books, sortType: (state as BooksLoaded?)?.sortType),
+        onData: (List<Book> books) => BooksLoaded(books),
         onError: (error, stackTrace) => BooksError(error.toString()),
       );
     } catch (e) {

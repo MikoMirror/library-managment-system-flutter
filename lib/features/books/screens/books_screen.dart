@@ -67,8 +67,24 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess) {
       _userId = authState.user.uid;
-      _adminStreamSubscription?.cancel();
       
+      // First, get the initial admin status synchronously
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .get()
+          .then((snapshot) {
+        if (mounted) {
+          final userData = snapshot.data() as Map<String, dynamic>?;
+          setState(() {
+            _adminSnapshot = snapshot;
+            _isAdmin = userData?['role'] == 'admin';
+          });
+        }
+      });
+
+      // Then set up the stream for updates
+      _adminStreamSubscription?.cancel();
       _adminStreamSubscription = _firestore
           .collection('users')
           .doc(_userId)
@@ -113,16 +129,6 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
     });
   }
 
-  Future<void> _handleGoBack(BuildContext context) async {
-    // First cancel the Firebase stream
-    await _adminStreamSubscription?.cancel();
-    
-    if (mounted) {
-      // Then perform navigation
-      context.read<NavigationCubit>().goBack();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<BooksBloc, BooksState>(
@@ -132,40 +138,42 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
              current.books != previous.books);
       },
       builder: (context, state) {
-        return Column(
-          children: [
-            // Custom header instead of AppBar
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  if (widget.onBackPressed != null)
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: widget.onBackPressed,
-                    ),
-                  const Expanded(
-                    child: Text(
-                      'Books',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  // Add your view type toggle and other actions here
-                  IconButton(
-                    icon: Icon(_getViewTypeIcon()),
-                    onPressed: _toggleViewType,
-                  ),
-                ],
+        return WillPopScope(
+          onWillPop: () async {
+            context.read<NavigationCubit>().navigateToHome();
+            return false;
+          },
+          child: Scaffold(
+            appBar: UnifiedAppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.read<NavigationCubit>().navigateToHome(),
               ),
+              title: const Text(
+                'Books',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              searchHint: 'Search books...',
+              onSearch: (query) {
+                if (query.isEmpty) {
+                  context.read<BooksBloc>().add(LoadBooksEvent(sortType: widget.sortType));
+                } else {
+                  context.read<BooksBloc>().add(SearchBooks(query));
+                }
+              },
+              actions: [
+                IconButton(
+                  icon: Icon(_getViewTypeIcon()),
+                  onPressed: _toggleViewType,
+                ),
+              ],
             ),
-            // Books content
-            Expanded(
-              child: _buildBooksList(state),
-            ),
-          ],
+            body: _buildBooksList(state),
+            floatingActionButton: _buildFAB(context.read<AuthBloc>().state),
+          ),
         );
       },
     );

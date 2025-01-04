@@ -34,22 +34,27 @@ class BookCard extends StatefulWidget {
 }
 
 class _BookCardState extends State<BookCard> {
-  late BookCardBloc _bookCardBloc;
+  BookCardBloc? _bookCardBloc;
 
   @override
   void initState() {
     super.initState();
-    // Only initialize if we need to show controls and handle favorites
-    if (!widget.isAdmin && widget.showAdminControls && widget.userId != null) {
-      _bookCardBloc = BookCardBloc(context.read<BooksRepository>());
+    _initializeBloc();
+  }
+
+  void _initializeBloc() {
+    // Initialize bloc only for non-admin users when controls should be shown
+    if (!widget.isAdmin && 
+        widget.showAdminControls && 
+        widget.userId != null) {
+      _bookCardBloc = BookCardBloc(context.read<BooksRepository>())
+        ..add(LoadFavoriteStatus(widget.userId!, widget.book.id!));
     }
   }
 
   @override
   void dispose() {
-    if (!widget.isAdmin && widget.showAdminControls) {
-      _bookCardBloc?.close();
-    }
+    _bookCardBloc?.close();
     super.dispose();
   }
 
@@ -71,7 +76,8 @@ class _BookCardState extends State<BookCard> {
   }
 
   Widget _buildActionButton() {
-    if (widget.isAdmin && widget.showAdminControls) {
+    // Early return for admin with delete button
+    if (widget.isAdmin) {
       return IconButton(
         icon: const Icon(Icons.delete, color: Colors.red),
         onPressed: () {
@@ -81,15 +87,23 @@ class _BookCardState extends State<BookCard> {
           );
         },
       );
-    } else if (!widget.isAdmin && widget.showAdminControls) {
+    } 
+    
+    // Only initialize favorite functionality for non-admin users
+    if (!widget.isAdmin && widget.showAdminControls && widget.userId != null) {
       return BlocBuilder<BookCardBloc, BookCardState>(
         bloc: _bookCardBloc,
         builder: (context, state) {
-          bool isFavorite = false;
-          if (state is FavoriteStatusLoaded) {
-            isFavorite = state.isFavorite;
+          if (state is FavoriteStatusLoading) {
+            return const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            );
           }
 
+          final isFavorite = state is FavoriteStatusLoaded ? state.isFavorite : false;
+          
           return IconButton(
             icon: Icon(
               isFavorite ? Icons.favorite : Icons.favorite_border,
@@ -97,13 +111,14 @@ class _BookCardState extends State<BookCard> {
             ),
             onPressed: () {
               if (widget.userId != null) {
-                _bookCardBloc.add(ToggleFavorite(widget.userId!, widget.book.id!));
+                _bookCardBloc?.add(ToggleFavorite(widget.userId!, widget.book.id!));
               }
             },
           );
         },
       );
     }
+    
     return const SizedBox.shrink();
   }
 
