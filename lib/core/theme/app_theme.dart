@@ -42,8 +42,8 @@ class AppTheme {
     surfaceVariant: Color(0xFF242424),
     
     // UI Element colors
-    primary: Color(0xFF1976D2),
-    primaryContainer: Color(0xFF2196F3),
+    primary: Color(0xFF90CAF9),
+    primaryContainer: Color(0xFF1976D2),
     secondary: Color(0xFF64B5F6),
     accent: Color(0xFFF50057),
     
@@ -55,8 +55,8 @@ class AppTheme {
     // Text colors
     onBackground: Colors.white,
     onSurface: Colors.white,
-    onPrimary: Colors.white,
-    onSecondary: Colors.white,
+    onPrimary: Colors.black,
+    onSecondary: Colors.black,
     textSubtle: Colors.white70,
     
     // Status colors
@@ -80,7 +80,6 @@ class AppTheme {
   static ThemeData getTheme(bool isDarkMode) {
     final colors = isDarkMode ? dark : light;
     
-    
     return ThemeData(
       useMaterial3: true,
       brightness: isDarkMode ? Brightness.dark : Brightness.light,
@@ -91,18 +90,27 @@ class AppTheme {
       colorScheme: ColorScheme(
         brightness: isDarkMode ? Brightness.dark : Brightness.light,
         primary: colors.primary,
-        secondary: colors.secondary,
-        surface: colors.surface,
-        error: colors.error,
         onPrimary: colors.onPrimary,
+        secondary: colors.secondary,
         onSecondary: colors.onSecondary,
+        background: colors.background,
+        onBackground: colors.onBackground,
+        surface: colors.surface,
         onSurface: colors.onSurface,
-        onError: isDarkMode ? Colors.black : Colors.white,
+        error: colors.error,
+        onError: colors.onPrimary,
       ),
       
       cardTheme: CardTheme(
         color: colors.surface,
         elevation: 2,
+      ),
+      
+      textTheme: TextTheme(
+        bodyLarge: TextStyle(color: colors.onBackground),
+        bodyMedium: TextStyle(color: colors.onBackground),
+        titleLarge: TextStyle(color: colors.onBackground),
+        titleMedium: TextStyle(color: colors.onBackground),
       ),
       
       appBarTheme: AppBarTheme(

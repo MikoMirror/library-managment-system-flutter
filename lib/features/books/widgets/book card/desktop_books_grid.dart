@@ -8,6 +8,7 @@ class DesktopBooksGrid extends StatelessWidget {
   final String userId;
   final bool isAdmin;
   final Function(BuildContext, Book) onDeleteBook;
+  final bool showAdminControls;
 
   const DesktopBooksGrid({
     super.key,
@@ -15,6 +16,7 @@ class DesktopBooksGrid extends StatelessWidget {
     required this.userId,
     required this.isAdmin,
     required this.onDeleteBook,
+    this.showAdminControls = true,
   });
 
   @override
@@ -37,13 +39,13 @@ class DesktopBooksGrid extends StatelessWidget {
           ),
           itemCount: books.length,
           itemBuilder: (context, index) {
-            final book = books[index];
             return BookCard(
-              book: book,
-              userId: userId,
-              isAdmin: isAdmin,
+              book: books[index],
               isMobile: false,
-              onDelete: () => onDeleteBook(context, book),
+              isAdmin: isAdmin,
+              userId: userId,
+              showAdminControls: showAdminControls,
+              onDelete: () => onDeleteBook(context, books[index]),
             );
           },
         );

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/language_constants.dart';
+import '../constants/language_constants.dart';
 import '../../../core/theme/app_theme.dart';
 
 

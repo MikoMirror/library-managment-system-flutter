@@ -18,13 +18,15 @@ import '../../../core/navigation/cubit/navigation_state.dart';
 import '../../reservation/bloc/reservation_bloc.dart';
 import '../../reservation/repositories/reservation_repository.dart';
 import '../../reservation/screens/reservations_screen.dart';
-import '../../dashboard/screens/dashboard_screen.dart';
 import '../../dashboard/cubit/dashboard_cubit.dart';
 import '../../../core/services/firestore/books_firestore_service.dart';
 import 'dart:async';
 import '../../../core/services/firestore/users_firestore_service.dart';
 import '../../../core/services/firestore/reservations_firestore_service.dart';
-
+import '../screens/main_home_screen.dart';
+import '../../books/enums/sort_type.dart';
+import '../../dashboard/screens/dashboard_screen.dart';
+import '../../books/bloc/books_event.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -50,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _firestoreService = context.read<BooksFirestoreService>();
+    _firestoreService = BooksFirestoreService();
     _usersService = context.read<UsersFirestoreService>();
     _reservationsService = context.read<ReservationsFirestoreService>();
     
@@ -127,45 +129,65 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _getScreenForIndex(int index, String role) {
-    final screens = role == 'admin'
-        ? {
-            0: () => BlocProvider.value(
-                  value: _booksBloc,
-                  child: const BooksScreen(),
-                ),
-            1: () => BlocProvider.value(
-                  value: _dashboardCubit..loadDashboard(),
-                  child: const DashboardScreen(),
-                ),
-            2: () => const UsersScreen(),
-            3: () => BlocProvider.value(
-                  value: _reservationBloc..add(LoadReservations()),
-                  child: ReservationsScreen(
-                    reservationsService: _reservationsService,
-                    booksService: _firestoreService,
-                    usersService: _usersService,
-                  ),
-                ),
-            4: () => const SettingsScreen(),
-          }
-        : {
-            0: () => BlocProvider.value(
-                  value: _booksBloc,
-                  child: const BooksScreen(),
-                ),
-            1: () => const FavoritesScreen(),
-            2: () => BlocProvider.value(
-                  value: _reservationBloc..add(LoadReservations()),
-                  child: ReservationsScreen(
-                    reservationsService: _reservationsService,
-                    booksService: _firestoreService,
-                    usersService: _usersService,
-                  ),
-                ),
-            3: () => const SettingsScreen(),
-          };
+    if (index == 0) {
+      final navigationState = context.read<NavigationCubit>().state;
+      if (navigationState.route == RouteNames.books) {
+        final params = navigationState.params;
+        final sortType = params != null ? SortType.values.firstWhere(
+          (type) => type.toString() == params['sortType'],
+          orElse: () => SortType.none,
+        ) : null;
 
-    return screens[index]?.call() ?? const Center(child: Text('Unknown Screen'));
+        return BlocProvider.value(
+          value: _booksBloc,
+          child: BooksScreen(
+            key: const ValueKey('books_screen'),
+            sortType: sortType,
+          ),
+        );
+      }
+      
+      return BlocProvider.value(
+        value: _booksBloc,
+        child: const MainHomeScreen(key: ValueKey('main_home_screen')),
+      );
+    }
+
+    final screens = {
+      0: () => BlocProvider.value(
+            value: _booksBloc,
+            child: const MainHomeScreen(),
+          ),
+      1: () => role == 'admin'
+          ? BlocProvider.value(
+              value: _dashboardCubit,
+              child: const DashboardScreen(),
+            )
+          : const FavoritesScreen(),
+      2: () => role == 'admin'
+          ? const UsersScreen()
+          : BlocProvider.value(
+              value: _reservationBloc..add(LoadReservations()),
+              child: ReservationsScreen(
+                reservationsService: _reservationsService,
+                booksService: _firestoreService,
+                usersService: _usersService,
+              ),
+            ),
+      3: () => role == 'admin'
+          ? BlocProvider.value(
+              value: _reservationBloc..add(LoadReservations()),
+              child: ReservationsScreen(
+                reservationsService: _reservationsService,
+                booksService: _firestoreService,
+                usersService: _usersService,
+              ),
+            )
+          : const SettingsScreen(),
+      4: () => const SettingsScreen(),
+    };
+
+    return screens[index]?.call() ?? const SizedBox.shrink();
   }
 
   void _onItemSelected(int index) {
@@ -173,21 +195,40 @@ class _HomeScreenState extends State<HomeScreen> {
     
     if (_cachedUserModel == null) return;
     
-    final navigationMap = {
-      0: () => context.read<NavigationCubit>().navigateToBooks(),
-      3: () => context.read<NavigationCubit>().navigateToBookings(),
-      4: () => context.read<NavigationCubit>().navigateToSettings(),
-    };
-
     if (_cachedUserModel!.role == 'admin') {
-      navigationMap[1] = () => context.read<NavigationCubit>().navigateToDashboard();
-      navigationMap[2] = () => context.read<NavigationCubit>().navigateToUsers();
+      switch (index) {
+        case 0:
+          context.read<NavigationCubit>().navigateToHome();
+          break;
+        case 1:
+          context.read<NavigationCubit>().navigateToDashboard();
+          break;
+        case 2:
+          context.read<NavigationCubit>().navigateToUsers();
+          break;
+        case 3:
+          context.read<NavigationCubit>().navigateToBookings();
+          break;
+        case 4:
+          context.read<NavigationCubit>().navigateToSettings();
+          break;
+      }
     } else {
-      navigationMap[1] = () => context.read<NavigationCubit>().navigateToFavorites();
-      navigationMap[2] = () => context.read<NavigationCubit>().navigateToBookings();
+      switch (index) {
+        case 0:
+          context.read<NavigationCubit>().navigateToHome();
+          break;
+        case 1:
+          context.read<NavigationCubit>().navigateToFavorites();
+          break;
+        case 2:
+          context.read<NavigationCubit>().navigateToBookings();
+          break;
+        case 3:
+          context.read<NavigationCubit>().navigateToSettings();
+          break;
+      }
     }
-
-    navigationMap[index]?.call();
   }
 
   @override
@@ -210,6 +251,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return BlocListener<NavigationCubit, NavigationState>(
       listener: (context, state) {
         switch (state.route) {
+          case RouteNames.home:
+            setState(() {
+              _selectedIndex = 0;
+              _booksBloc.add(const LoadBooksEvent());
+            });
+            break;
           case RouteNames.books:
             setState(() => _selectedIndex = 0);
             break;
@@ -340,5 +387,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> someMethod() async {
     final doc = await _firestoreService.getDocument('collection', 'id');
+  }
+
+  Widget _buildContent(NavigationState state) {
+    if (state.params?['showBooks'] == true) {
+      // Show BooksScreen with the navigation bar
+      return BooksScreen(
+        sortType: state.params?['sortType'] != null 
+            ? SortType.values.firstWhere(
+                (e) => e.toString() == state.params!['sortType']
+              )
+            : null,
+      );
+    }
+
+    // Show default content
+    return const MainHomeScreen();
   }
 }

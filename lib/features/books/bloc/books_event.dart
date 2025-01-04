@@ -1,24 +1,29 @@
 import 'package:equatable/equatable.dart';
+import '../enums/sort_type.dart';
 
-abstract class BooksEvent extends Equatable {
-  @override
-  List<Object?> get props => [];
+abstract class BooksEvent {
+  const BooksEvent();
 }
 
-class LoadBooks extends BooksEvent {}
+class LoadBooksEvent extends BooksEvent {
+  final SortType? sortType;
+  
+  const LoadBooksEvent({this.sortType});
+}
 
 class SearchBooks extends BooksEvent {
   final String query;
-
-  SearchBooks(this.query);
-
+  
+  const SearchBooks(this.query);
+  
   @override
   List<Object?> get props => [query];
 }
 
 class DeleteBook extends BooksEvent {
   final String bookId;
-  DeleteBook(this.bookId);
+  
+  const DeleteBook(this.bookId);
   
   @override
   List<Object?> get props => [bookId];

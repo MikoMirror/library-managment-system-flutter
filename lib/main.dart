@@ -154,12 +154,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ThemeCubit, ThemeState>(
-      builder: (context, state) {
+      builder: (context, themeState) {
         return MaterialApp(
           title: 'Library Management System',
           theme: AppTheme.getTheme(false),
           darkTheme: AppTheme.getTheme(true),
-          themeMode: state.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          themeMode: themeState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
           home: widget.adminExists 
             ? NavigationHandler(
                 child: BlocBuilder<AuthBloc, AuthState>(

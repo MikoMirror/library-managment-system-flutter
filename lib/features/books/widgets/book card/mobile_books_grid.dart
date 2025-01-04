@@ -7,6 +7,7 @@ class MobileBooksGrid extends StatelessWidget {
   final bool isAdmin;
   final String? userId;
   final Function(BuildContext, Book)? onDeleteBook;
+  final bool showAdminControls;
 
   const MobileBooksGrid({
     super.key,
@@ -14,6 +15,7 @@ class MobileBooksGrid extends StatelessWidget {
     required this.userId,
     required this.isAdmin,
     required this.onDeleteBook,
+    this.showAdminControls = true,
   });
 
   @override
@@ -31,6 +33,7 @@ class MobileBooksGrid extends StatelessWidget {
               isMobile: true,
               isAdmin: isAdmin,
               userId: userId,
+              showAdminControls: showAdminControls,
               onDelete: onDeleteBook != null 
                   ? () => onDeleteBook!(context, books[index])
                   : null,

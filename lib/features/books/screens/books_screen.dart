@@ -13,9 +13,21 @@ import '../enums/book_view_type.dart';
 import '../widgets/book card/table_books_view.dart';
 import '../../../core/widgets/app_bar.dart';
 import 'dart:async';
+import '../../books/enums/sort_type.dart';
+import '../../../features/books/bloc/books_bloc.dart';
+import '../../../features/books/bloc/books_state.dart';
+import '../../../features/books/bloc/books_event.dart';
+import '../../../core/navigation/cubit/navigation_cubit.dart';
 
 class BooksScreen extends StatefulWidget {
-  const BooksScreen({super.key});
+  final SortType? sortType;
+  final VoidCallback? onBackPressed;
+  
+  const BooksScreen({
+    super.key,
+    this.sortType,
+    this.onBackPressed,
+  });
 
   @override
   State<BooksScreen> createState() => _BooksScreenState();
@@ -25,6 +37,8 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
   late final _firestore = FirebaseFirestore.instance;
   late final _searchController = TextEditingController();
   bool _isSearchVisible = false;
+  String? _userId;
+  bool _isAdmin = false;
   
   late bool _isSmallScreen;
   late bool _isPortrait;
@@ -34,58 +48,45 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
   
   BookViewType _viewType = BookViewType.desktop;
 
-  // Add animation controller
-  late AnimationController _animationController;
-  late Animation<double> _animation;
-
   @override
   void initState() {
     super.initState();
     
-    // Initialize animation controller
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
+    // Don't reload books if we already have them and a sort type is specified
+    if (widget.sortType != null) {
+      final state = context.read<BooksBloc>().state;
+      if (state is! BooksLoaded) {
+        context.read<BooksBloc>().add(LoadBooksEvent(sortType: widget.sortType));
+      }
+    }
     
-    _animation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Load books through bloc
-      context.read<BooksBloc>().add(LoadBooks());
-      
-      // Setup admin stream
-      _setupAdminStream();
-    });
+    _setupAdminStream();
   }
 
   void _setupAdminStream() {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess) {
-      // Cancel existing subscription if any
+      _userId = authState.user.uid;
       _adminStreamSubscription?.cancel();
       
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _adminStreamSubscription = _firestore
-            .collection('users')
-            .doc(authState.user.uid)
-            .snapshots()
-            .listen(
-          (snapshot) {
-            if (mounted) {
-              setState(() {
-                _adminSnapshot = snapshot;
-              });
-            }
-          },
-          onError: (error) {
-            debugPrint('Error in admin stream: $error');
-          },
-        );
-      });
+      _adminStreamSubscription = _firestore
+          .collection('users')
+          .doc(_userId)
+          .snapshots()
+          .listen(
+        (snapshot) {
+          if (mounted) {
+            final userData = snapshot.data() as Map<String, dynamic>?;
+            setState(() {
+              _adminSnapshot = snapshot;
+              _isAdmin = userData?['role'] == 'admin';
+            });
+          }
+        },
+        onError: (error) {
+          debugPrint('Error in admin stream: $error');
+        },
+      );
     }
   }
 
@@ -99,177 +100,155 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
 
   @override
   void dispose() {
-    _animationController.dispose();
     _adminStreamSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _toggleViewType() {
+    setState(() {
+      _viewType = _viewType == BookViewType.desktop 
+          ? BookViewType.table 
+          : BookViewType.desktop;
+    });
+  }
+
+  Future<void> _handleGoBack(BuildContext context) async {
+    // First cancel the Firebase stream
+    await _adminStreamSubscription?.cancel();
+    
+    if (mounted) {
+      // Then perform navigation
+      context.read<NavigationCubit>().goBack();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<BooksBloc, BooksState>(
+      buildWhen: (previous, current) {
+        return previous.runtimeType != current.runtimeType ||
+            (current is BooksLoaded && previous is BooksLoaded &&
+             current.books != previous.books);
+      },
+      builder: (context, state) {
+        return Column(
+          children: [
+            // Custom header instead of AppBar
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  if (widget.onBackPressed != null)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: widget.onBackPressed,
+                    ),
+                  const Expanded(
+                    child: Text(
+                      'Books',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  // Add your view type toggle and other actions here
+                  IconButton(
+                    icon: Icon(_getViewTypeIcon()),
+                    onPressed: _toggleViewType,
+                  ),
+                ],
+              ),
+            ),
+            // Books content
+            Expanded(
+              child: _buildBooksList(state),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildBooksList(BooksState state) {
+    if (state is BooksLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (state is BooksError) {
+      return Center(child: Text(state.message));
+    }
+    if (state is BooksLoaded) {
+      return _buildBooksContent(state.books);
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildBooksContent(List<Book> books) {
+    if (books.isEmpty) {
+      return const Center(
+        child: Text('No books available'),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (_viewType == BookViewType.table) {
+          return TableBooksView(
+            books: books,
+            userId: _userId ?? '',
+            isAdmin: _isAdmin,
+            onDeleteBook: _handleDeleteBook,
+          );
+        }
+
+        return Container(
+          constraints: const BoxConstraints(
+            minHeight: 0,
+            maxHeight: double.infinity,
+          ),
+          child: _isSmallScreen || _isPortrait
+            ? MobileBooksGrid(
+                books: books,
+                userId: _userId ?? '',
+                isAdmin: _isAdmin,
+                onDeleteBook: _handleDeleteBook,
+                showAdminControls: true,
+              )
+            : DesktopBooksGrid(
+                books: books,
+                userId: _userId ?? '',
+                isAdmin: _isAdmin,
+                onDeleteBook: _handleDeleteBook,
+                showAdminControls: true,
+              ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFAB(AuthState authState) {
+    if (authState is! AuthSuccess) return const SizedBox.shrink();
+
+    final userData = _adminSnapshot?.data() as Map<String, dynamic>?;
+    final isAdmin = userData?['role'] == 'admin';
+
+    return isAdmin
+        ? FloatingActionButton(
+            onPressed: () => _showAddBookDialog(context),
+            child: const Icon(Icons.add),
+          )
+        : const SizedBox.shrink();
   }
 
   void _handleDeleteBook(BuildContext context, Book book) {
     context.read<BooksBloc>().add(DeleteBook(book.id!));
   }
 
-  Widget? _buildFAB(AuthState authState) {
-    if (authState is! AuthSuccess) return null;
-
-    if (_adminSnapshot == null) {
-      return const SizedBox.shrink();
-    }
-
-    final userData = _adminSnapshot!.data() as Map<String, dynamic>?;
-    final isAdmin = userData?['role'] == 'admin';
-
-    return isAdmin 
-      ? FloatingActionButton(
-          onPressed: () => _showAddBookDialog(context),
-          child: Icon(
-            Icons.add,
-            size: _isSmallScreen ? 20 : 24,
-          ),
-        )
-      : const SizedBox.shrink();
-  }
-
-  Widget _buildBooksList(BuildContext context, List<Book> books) {
-    final authState = context.read<AuthBloc>().state;
-    final userId = authState is AuthSuccess ? authState.user.uid : '';
-    
-    if (_adminSnapshot == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final userData = _adminSnapshot!.data() as Map<String, dynamic>?;
-    final isAdmin = userData?['role'] == 'admin';
-
-    if (_isSmallScreen || _isPortrait) {
-      return Padding(
-        padding: EdgeInsets.all(_isSmallScreen ? 8.0 : 16.0),
-        child: MobileBooksGrid(
-          key: ValueKey('mobile-${books.length}'),
-          books: books,
-          userId: userId,
-          isAdmin: isAdmin,
-          onDeleteBook: _handleDeleteBook,
-        ),
-      );
-    }
-
-    final content = _buildViewContent(books, userId, isAdmin);
-    
-    return Padding(
-      padding: EdgeInsets.all(_isSmallScreen ? 8.0 : 16.0),
-      child: content,
-    );
-  }
-
-  Widget _buildViewContent(List<Book> books, String userId, bool isAdmin) {
-    switch (_viewType) {
-      case BookViewType.mobile:
-        return MobileBooksGrid(
-          key: ValueKey('mobile-${books.length}'),
-          books: books,
-          userId: userId,
-          isAdmin: isAdmin,
-          onDeleteBook: _handleDeleteBook,
-        );
-      case BookViewType.table:
-        return TableBooksView(
-          key: ValueKey('table-${books.length}'),
-          books: books,
-          userId: userId,
-          isAdmin: isAdmin,
-          onDeleteBook: _handleDeleteBook,
-        );
-      case BookViewType.desktop:
-      default:
-        return DesktopBooksGrid(
-          key: ValueKey('desktop-${books.length}'),
-          books: books,
-          userId: userId,
-          isAdmin: isAdmin,
-          onDeleteBook: _handleDeleteBook,
-        );
-    }
-  }
-
-  void _showAddBookDialog(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
-    
-    showDialog(
+  Future<void> _showAddBookDialog(BuildContext context) async {
+    await showDialog(
       context: context,
-      builder: (context) => Dialog(
-        insetPadding: EdgeInsets.symmetric(
-          horizontal: isSmallScreen ? 16.0 : 40.0,
-          vertical: isSmallScreen ? 24.0 : 40.0,
-        ),
-        child: const AddBookDialog(),
-      ),
-    );
-  }
-
-  void _toggleViewType() {
-    setState(() {
-      _viewType = BookViewType.values[
-        (_viewType.index + 1) % BookViewType.values.length
-      ];
-    });
-  }
-
-  // Add method to toggle search
-  void _toggleSearch() {
-    setState(() {
-        _isSearchVisible = !_isSearchVisible;
-        if (_isSearchVisible) {
-            _animationController.forward();
-        } else {
-            _animationController.reverse();
-            _searchController.clear();
-            context.read<BooksBloc>().add(LoadBooks());
-        }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final authState = context.read<AuthBloc>().state;
-
-    return Scaffold(
-      appBar: UnifiedAppBar(
-        title: const Text('Books'),
-        searchHint: 'Search books...',
-        onSearch: (query) {
-          context.read<BooksBloc>().add(SearchBooks(query));
-        },
-        actions: [
-          if (!_isSmallScreen && !_isPortrait)
-            IconButton(
-              icon: Icon(_getViewTypeIcon()),
-              onPressed: _toggleViewType,
-            ),
-        ],
-        isSimple: false,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: BlocBuilder<BooksBloc, BooksState>(
-              builder: (context, state) {
-                if (state is BooksLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (state is BooksError) {
-                  return Center(child: Text(state.message));
-                }
-                if (state is BooksLoaded) {
-                  return _buildBooksList(context, state.books);
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: _buildFAB(authState),
+      builder: (context) => const AddBookDialog(),
     );
   }
 

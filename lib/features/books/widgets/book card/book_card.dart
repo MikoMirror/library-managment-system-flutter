@@ -8,6 +8,7 @@ import '../../repositories/books_repository.dart';
 import 'dart:ui';
 import '../../../../core/theme/app_theme.dart';
 import '../delete_book_dialog.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 
 class BookCard extends StatefulWidget {
@@ -16,6 +17,7 @@ class BookCard extends StatefulWidget {
   final bool isAdmin;
   final String? userId;
   final VoidCallback? onDelete;
+  final bool showAdminControls;
 
   const BookCard({
     super.key,
@@ -24,6 +26,7 @@ class BookCard extends StatefulWidget {
     this.isAdmin = false,
     this.userId,
     this.onDelete,
+    this.showAdminControls = true,
   });
 
   @override
@@ -36,21 +39,17 @@ class _BookCardState extends State<BookCard> {
   @override
   void initState() {
     super.initState();
-    _bookCardBloc = BookCardBloc(context.read<BooksRepository>());
-    
-    // Defer Firestore operations to after frame
-    if (!widget.isAdmin && widget.userId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _bookCardBloc.add(LoadFavoriteStatus(widget.userId!, widget.book.id!));
-        }
-      });
+    // Only initialize if we need to show controls and handle favorites
+    if (!widget.isAdmin && widget.showAdminControls && widget.userId != null) {
+      _bookCardBloc = BookCardBloc(context.read<BooksRepository>());
     }
   }
 
   @override
   void dispose() {
-    _bookCardBloc.close();
+    if (!widget.isAdmin && widget.showAdminControls) {
+      _bookCardBloc?.close();
+    }
     super.dispose();
   }
 
@@ -72,7 +71,7 @@ class _BookCardState extends State<BookCard> {
   }
 
   Widget _buildActionButton() {
-    if (widget.isAdmin) {
+    if (widget.isAdmin && widget.showAdminControls) {
       return IconButton(
         icon: const Icon(Icons.delete, color: Colors.red),
         onPressed: () {
@@ -82,7 +81,7 @@ class _BookCardState extends State<BookCard> {
           );
         },
       );
-    } else {
+    } else if (!widget.isAdmin && widget.showAdminControls) {
       return BlocBuilder<BookCardBloc, BookCardState>(
         bloc: _bookCardBloc,
         builder: (context, state) {
@@ -105,6 +104,7 @@ class _BookCardState extends State<BookCard> {
         },
       );
     }
+    return const SizedBox.shrink();
   }
 
   Widget _buildDesktopCard() {
@@ -117,10 +117,12 @@ class _BookCardState extends State<BookCard> {
       elevation: 4,
       child: Stack(
         children: [
-          ImageCacheService().buildCachedImage(
+          CachedNetworkImage(
             imageUrl: widget.book.coverUrl,
-            width: double.infinity,
-            height: double.infinity,
+            placeholder: (context, url) => Container(
+              color: Colors.grey[300],
+            ),
+            fadeInDuration: const Duration(milliseconds: 300),
             fit: BoxFit.cover,
           ),
 

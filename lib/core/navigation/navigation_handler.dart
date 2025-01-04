@@ -12,7 +12,9 @@ import '../../features/home/screens/home_screen.dart';
 import '../../features/users/screens/add_user_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../features/auth/screens/initial_admin_setup_screen.dart';
-
+import '../../features/books/enums/sort_type.dart';
+import '../../features/books/screens/books_screen.dart';
+import '../../features/books/bloc/books_bloc.dart';
 
 
 class NavigationHandler extends StatelessWidget {
@@ -30,15 +32,48 @@ class NavigationHandler extends StatelessWidget {
       listener: (context, navigationState) async {
         switch (navigationState.route) {
           case RouteNames.home:
-            Navigator.of(context).pushAndRemoveUntil(
+          case RouteNames.dashboard:
+          case RouteNames.users:
+          case RouteNames.favorites:
+          case RouteNames.bookings:
+          case RouteNames.settings:
+            // These routes are handled by the HomeScreen navigation rail
+            // No need to push new routes
+            break;
+
+          case RouteNames.books:
+            final sortType = navigationState.params?['sortType'] != null
+                ? SortType.values.firstWhere(
+                    (type) => type.toString() == navigationState.params!['sortType'],
+                    orElse: () => SortType.none,
+                  )
+                : SortType.none;
+
+            Navigator.of(context).push(
               MaterialPageRoute(
-                settings: const RouteSettings(name: RouteNames.home),
-                builder: (context) => const HomeScreen(),
+                settings: const RouteSettings(name: RouteNames.books),
+                builder: (context) => BooksScreen(sortType: sortType),
+                maintainState: true,
+                fullscreenDialog: false,
               ),
-              (route) => false, // This removes all previous routes
             );
             break;
-            
+
+          case RouteNames.bookDetails:
+            // Keep existing book details navigation
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                settings: RouteSettings(
+                  name: RouteNames.bookDetails,
+                  arguments: navigationState.params,
+                ),
+                builder: (context) => BookDetailsScreen(
+                  bookId: navigationState.params?['bookId'],
+                ),
+              ),
+            );
+            break;
+
           case RouteNames.login:
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
@@ -46,37 +81,6 @@ class NavigationHandler extends StatelessWidget {
                 builder: (context) => const LoginScreen(),
               ),
               (route) => false,
-            );
-            break;
-            
-          case RouteNames.bookDetails:
-            // Remove any existing book details screens from the stack
-            Navigator.of(context).popUntil(
-              (route) => route.settings.name != RouteNames.bookDetails
-            );
-
-            // Push the new book details screen
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                settings: RouteSettings(
-                  name: RouteNames.bookDetails,
-                  arguments: navigationState.params,
-                ),
-                builder: (context) => MultiBlocProvider(
-                  providers: [
-                    BlocProvider<RatingCubit>(
-                      create: (context) => RatingCubit(
-                        bookId: navigationState.params?['bookId'],
-                        userId: (context.read<AuthBloc>().state as AuthSuccess).user.uid,
-                        repository: context.read<BooksRepository>(),
-                      ),
-                    ),
-                  ],
-                  child: BookDetailsScreen(
-                    bookId: navigationState.params?['bookId'],
-                  ),
-                ),
-              ),
             );
             break;
 
@@ -120,16 +124,6 @@ class NavigationHandler extends StatelessWidget {
               (route) => false,
             );
             break;
-
-          case RouteNames.books:
-          case RouteNames.users:
-          case RouteNames.favorites:
-          case RouteNames.bookings:
-          case RouteNames.settings:
-            // Handle other navigation cases
-            break;
-
-          // Add other cases as needed
         }
       },
       child: child,
