@@ -2,15 +2,15 @@ import 'dart:io';
 import '../models/report_data.dart';
 import 'pdf_service.dart';
 import '../../../core/services/firestore/books_firestore_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../features/reservation/models/reservation.dart';
 import '../../../core/services/firestore/users_firestore_service.dart';
+import 'package:logger/logger.dart';
 
 class ReportService {
   final BooksFirestoreService _firestoreService;
   final PdfService _pdfService;
   final UsersFirestoreService _usersService;
   final BooksFirestoreService _booksService;
+  final _logger = Logger();
 
   ReportService({
     BooksFirestoreService? firestoreService,
@@ -43,17 +43,11 @@ class ReportService {
         reservations.map((reservation) async {
           try {
             // Ensure we have valid IDs
-            if (reservation.bookId == null) {
-              print('Missing ID - UserID: ${reservation.userId}, BookID: ${reservation.bookId}');
-              return reservation;
-            }
-
-            // Get user details
             final userDoc = await _usersService.getUserById(reservation.userId);
             
             // Get book details
             final bookDoc = await _booksService.getDocument(
-              BooksFirestoreService.COLLECTION,
+              BooksFirestoreService.collectionPath,
               reservation.bookId
             );
             final bookData = bookDoc.data() as Map<String, dynamic>?;
@@ -65,7 +59,7 @@ class ReportService {
               userLibraryNumber: userDoc?.libraryNumber ?? 'N/A',
             );
           } catch (e) {
-            print('Error processing reservation ${reservation.id}: $e');
+            _logger.e('Error processing reservation ${reservation.id}: $e');
             return reservation;
           }
         }),
@@ -114,7 +108,7 @@ class ReportService {
         reservations: enrichedReservations,
       );
     } catch (e) {
-      print('Error gathering report data: $e');
+      _logger.e('Error gathering report data: $e');
       rethrow;
     }
   }

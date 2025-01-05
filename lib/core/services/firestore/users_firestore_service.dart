@@ -3,25 +3,25 @@ import 'base_firestore_service.dart';
 import '../../../features/users/models/user_model.dart';
 
 class UsersFirestoreService extends BaseFirestoreService {
-  static const String COLLECTION = 'users';
+  static const String collectionPath = 'users';
 
   Future<void> createUser(UserModel user) async {
     await firestore
-        .collection(COLLECTION)
+        .collection(collectionPath)
         .doc(user.userId)
         .set(user.toMap());
   }
 
   Stream<DocumentSnapshot<Map<String, dynamic>>> getUserStream(String userId) {
     return firestore
-        .collection(COLLECTION)
+        .collection(collectionPath)
         .doc(userId)
         .snapshots();
   }
 
   Stream<List<UserModel>> getUsersStream() {
     return getCollectionStream<UserModel>(
-      collection: COLLECTION,
+      collection: collectionPath,
       fromMap: (data, id) => UserModel.fromMap({...data, 'userId': id}),
     );
   }
@@ -29,7 +29,7 @@ class UsersFirestoreService extends BaseFirestoreService {
   Future<List<UserModel>> searchUsers(String query) async {
     query = query.toLowerCase();
     final querySnapshot = await firestore
-        .collection(COLLECTION)
+        .collection(collectionPath)
         .where('searchTerms', arrayContains: query)
         .get();
 
@@ -40,14 +40,14 @@ class UsersFirestoreService extends BaseFirestoreService {
 
   Future<bool> checkUserExists(String email) async {
     final querySnapshot = await firestore
-        .collection(COLLECTION)
+        .collection(collectionPath)
         .where('email', isEqualTo: email)
         .get();
     return querySnapshot.docs.isNotEmpty;
   }
 
   Future<UserModel?> getUserById(String userId) async {
-    final doc = await getDocument(COLLECTION, userId);
+    final doc = await getDocument(collectionPath, userId);
     if (!doc.exists) return null;
     return UserModel.fromMap({
       ...doc.data() as Map<String, dynamic>,
@@ -56,7 +56,7 @@ class UsersFirestoreService extends BaseFirestoreService {
   }
 
   Future<void> updateUser(String userId, Map<String, dynamic> data) async {
-    await updateDocument(COLLECTION, userId, data);
+    await updateDocument(collectionPath, userId, data);
   }
 
   @override

@@ -255,7 +255,7 @@ class BookFormScreenState extends State<BookFormScreen> {
                                   width: 200,
                                   height: 300,
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.3),
+                                    color: Colors.black.withAlpha(179),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Center(

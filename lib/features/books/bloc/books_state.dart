@@ -25,7 +25,7 @@ class BooksLoaded extends BooksState {
 
 class BooksError extends BooksState {
   final String message;
-  BooksError(this.message);
+  const BooksError(this.message);
   
   @override
   List<Object?> get props => [message];

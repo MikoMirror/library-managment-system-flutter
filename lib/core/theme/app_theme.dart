@@ -93,8 +93,6 @@ class AppTheme {
         onPrimary: colors.onPrimary,
         secondary: colors.secondary,
         onSecondary: colors.onSecondary,
-        background: colors.background,
-        onBackground: colors.onBackground,
         surface: colors.surface,
         onSurface: colors.onSurface,
         error: colors.error,

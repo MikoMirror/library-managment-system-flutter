@@ -21,7 +21,7 @@ class MobileBooksGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      itemExtent: 120.0,
+      itemExtent: 160.0,
       itemCount: books.length,
       itemBuilder: (context, index) {
         return RepaintBoundary(

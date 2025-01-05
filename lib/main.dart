@@ -35,15 +35,13 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    
-    // Add auth state listener
+  
     FirebaseAuth.instance.authStateChanges().listen((User? user) async {
       if (user != null) {
         final usersService = UsersFirestoreService();
         final userDoc = await usersService.getUserById(user.uid);
         
         if (userDoc == null) {
-          // User doesn't exist in Firestore, sign out
           await FirebaseAuth.instance.signOut();
         }
       }

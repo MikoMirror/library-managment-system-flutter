@@ -11,10 +11,8 @@ class ViewCubit extends Cubit<ViewState> {
   }
 
   Future<void> setViewType(BookViewType type) async {
-    if (type != BookViewType.mobile) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_viewTypeKey, type.name);
-    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_viewTypeKey, type.name);
     emit(ViewLoaded(type));
   }
 

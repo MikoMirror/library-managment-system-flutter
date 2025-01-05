@@ -99,235 +99,270 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
       builder: (context, isTestMode) {
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Container(
-            width: isDesktop ? 500 : double.infinity,
-            constraints: BoxConstraints(
-              maxHeight: screenHeight * 0.8,
-              maxWidth: isDesktop ? 500 : screenWidth * 0.9,
-            ),
+          child: SizedBox(
+            width: isDesktop ? 600 : double.infinity,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Reserve ${widget.book.title}',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 24),
-                            
-                            // Add Test Mode Switch for admin
-                            if (widget.isAdmin && isTestMode) ...[
-                              SwitchListTile(
-                                title: const Text('Test Mode'),
-                                subtitle: const Text('Allow selecting past dates'),
-                                value: isTestMode,
-                                onChanged: null, // Disabled because it's controlled from settings
+                if (widget.isAdmin) ...[
+                  // Admin view with scrollable content
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Header
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'Reserve ${widget.book.title}',
+                                      style: Theme.of(context).textTheme.titleLarge,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.close),
+                                    onPressed: () => Navigator.pop(context),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 16),
-                            ],
 
-                            // Quantity Field
-                            TextFormField(
-                              controller: _quantityController,
-                              decoration: const InputDecoration(
-                                labelText: 'Quantity',
-                                border: OutlineInputBorder(),
+                              // User Selection
+                              TextFormField(
+                                decoration: const InputDecoration(
+                                  labelText: 'Search User',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.search),
+                                ),
+                                onChanged: (value) {
+                                  setState(() => _searchQuery = value);
+                                },
                               ),
-                              keyboardType: TextInputType.number,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter quantity';
-                                }
-                                final quantity = int.tryParse(value);
-                                if (quantity == null || quantity < 1) {
-                                  return 'Please enter a valid quantity';
-                                }
-                                if (quantity > widget.book.booksQuantity) {
-                                  return 'Not enough books available';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
+                              const SizedBox(height: 8),
+                              Container(
+                                constraints: const BoxConstraints(maxHeight: 200),
+                                child: Card(
+                                  child: StreamBuilder<List<UserModel>>(
+                                    stream: _usersService.getUsersStream(),
+                                    builder: (context, snapshot) {
+                                      if (!snapshot.hasData) {
+                                        return const Center(child: CircularProgressIndicator());
+                                      }
 
-                            // Date Fields
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _borrowedDateController,
-                                    decoration: InputDecoration(
-                                      labelText: 'Borrow Date',
-                                      border: const OutlineInputBorder(),
-                                      suffixIcon: IconButton(
-                                        icon: const Icon(Icons.calendar_today),
-                                        onPressed: () => _selectDate(context, _borrowedDateController),
-                                      ),
-                                    ),
-                                    readOnly: true,
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) return 'Please select borrow date';
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _dueDateController,
-                                    decoration: InputDecoration(
-                                      labelText: 'Due Date',
-                                      border: const OutlineInputBorder(),
-                                      suffixIcon: IconButton(
-                                        icon: const Icon(Icons.calendar_today),
-                                        onPressed: () => _selectDate(context, _dueDateController),
-                                      ),
-                                    ),
-                                    readOnly: true,
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) return 'Please select due date';
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
+                                      final users = snapshot.data!
+                                          .where((user) => user.role != 'admin')
+                                          .where((user) => 
+                                            user.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                                            user.libraryNumber.toLowerCase().contains(_searchQuery.toLowerCase())
+                                          )
+                                          .toList();
 
-                            // Keep existing user selection code
-                            if (widget.isAdmin) ...[
-                              StreamBuilder<List<UserModel>>(
-                                stream: _usersService.getUsersStream(),
-                                builder: (context, snapshot) {
-                                  if (!snapshot.hasData) {
-                                    return const CircularProgressIndicator();
-                                  }
-
-                                  final users = snapshot.data!
-                                      .where((user) => user.role != 'admin')
-                                      .where((user) => 
-                                        user.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                                        user.libraryNumber.toLowerCase().contains(_searchQuery.toLowerCase())
-                                      )
-                                      .toList();
-
-                                  return Column(
-                                    children: [
-                                      TextFormField(
-                                        decoration: const InputDecoration(
-                                          labelText: 'Search User',
-                                          border: OutlineInputBorder(),
-                                          prefixIcon: Icon(Icons.search),
-                                        ),
-                                        onChanged: (value) {
-                                          setState(() => _searchQuery = value);
-                                        },
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Container(
-                                        constraints: const BoxConstraints(maxHeight: 200),
-                                        child: Card(
-                                          child: ListView.builder(
-                                            shrinkWrap: true,
-                                            itemCount: users.length,
-                                            itemBuilder: (context, index) {
-                                              final user = users[index];
-                                              return ListTile(
-                                                title: Text(user.name),
-                                                subtitle: Text('Library #: ${user.libraryNumber}'),
-                                                selected: _selectedUserId == user.userId,
-                                                onTap: () {
-                                                  setState(() => _selectedUserId = user.userId);
-                                                },
-                                              );
+                                      return ListView.builder(
+                                        shrinkWrap: true,
+                                        itemCount: users.length,
+                                        itemBuilder: (context, index) {
+                                          final user = users[index];
+                                          return ListTile(
+                                            dense: true,
+                                            title: Text(user.name),
+                                            subtitle: Text('Library #: ${user.libraryNumber}'),
+                                            selected: _selectedUserId == user.userId,
+                                            onTap: () {
+                                              setState(() => _selectedUserId = user.userId);
                                             },
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
+                                          );
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ),
                               ),
                               const SizedBox(height: 16),
+
+                              // Regular form fields
+                              _buildFormFields(),
                             ],
-                          ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                // Submit button in a fixed bottom container
-                Container(
+                ] else ...[
+                  // Non-admin view
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Reserve ${widget.book.title}',
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () => Navigator.pop(context),
+                                padding: EdgeInsets.zero,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _buildFormFields(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+
+                // Submit button - same for both views
+                Padding(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    border: Border(
-                      top: BorderSide(
-                        color: Theme.of(context).dividerColor,
-                      ),
-                    ),
-                  ),
-                  child: BlocConsumer<ReservationBloc, ReservationState>(
-                    listener: (context, state) {
-                      if (state is ReservationSuccess) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Book reserved successfully')),
-                        );
-                      } else if (state is ReservationError) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(state.message)),
-                        );
-                      }
-                    },
-                    builder: (context, state) {
-                      return SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: state is ReservationLoading
-                              ? null
-                              : () {
-                                  if (_formKey.currentState?.validate() ?? false) {
-                                    final borrowedDate = DateFormat('dd/MM/yyyy')
-                                        .parse(_borrowedDateController.text);
-                                    final dueDate = DateFormat('dd/MM/yyyy')
-                                        .parse(_dueDateController.text);
-                                    
-                                    context.read<ReservationBloc>().add(
-                                          CreateReservation(
-                                            userId: widget.userId,
-                                            bookId: widget.book.id!,
-                                            quantity: int.parse(_quantityController.text),
-                                            selectedUserId: widget.isAdmin ? _selectedUserId : null,
-                                            borrowedDate: Timestamp.fromDate(borrowedDate),
-                                            dueDate: Timestamp.fromDate(dueDate),
-                                          ),
-                                        );
-                                  }
-                                },
-                          child: state is ReservationLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Text('Reserve Book'),
-                        ),
-                      );
-                    },
-                  ),
+                  child: _buildSubmitButton(),
                 ),
               ],
             ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFormFields() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Quantity Field
+        TextFormField(
+          controller: _quantityController,
+          decoration: const InputDecoration(
+            labelText: 'Quantity',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.library_books),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+          keyboardType: TextInputType.number,
+          validator: (value) {
+            if (value == null || value.isEmpty) return 'Required';
+            final quantity = int.tryParse(value);
+            if (quantity == null || quantity < 1) return 'Invalid quantity';
+            if (quantity > widget.book.booksQuantity) return 'Not enough books';
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // Date Fields
+        TextFormField(
+          controller: _borrowedDateController,
+          decoration: InputDecoration(
+            labelText: 'Borrow Date',
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.calendar_today),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.edit_calendar),
+              onPressed: () => _selectDate(context, _borrowedDateController),
+              padding: EdgeInsets.zero,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+          readOnly: true,
+          validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _dueDateController,
+          decoration: InputDecoration(
+            labelText: 'Due Date',
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.event_outlined),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.edit_calendar),
+              onPressed: () => _selectDate(context, _dueDateController),
+              padding: EdgeInsets.zero,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+          readOnly: true,
+          validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return BlocConsumer<ReservationBloc, ReservationState>(
+      listener: (context, state) {
+        if (state is ReservationSuccess) {
+          // Close dialog on success
+          Navigator.of(context).pop();
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Book reserved successfully')),
+          );
+        } else if (state is ReservationError) {
+          // Show error message but keep dialog open
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        }
+      },
+      builder: (context, state) {
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            onPressed: state is ReservationLoading 
+              ? null  // Disable button while loading
+              : () {
+                  if (_formKey.currentState?.validate() ?? false) {
+                    // For admin, validate user selection
+                    if (widget.isAdmin && _selectedUserId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please select a user')),
+                      );
+                      return;
+                    }
+
+                    final borrowedDate = DateFormat('yyyy-MM-dd')
+                        .parse(_borrowedDateController.text);
+                    final dueDate = DateFormat('yyyy-MM-dd')
+                        .parse(_dueDateController.text);
+                    
+                    context.read<ReservationBloc>().add(
+                          CreateReservation(
+                            userId: widget.userId,
+                            bookId: widget.book.id!,
+                            quantity: int.parse(_quantityController.text),
+                            selectedUserId: widget.isAdmin ? _selectedUserId : null,
+                            borrowedDate: Timestamp.fromDate(borrowedDate),
+                            dueDate: Timestamp.fromDate(dueDate),
+                          ),
+                        );
+                  }
+                },
+            child: state is ReservationLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Reserve Book'),
           ),
         );
       },

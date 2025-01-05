@@ -83,10 +83,10 @@ class _InfoBox extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         decoration: BoxDecoration(
-          color: colors.surface.withOpacity(0.7),
+          color: colors.surface.withAlpha(150),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: colors.primary.withOpacity(isDark ? 0.5 : 0.9),
+            color: colors.primary.withAlpha(isDark ? 100 : 300),
             width: 1,
           ),
           boxShadow: const [
@@ -145,18 +145,18 @@ class _IsbnBox extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
         color: isDark 
-            ? AppTheme.dark.surface.withOpacity(0.7)
-            : AppTheme.light.surface.withOpacity(0.7),
+            ? AppTheme.dark.surface.withAlpha(179)
+            : AppTheme.light.surface.withAlpha(179),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark 
-              ? AppTheme.dark.primary.withOpacity(0.5)
-              : AppTheme.light.primary.withOpacity(0.9),
+              ? AppTheme.dark.primary.withAlpha(128)
+              : AppTheme.light.primary.withAlpha(230),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withAlpha(26),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -212,17 +212,17 @@ class _CategoriesBox extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
-        color: colors.surface.withOpacity(0.7),
+        color: colors.surface.withAlpha(150),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark 
-              ? colors.primary.withOpacity(0.5)
-              : colors.primary.withOpacity(0.9),
+              ? colors.primary.withAlpha(100)
+              : colors.primary.withAlpha(300),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withAlpha(100),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

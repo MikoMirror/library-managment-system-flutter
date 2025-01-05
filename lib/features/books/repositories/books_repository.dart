@@ -7,19 +7,19 @@ import '../../../core/services/firestore/books_firestore_service.dart';
 class BooksRepository implements BaseRepository {
   final BooksFirestoreService _firestoreService;
   final _logger = Logger();
-  static const String COLLECTION = 'books';
+  static const String collectionPath = 'books';
 
   BooksRepository({
     required BooksFirestoreService firestoreService,
   }) : _firestoreService = firestoreService;
 
   Future<void> addBook(Book book) async {
-    await _firestoreService.addDocument(COLLECTION, book.toMap());
+    await _firestoreService.addDocument(collectionPath, book.toMap());
   }
 
   Stream<List<Book>> getAllBooks() {
     return _firestoreService.getCollectionStream(
-      collection: COLLECTION,
+      collection: collectionPath,
       fromMap: (data, id) => Book.fromMap(data, id),
     );
   }
@@ -30,7 +30,7 @@ class BooksRepository implements BaseRepository {
     }
     
     return _firestoreService.getCollectionStream(
-      collection: COLLECTION,
+      collection: collectionPath,
       fromMap: (data, id) => Book.fromMap(data, id),
     ).map((books) {
       final lowercaseQuery = query.toLowerCase();
@@ -42,26 +42,26 @@ class BooksRepository implements BaseRepository {
   }
 
   Future<void> deleteBook(String bookId) async {
-    await _firestoreService.deleteDocument(COLLECTION, bookId);
+    await _firestoreService.deleteDocument(collectionPath, bookId);
   }
 
   Future<void> updateBookQuantity(String bookId, int quantity) async {
     await _firestoreService.updateDocument(
-      COLLECTION, 
+      collectionPath, 
       bookId, 
       {'booksQuantity': quantity}
     );
   }
 
   Future<void> rateBook(String bookId, String userId, double rating) async {
-    await _firestoreService.updateDocument(COLLECTION, bookId, {
+    await _firestoreService.updateDocument(collectionPath, bookId, {
       'ratings.$userId': rating,
     });
   }
 
   Future<Map<String, double>> getBookRatings(String bookId) async {
     try {
-      final doc = await _firestoreService.getDocument(COLLECTION, bookId);
+      final doc = await _firestoreService.getDocument(collectionPath, bookId);
       final data = doc.data() as Map<String, dynamic>;
       final ratings = data['ratings'] as Map<String, dynamic>? ?? {};
       return Map<String, double>.fromEntries(
@@ -119,7 +119,7 @@ class BooksRepository implements BaseRepository {
     int incrementBy,
     Transaction transaction,
   ) async {
-    final bookRef = _firestoreService.getDocumentReference(COLLECTION, bookId);
+    final bookRef = _firestoreService.getDocumentReference(collectionPath, bookId);
     final bookDoc = await transaction.get(bookRef);
 
     if (!bookDoc.exists) {

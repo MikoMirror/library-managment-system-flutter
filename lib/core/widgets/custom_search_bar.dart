@@ -47,7 +47,7 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
           color: colors.background,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: colors.primary.withOpacity(0.2),
+            color: colors.primary.withAlpha(179),
           ),
         ),
         child: Center(
@@ -60,11 +60,11 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
             decoration: InputDecoration(
               hintText: widget.hintText,
               hintStyle: TextStyle(
-                color: colors.secondary.withOpacity(0.5),
+                color: colors.secondary.withAlpha(179),
               ),
               prefixIcon: Icon(
                 Icons.search,
-                color: colors.secondary.withOpacity(0.5),
+                color: colors.secondary.withAlpha(179),
               ),
               border: InputBorder.none,
               isDense: true,
@@ -76,7 +76,7 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
                   ? IconButton(
                       icon: Icon(
                         Icons.close,
-                        color: colors.secondary.withOpacity(0.5),
+                        color: colors.secondary.withAlpha(179),
                       ),
                       onPressed: () {
                         final controller = widget.controller ?? _controller;

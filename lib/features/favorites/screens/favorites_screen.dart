@@ -10,7 +10,6 @@ import '../../books/widgets/book card/mobile_books_grid.dart';
 import '../../books/widgets/book card/table_books_view.dart';
 import '../../../features/users/models/user_model.dart';
 import '../repositories/favorites_repository.dart';
-import '../../../core/widgets/custom_search_bar.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -75,34 +74,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
     
     return Scaffold(
       appBar: UnifiedAppBar(
-        title: Row(
-          children: [
-            if (!_isSearchVisible)
-              Text(
-                'Favorites',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            if (isDesktop)
-              Expanded(
-                child: CustomSearchBar(
-                  hintText: 'Search favorites...',
-                  controller: _searchController,
-                  isVisible: _isSearchVisible,
-                  animation: _animation,
-                  onChanged: (query) {
-                    setState(() {
-                      _searchQuery = query;
-                    });
-                  },
-                  onClear: _toggleSearch,
-                ),
-              ),
-          ],
+        title: const Text(
+          'Favorites',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        searchHint: 'Search favorites...',
+        onSearch: (query) {
+          setState(() {
+            _searchQuery = query;
+          });
+        },
         actions: [
-          if (isDesktop && !_isSearchVisible)
+          if (isDesktop)
             IconButton(
               icon: Icon(_viewType.icon),
               onPressed: () {
@@ -114,11 +100,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
               },
             ),
         ],
-        onSearch: (query) {
-          setState(() {
-            _searchQuery = query;
-          });
-        },
       ),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
@@ -221,6 +202,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
           isAdmin: isAdmin,
           onDeleteBook: (_, __) {}, // No delete functionality for favorites
         );
+    }
+  }
+
+  IconData get _viewTypeIcon {
+    switch (_viewType) {
+      case BookViewType.mobile:
+        return Icons.grid_view;
+      case BookViewType.table:
+        return Icons.table_rows;
+      case BookViewType.desktop:
+      default:
+        return Icons.dashboard;
     }
   }
 } 

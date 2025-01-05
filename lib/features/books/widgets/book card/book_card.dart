@@ -18,6 +18,7 @@ class BookCard extends StatefulWidget {
   final String? userId;
   final VoidCallback? onDelete;
   final bool showAdminControls;
+  final bool compact;
 
   const BookCard({
     super.key,
@@ -27,6 +28,7 @@ class BookCard extends StatefulWidget {
     this.userId,
     this.onDelete,
     this.showAdminControls = true,
+    this.compact = false,
   });
 
   @override
@@ -76,50 +78,85 @@ class _BookCardState extends State<BookCard> {
   }
 
   Widget _buildActionButton() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    Widget icon;
+    VoidCallback? onPressed;
+
     // Early return for admin with delete button
     if (widget.isAdmin) {
-      return IconButton(
-        icon: const Icon(Icons.delete, color: Colors.red),
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) => DeleteBookDialog(book: widget.book),
-          );
-        },
-      );
+      icon = const Icon(Icons.delete, color: Colors.red, size: 20);
+      onPressed = () {
+        showDialog(
+          context: context,
+          builder: (context) => DeleteBookDialog(book: widget.book),
+        );
+      };
     } 
-    
     // Only initialize favorite functionality for non-admin users
-    if (!widget.isAdmin && widget.showAdminControls && widget.userId != null) {
+    else if (!widget.isAdmin && widget.showAdminControls && widget.userId != null) {
       return BlocBuilder<BookCardBloc, BookCardState>(
         bloc: _bookCardBloc,
         builder: (context, state) {
           if (state is FavoriteStatusLoading) {
-            return const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
+            return Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
             );
           }
 
           final isFavorite = state is FavoriteStatusLoaded ? state.isFavorite : false;
           
-          return IconButton(
-            icon: Icon(
-              isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: Colors.red,
+          return Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: widget.isMobile ? Colors.transparent : Colors.black54,
+              borderRadius: BorderRadius.circular(12),
             ),
-            onPressed: () {
-              if (widget.userId != null) {
-                _bookCardBloc?.add(ToggleFavorite(widget.userId!, widget.book.id!));
-              }
-            },
+            child: InkWell(
+              onTap: () {
+                if (widget.userId != null) {
+                  _bookCardBloc?.add(ToggleFavorite(widget.userId!, widget.book.id!));
+                }
+              },
+              child: Icon(
+                isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: Colors.red,
+                size: 20,
+              ),
+            ),
           );
         },
       );
+    } 
+    else {
+      return const SizedBox.shrink();
     }
-    
-    return const SizedBox.shrink();
+
+    // For admin delete button
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: widget.isMobile ? Colors.transparent : Colors.black54,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        onTap: onPressed,
+        child: icon,
+      ),
+    );
   }
 
   Widget _buildDesktopCard() {
@@ -129,16 +166,25 @@ class _BookCardState extends State<BookCard> {
     
     return Card(
       clipBehavior: Clip.antiAlias,
-      elevation: 4,
+      elevation: widget.compact ? 2 : 4,
       child: Stack(
         children: [
-          CachedNetworkImage(
-            imageUrl: widget.book.coverUrl,
-            placeholder: (context, url) => Container(
-              color: Colors.grey[300],
+          AspectRatio(
+            aspectRatio: 0.7,
+            child: CachedNetworkImage(
+              imageUrl: widget.book.coverUrl,
+              placeholder: (context, url) => Container(
+                color: Colors.grey[300],
+              ),
+              fadeInDuration: const Duration(milliseconds: 300),
+              fit: BoxFit.cover,
             ),
-            fadeInDuration: const Duration(milliseconds: 300),
-            fit: BoxFit.cover,
+          ),
+
+          Positioned(
+            top: 8,
+            left: 8,
+            child: _buildRatingIndicator(),
           ),
 
           Positioned(
@@ -207,7 +253,7 @@ class _BookCardState extends State<BookCard> {
             children: [
               SizedBox(
                 width: 90,
-                height: 120,
+                height: 130,
                 child: ImageCacheService().buildCachedImage(
                   imageUrl: widget.book.coverUrl,
                   fit: BoxFit.cover,
@@ -218,44 +264,41 @@ class _BookCardState extends State<BookCard> {
           ),
 
           Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    stops: const [0.0, 0.3, 1.0],
-                    colors: [
-                      Colors.transparent,
-                      (isDark ? AppTheme.dark.primary : AppTheme.light.primary).withOpacity(0.1),
-                      (isDark ? AppTheme.dark.primary : AppTheme.light.primary).withOpacity(0.3),
-                    ],
-                  ),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  stops: const [0.0, 0.3, 1.0],
+                  colors: [
+                    Colors.transparent,
+                    (isDark ? AppTheme.dark.primary : AppTheme.light.primary).withOpacity(0.1),
+                    (isDark ? AppTheme.dark.primary : AppTheme.light.primary).withOpacity(0.3),
+                  ],
                 ),
               ),
             ),
-          
+          ),
 
           Row(
             children: [
-              const SizedBox(width: 90), // Space for image
+              const SizedBox(width: 90),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(
-                        height: 48,
-                        child: Text(
-                          widget.book.title,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                      Text(
+                        widget.book.title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -267,6 +310,8 @@ class _BookCardState extends State<BookCard> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 8),
+                      _buildRatingIndicator(isMobile: true),
                     ],
                   ),
                 ),
@@ -287,6 +332,52 @@ class _BookCardState extends State<BookCard> {
     return TextStyle(
       fontSize: 14,
       color: Colors.grey[600],
+    );
+  }
+
+  Widget _buildRatingIndicator({bool isMobile = false}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isMobile 
+            ? Colors.transparent
+            : Colors.black54,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.star,
+            size: 16,
+            color: Colors.amber,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            widget.book.averageRating.toStringAsFixed(1),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: isMobile
+                  ? (isDark ? Colors.white70 : Colors.black54)
+                  : Colors.white,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '(${widget.book.ratingsCount})',
+            style: TextStyle(
+              fontSize: 12,
+              color: isMobile
+                  ? (isDark ? Colors.white60 : Colors.black45)
+                  : Colors.white70,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

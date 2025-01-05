@@ -76,14 +76,6 @@ class _BookCoverSelectorState extends State<BookCoverSelector> {
     }
   }
 
-  String _sizeToString(CoverSize size) {
-    switch (size) {
-      case CoverSize.small: return 'Small';
-      case CoverSize.medium: return 'Medium';
-      case CoverSize.large: return 'Large';
-    }
-  }
-
   Widget _buildCoverPreview() {
     if (_selectedUrl == null) {
       return Container(
@@ -152,13 +144,6 @@ class _BookCoverSelectorState extends State<BookCoverSelector> {
           ),
       ],
     );
-  }
-
-  String _getUrlWithSize(String url, CoverSize size) {
-    if (url.contains('openlibrary.org')) {
-      return url.replaceAll(RegExp(r'-[SML]\.jpg'), '-${_sizeToString(size)}.jpg');
-    }
-    return url;
   }
 
   @override

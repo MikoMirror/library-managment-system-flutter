@@ -255,7 +255,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               end: Alignment.bottomCenter,
               colors: [
                 Colors.transparent,
-                overlayColor.withOpacity(0.6),
+                overlayColor.withAlpha(150),
               ],
               stops: const [0.0, 0.3],
             ),

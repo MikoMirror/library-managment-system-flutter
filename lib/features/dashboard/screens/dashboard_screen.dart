@@ -17,29 +17,50 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
   DashboardLoaded? _dashboardData;
+  FocusNode? _focusNode;
+  bool _mounted = true;
 
   @override
   void initState() {
     super.initState();
-    final currentState = context.read<DashboardCubit>().state;
+    _loadDashboardData();
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_mounted) {
+      _focusNode?.requestFocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    _mounted = false;
+    if (_focusNode?.hasFocus ?? false) {
+      _focusNode?.unfocus();
+    }
+    _focusNode?.dispose();
+    _focusNode = null;
+    super.dispose();
+  }
+
+  void _loadDashboardData() {
+    if (!_mounted) return;
     
-    if (currentState is DashboardInitial) {
-      final now = DateTime.now();
-      // Set end date to end of current day
-      final endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
-      
-      // Set start date to 13 days before (for 14 days total)
-      final startDate = DateTime(
-        now.year,
-        now.month,
-        now.day - 13,
-        0, 0, 0,
-      );
-      
-      print('Initial date range: ${startDate.toString()} - ${endDate.toString()}'); // Debug print
-      
+    final now = DateTime.now();
+    final endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final startDate = DateTime(
+      now.year,
+      now.month,
+      now.day - 13,
+      0, 0, 0,
+    );
+    
+    if (_mounted) {
       context.read<DashboardCubit>().loadDashboard(
         startDate: startDate,
         endDate: endDate,
@@ -63,6 +84,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : AppTheme.light.background,
       body: BlocBuilder<DashboardCubit, DashboardState>(
         builder: (context, state) {
+          // Force refresh when navigating to this screen
+          if (state is! DashboardLoading && state is! DashboardLoaded) {
+            _loadDashboardData();
+          }
+
           if (state is DashboardError) {
             return Center(child: Text(state.message));
           }

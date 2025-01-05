@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'base_firestore_service.dart';
 import '../../../features/reservation/models/reservation.dart';
+import 'package:logger/logger.dart';
 
 class ReservationsFirestoreService extends BaseFirestoreService {
-  static const String COLLECTION = 'books_reservation';
+  static const String collectionPath = 'books_reservation';
+
+  final _logger = Logger();
 
   CollectionReference<Map<String, dynamic>> collection(String path) {
     return firestore.collection(path);
@@ -14,48 +17,48 @@ class ReservationsFirestoreService extends BaseFirestoreService {
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> getReservations() {
-    return collection(COLLECTION).get();
+    return collection(collectionPath).get();
   }
 
   Stream<DocumentSnapshot<Map<String, dynamic>>> getReservationStream(String reservationId) {
-    return collection(COLLECTION).doc(reservationId).snapshots();
+    return collection(collectionPath).doc(reservationId).snapshots();
   }
 
   Future<void> updateReservationStatus(String reservationId, String newStatus) {
-    return collection(COLLECTION).doc(reservationId).update({
+    return collection(collectionPath).doc(reservationId).update({
       'status': newStatus,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> getExpiredReservations(Timestamp cutoffTime) {
-    return collection(COLLECTION)
+    return collection(collectionPath)
         .where('status', isEqualTo: 'reserved')
         .where('borrowedDate', isLessThan: cutoffTime)
         .get();
   }
 
   Future<void> addReservation(Reservation reservation) async {
-    await addDocument(COLLECTION, reservation.toMap());
+    await addDocument(collectionPath, reservation.toMap());
   }
 
   Future<void> updateReservation(String id, Map<String, dynamic> data) async {
-    await updateDocument(COLLECTION, id, data);
+    await updateDocument(collectionPath, id, data);
   }
 
   Stream<List<Reservation>> getReservationsStream() {
     return getCollectionStream(
-      collection: COLLECTION,
+      collection: collectionPath,
       fromMap: (data, id) => Reservation.fromMap(data, id),
     );
   }
 
   Future<DocumentReference> createReservation(Map<String, dynamic> data) {
-    return collection(COLLECTION).add(data);
+    return collection(collectionPath).add(data);
   }
 
   Future<void> deleteReservation(String id) async {
-    await deleteDocument(COLLECTION, id);
+    await deleteDocument(collectionPath, id);
   }
 
   Future<bool> validateReservationDate(DateTime reservationDate) async {
@@ -77,7 +80,7 @@ class ReservationsFirestoreService extends BaseFirestoreService {
 
       return reservationDate.isBefore(lastAllowedDate.add(const Duration(days: 1)));
     } catch (e) {
-      print('Error validating reservation date: $e');
+      _logger.e('Error validating reservation date: $e');
       return false;
     }
   }

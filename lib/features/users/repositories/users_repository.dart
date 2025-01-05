@@ -29,7 +29,7 @@ class UsersRepository implements BaseRepository {
 
   Future<void> deleteUser(String userId) async {
     try {
-      await _firestoreService.deleteDocument(UsersFirestoreService.COLLECTION, userId);
+      await _firestoreService.deleteDocument(UsersFirestoreService.collectionPath, userId);
     } catch (e) {
       throw Exception('Failed to delete user: $e');
     }
@@ -84,7 +84,7 @@ class UsersRepository implements BaseRepository {
   Future<bool> adminExists() async {
     try {
       final querySnapshot = await _firestoreService.firestore
-          .collection(UsersFirestoreService.COLLECTION)
+          .collection(UsersFirestoreService.collectionPath)
           .where('role', isEqualTo: 'admin')
           .limit(1)
           .get();

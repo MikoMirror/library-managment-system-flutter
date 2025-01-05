@@ -9,31 +9,31 @@ import '../../../core/navigation/cubit/navigation_cubit.dart';
 import '../../books/widgets/book card/book_card.dart';
 import '../../books/enums/sort_type.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/cubit/theme_cubit.dart';
 import '../../books/screens/books_screen.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
 import 'dart:async';
-import '../../books/bloc/book_card_bloc.dart';
-import '../../books/repositories/books_repository.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../core/navigation/cubit/navigation_cubit.dart';
 import '../../../core/navigation/cubit/navigation_state.dart';
 import 'package:flutter/gestures.dart' show DragStartBehavior, PointerDeviceKind;
 
 class MainHomeScreen extends StatefulWidget {
   const MainHomeScreen({super.key});
 
+  static const pageStorageKey = PageStorageKey('main_home_screen');
+
   @override
   State<MainHomeScreen> createState() => _MainHomeScreenState();
 }
 
-class _MainHomeScreenState extends State<MainHomeScreen> {
+class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   StreamSubscription? _adminStreamSubscription;
   bool _isAdmin = false;
   String? _userId;
   late final Map<SortType, Widget> _cachedSections;
   bool _initialized = false;
-  bool _showBooksList = false;
+  final bool _showBooksList = false;
   SortType? _currentSortType;
 
   @override
@@ -60,14 +60,14 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     _cachedSections = {
       SortType.rating: _buildSection(
         title: 'Most popular books',
-        subtitle: 'Highest rated books in our collection',
+        subtitle: '',
         sortType: SortType.rating,
         icon: Icons.star,
         colors: colors,
       ),
       SortType.date: _buildSection(
         title: 'New books',
-        subtitle: 'Recently added to our collection',
+        subtitle: '',
         sortType: SortType.date,
         icon: Icons.new_releases,
         colors: colors,
@@ -88,7 +88,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
           .listen(
         (snapshot) {
           if (mounted) {
-            final userData = snapshot.data() as Map<String, dynamic>?;
+            final userData = snapshot.data();
             setState(() {
               _isAdmin = userData?['role'] == 'admin';
             });
@@ -109,6 +109,8 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     final colors = Theme.of(context).brightness == Brightness.dark 
         ? AppTheme.dark 
         : AppTheme.light;
@@ -126,6 +128,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             : null;
         
         return Container(
+          key: MainHomeScreen.pageStorageKey,
           color: colors.background,
           child: showBooks
             ? BooksScreen(
@@ -148,7 +151,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                           ),
                         ),
                       ),
-                      if (_cachedSections != null) ...[
+                      ...[
                         _cachedSections[SortType.rating]!,
                         const SizedBox(height: 32),
                         _cachedSections[SortType.date]!,
@@ -169,86 +172,106 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     required IconData icon,
     required CoreColors colors,
   }) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader(
-          title: title,
-          subtitle: subtitle,
-          icon: icon,
-          onTap: () => _navigateToBooks(context, sortType),
-          colors: colors,
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: isMobile ? 8 : 12,
+          ),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: colors.primaryContainer.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        sortType == SortType.rating ? Icons.star : Icons.new_releases,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: isMobile ? 16 : 20,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: isMobile ? 16 : 20,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () => _navigateToBooks(context, sortType),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 8 : 16,
+                    vertical: isMobile ? 4 : 8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'View all',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: isMobile ? 12 : 14,
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: isMobile ? 12 : 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 300,
-          child: _buildBooksList(context, sortType: sortType),
+          height: isMobile ? 200 : 240,
+          child: ShaderMask(
+            shaderCallback: (Rect bounds) {
+              return LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  colors.background,
+                  Colors.transparent,
+                  Colors.transparent,
+                  colors.background,
+                ],
+                stops: const [0.0, 0.05, 0.95, 1.0],
+              ).createShader(bounds);
+            },
+            blendMode: BlendMode.dstOut,
+            child: _buildBooksList(context, sortType: sortType),
+          ),
         ),
       ],
-    );
-  }
-
-  Widget _buildSectionHeader({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required VoidCallback onTap,
-    required CoreColors colors,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: colors.primaryContainer.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: colors.primaryContainer,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: colors.onBackground,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: colors.textSubtle,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            Icons.arrow_forward_ios,
-            size: 16,
-            color: colors.textSubtle,
-          ),
-        ],
-      ),
     );
   }
 
@@ -277,7 +300,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onBackground,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ],
@@ -319,7 +342,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
           height: 280,
           child: ShaderMask(
             shaderCallback: (Rect bounds) {
-              return LinearGradient(
+              return const LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
@@ -328,7 +351,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                   Colors.transparent,
                   Colors.black,
                 ],
-                stops: const [0.0, 0.05, 0.95, 1.0],
+                stops: [0.0, 0.05, 0.95, 1.0],
               ).createShader(bounds);
             },
             blendMode: BlendMode.dstOut,
@@ -340,9 +363,8 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   }
 
   Widget _buildBooksList(BuildContext context, {required SortType sortType}) {
-    // Get screen width to determine if we're on mobile
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600; // Common breakpoint for mobile devices
+    final isMobile = screenWidth < 600;
     
     return BlocBuilder<BooksBloc, BooksState>(
       builder: (context, state) {
@@ -357,7 +379,6 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
         if (state is BooksLoaded) {
           final books = List<Book>.from(state.books);
 
-          // Sort books based on type
           if (sortType == SortType.rating) {
             books.sort((a, b) => b.averageRating.compareTo(a.averageRating));
           } else if (sortType == SortType.date) {
@@ -377,20 +398,20 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              physics: const AlwaysScrollableScrollPhysics(),
-              dragStartBehavior: DragStartBehavior.down,
-              clipBehavior: Clip.none,
+              physics: const BouncingScrollPhysics(),
               itemCount: displayBooks.length,
-              separatorBuilder: (context, index) => SizedBox(width: isMobile ? 8 : 16),
+              separatorBuilder: (context, index) => const SizedBox(width: 16),
               itemBuilder: (context, index) {
                 return SizedBox(
                   width: 180,
                   child: BookCard(
                     book: displayBooks[index],
-                    isMobile: false,
+                    isMobile: isMobile,
                     isAdmin: _isAdmin,
-                    userId: _userId ?? '',
+                    userId: _userId,
                     onDelete: () => _handleBookDelete(context, displayBooks[index]),
+                    showAdminControls: true,
+                    compact: true,
                   ),
                 );
               },

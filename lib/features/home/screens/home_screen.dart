@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../users/screens/users_screen.dart';
-import '../../books/screens/books_screen.dart';
 import '../../books/screens/book_details_screen.dart';
 import '../../favorites/screens/favorites_screen.dart';
 import '../../settings/screens/settings_screen.dart';
@@ -24,9 +23,9 @@ import 'dart:async';
 import '../../../core/services/firestore/users_firestore_service.dart';
 import '../../../core/services/firestore/reservations_firestore_service.dart';
 import '../screens/main_home_screen.dart';
-import '../../books/enums/sort_type.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
 import '../../books/bloc/books_event.dart';
+import 'package:logger/logger.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,6 +35,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final _logger = Logger();
   int _selectedIndex = 0;
   UserModel? _cachedUserModel;
   List<NavigationItem>? _cachedNavigationItems;
@@ -129,65 +129,61 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _getScreenForIndex(int index, String role) {
-    if (index == 0) {
-      final navigationState = context.read<NavigationCubit>().state;
-      if (navigationState.route == RouteNames.books) {
-        final params = navigationState.params;
-        final sortType = params != null ? SortType.values.firstWhere(
-          (type) => type.toString() == params['sortType'],
-          orElse: () => SortType.none,
-        ) : null;
-
-        return BlocProvider.value(
-          value: _booksBloc,
-          child: BooksScreen(
-            key: const ValueKey('books_screen'),
-            sortType: sortType,
-          ),
-        );
+    if (role == 'admin') {
+      switch (index) {
+        case 0:
+          return BlocProvider.value(
+            value: _booksBloc,
+            child: const MainHomeScreen(),
+          );
+        case 1:
+          return BlocProvider.value(
+            value: _dashboardCubit,
+            child: const DashboardScreen(),
+          );
+        case 2:
+          return const UsersScreen();
+        case 3:
+          return BlocProvider.value(
+            value: _reservationBloc..add(LoadReservations()),
+            child: ReservationsScreen(
+              reservationsService: _reservationsService,
+              booksService: _firestoreService,
+              usersService: _usersService,
+            ),
+          );
+        case 4:
+          return const SettingsScreen();
+        default:
+          return const SizedBox.shrink();
       }
-      
-      return BlocProvider.value(
-        value: _booksBloc,
-        child: const MainHomeScreen(key: ValueKey('main_home_screen')),
-      );
     }
 
-    final screens = {
-      0: () => BlocProvider.value(
+    switch (index) {
+      case 0:
+        return PageStorage(
+          bucket: PageStorageBucket(),
+          child: BlocProvider.value(
             value: _booksBloc,
             child: const MainHomeScreen(),
           ),
-      1: () => role == 'admin'
-          ? BlocProvider.value(
-              value: _dashboardCubit,
-              child: const DashboardScreen(),
-            )
-          : const FavoritesScreen(),
-      2: () => role == 'admin'
-          ? const UsersScreen()
-          : BlocProvider.value(
-              value: _reservationBloc..add(LoadReservations()),
-              child: ReservationsScreen(
-                reservationsService: _reservationsService,
-                booksService: _firestoreService,
-                usersService: _usersService,
-              ),
-            ),
-      3: () => role == 'admin'
-          ? BlocProvider.value(
-              value: _reservationBloc..add(LoadReservations()),
-              child: ReservationsScreen(
-                reservationsService: _reservationsService,
-                booksService: _firestoreService,
-                usersService: _usersService,
-              ),
-            )
-          : const SettingsScreen(),
-      4: () => const SettingsScreen(),
-    };
-
-    return screens[index]?.call() ?? const SizedBox.shrink();
+        );
+      case 1:
+        return const FavoritesScreen();
+      case 2:
+        return BlocProvider.value(
+          value: _reservationBloc..add(LoadReservations()),
+          child: ReservationsScreen(
+            reservationsService: _reservationsService,
+            booksService: _firestoreService,
+            usersService: _usersService,
+          ),
+        );
+      case 3:
+        return const SettingsScreen();
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   void _onItemSelected(int index) {
@@ -250,38 +246,69 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return BlocListener<NavigationCubit, NavigationState>(
       listener: (context, state) {
-        switch (state.route) {
-          case RouteNames.home:
-            setState(() {
-              _selectedIndex = 0;
-              _booksBloc.add(const LoadBooksEvent());
-            });
-            break;
-          case RouteNames.books:
-            setState(() => _selectedIndex = 0);
-            break;
-          case RouteNames.dashboard:
-            setState(() => _selectedIndex = 1);
-            break;
-          case RouteNames.users:
-          case RouteNames.favorites:
-            setState(() => _selectedIndex = 2);
-            break;
-          case RouteNames.bookings:
-            setState(() => _selectedIndex = 3);
-            break;
-          case RouteNames.settings:
-            setState(() => _selectedIndex = 4);
-            break;
-          case RouteNames.bookDetails:
-            final bookId = state.params?['bookId'] as String;
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BookDetailsScreen(bookId: bookId),
-              ),
-            );
-            break;
+        if (_cachedUserModel?.role == 'admin') {
+          // Admin navigation
+          switch (state.route) {
+            case RouteNames.home:
+              setState(() {
+                _selectedIndex = 0;
+              });
+              break;
+            case RouteNames.books:
+              setState(() => _selectedIndex = 0);
+              break;
+            case RouteNames.dashboard:
+              setState(() => _selectedIndex = 1);
+              break;
+            case RouteNames.users:
+              setState(() => _selectedIndex = 2);
+              break;
+            case RouteNames.bookings:
+              setState(() => _selectedIndex = 3);
+              break;
+            case RouteNames.settings:
+              setState(() => _selectedIndex = 4);
+              break;
+            case RouteNames.bookDetails:
+              final bookId = state.params?['bookId'] as String;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BookDetailsScreen(bookId: bookId),
+                ),
+              );
+              break;
+          }
+        } else {
+          // Non-admin navigation
+          switch (state.route) {
+            case RouteNames.home:
+              setState(() {
+                _selectedIndex = 0;
+              });
+              break;
+            case RouteNames.books:
+              setState(() => _selectedIndex = 0);
+              break;
+            case RouteNames.favorites:
+              setState(() => _selectedIndex = 1);
+              break;
+            case RouteNames.bookings:
+              setState(() => _selectedIndex = 2);
+              break;
+            case RouteNames.settings:
+              setState(() => _selectedIndex = 3);
+              break;
+            case RouteNames.bookDetails:
+              final bookId = state.params?['bookId'] as String;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BookDetailsScreen(bookId: bookId),
+                ),
+              );
+              break;
+          }
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
@@ -294,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
             return _buildHomeContentWithUser(_cachedUserModel!);
           }
 
-          print('Fetching user data for userId: ${state.user.uid}');
+          _logger.d('Fetching user data for userId: ${state.user.uid}');
 
           return FutureBuilder<DocumentSnapshot>(
             future: _usersService.getDocument('users', state.user.uid),
@@ -383,25 +410,5 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
-  }
-
-  Future<void> someMethod() async {
-    final doc = await _firestoreService.getDocument('collection', 'id');
-  }
-
-  Widget _buildContent(NavigationState state) {
-    if (state.params?['showBooks'] == true) {
-      // Show BooksScreen with the navigation bar
-      return BooksScreen(
-        sortType: state.params?['sortType'] != null 
-            ? SortType.values.firstWhere(
-                (e) => e.toString() == state.params!['sortType']
-              )
-            : null,
-      );
-    }
-
-    // Show default content
-    return const MainHomeScreen();
   }
 }

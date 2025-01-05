@@ -5,11 +5,13 @@ import 'dart:async';
 import '../../../core/services/firestore/reservations_firestore_service.dart';
 import '../../../core/services/firestore/books_firestore_service.dart';
 import '../../../core/services/firestore/users_firestore_service.dart';
+import 'package:logger/logger.dart';
 
 class ReservationsRepository implements BaseRepository {
   final ReservationsFirestoreService _reservationsService;
   final BooksFirestoreService _booksService;
   final UsersFirestoreService _usersService;
+  final _logger = Logger();
   Timer? _periodicCheckTimer;
 
   ReservationsRepository({
@@ -61,7 +63,7 @@ class ReservationsRepository implements BaseRepository {
 
           hasBatchOperations = true;
         } catch (e) {
-          print('Error processing reservation ${doc.id}: $e');
+          _logger.e('Error processing reservation ${doc.id}: $e');
           continue;
         }
       }
@@ -70,7 +72,7 @@ class ReservationsRepository implements BaseRepository {
         await batch.commit();
       }
     } catch (e) {
-      print('Error checking reservation statuses: $e');
+      _logger.e('Error checking reservation statuses: $e');
       throw Exception('Failed to check reservation statuses: $e');
     }
   }
@@ -84,7 +86,7 @@ class ReservationsRepository implements BaseRepository {
         
         // Get book details
         final bookDoc = await _booksService
-            .getDocumentReference(BooksFirestoreService.COLLECTION, data['bookId'] as String)
+            .getDocumentReference(BooksFirestoreService.collectionPath, data['bookId'] as String)
             .get();
         final bookData = bookDoc.data();
         
@@ -129,10 +131,10 @@ class ReservationsRepository implements BaseRepository {
     };
 
     // Use createReservation method instead of getDocumentReference
-    final reservationRef = await _reservationsService.createReservation(reservationData);
+    await _reservationsService.createReservation(reservationData);
 
     // Update the book quantity
-    final bookRef = _booksService.getDocumentReference(BooksFirestoreService.COLLECTION, bookId);
+    final bookRef = _booksService.getDocumentReference(BooksFirestoreService.collectionPath, bookId);
     batch.update(bookRef, {
       'booksQuantity': FieldValue.increment(-quantity),
     });
@@ -179,7 +181,7 @@ class ReservationsRepository implements BaseRepository {
 
       await batch.commit();
     } catch (e) {
-      print('Error updating reservation status: $e');
+      _logger.e('Error updating reservation status: $e');
       throw Exception('Failed to update reservation status: $e');
     }
   }

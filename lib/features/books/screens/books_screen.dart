@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,15 +10,9 @@ import '../bloc/books_state.dart';
 import '../bloc/books_event.dart';
 import '../widgets/book card/mobile_books_grid.dart';
 import '../widgets/book card/desktop_books_grid.dart';
-import '../enums/book_view_type.dart';
-import '../widgets/book card/table_books_view.dart';
 import '../../../core/widgets/app_bar.dart';
-import 'dart:async';
-import '../../books/enums/sort_type.dart';
-import '../../../features/books/bloc/books_bloc.dart';
-import '../../../features/books/bloc/books_state.dart';
-import '../../../features/books/bloc/books_event.dart';
 import '../../../core/navigation/cubit/navigation_cubit.dart';
+import '../../books/enums/sort_type.dart';
 
 class BooksScreen extends StatefulWidget {
   final SortType? sortType;
@@ -33,26 +28,19 @@ class BooksScreen extends StatefulWidget {
   State<BooksScreen> createState() => _BooksScreenState();
 }
 
-class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStateMixin {
+class _BooksScreenState extends State<BooksScreen> {
   late final _firestore = FirebaseFirestore.instance;
   late final _searchController = TextEditingController();
-  bool _isSearchVisible = false;
   String? _userId;
   bool _isAdmin = false;
   
-  late bool _isSmallScreen;
-  late bool _isPortrait;
-  
   StreamSubscription? _adminStreamSubscription;
   DocumentSnapshot? _adminSnapshot;
-  
-  BookViewType _viewType = BookViewType.desktop;
 
   @override
   void initState() {
     super.initState();
     
-    // Don't reload books if we already have them and a sort type is specified
     if (widget.sortType != null) {
       final state = context.read<BooksBloc>().state;
       if (state is! BooksLoaded) {
@@ -68,14 +56,13 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
     if (authState is AuthSuccess) {
       _userId = authState.user.uid;
       
-      // First, get the initial admin status synchronously
       FirebaseFirestore.instance
           .collection('users')
           .doc(_userId)
           .get()
           .then((snapshot) {
         if (mounted) {
-          final userData = snapshot.data() as Map<String, dynamic>?;
+          final userData = snapshot.data();
           setState(() {
             _adminSnapshot = snapshot;
             _isAdmin = userData?['role'] == 'admin';
@@ -83,7 +70,6 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
         }
       });
 
-      // Then set up the stream for updates
       _adminStreamSubscription?.cancel();
       _adminStreamSubscription = _firestore
           .collection('users')
@@ -92,7 +78,7 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
           .listen(
         (snapshot) {
           if (mounted) {
-            final userData = snapshot.data() as Map<String, dynamic>?;
+            final userData = snapshot.data();
             setState(() {
               _adminSnapshot = snapshot;
               _isAdmin = userData?['role'] == 'admin';
@@ -106,12 +92,30 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
     }
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  Widget _buildBookGrid(List<Book> books) {
     final mediaQuery = MediaQuery.of(context);
-    _isSmallScreen = mediaQuery.size.width < 600;
-    _isPortrait = mediaQuery.orientation == Orientation.portrait;
+    final isPortrait = mediaQuery.orientation == Orientation.portrait;
+    final isSmallScreen = mediaQuery.size.width < 600;
+
+    // Use mobile grid for portrait orientation or small screens
+    if (isPortrait || isSmallScreen) {
+      return MobileBooksGrid(
+        books: books,
+        userId: _userId ?? '',
+        isAdmin: _isAdmin,
+        onDeleteBook: _handleDeleteBook,
+        showAdminControls: true,
+      );
+    }
+
+    // Use desktop grid for landscape orientation on larger screens
+    return DesktopBooksGrid(
+      books: books,
+      userId: _userId ?? '',
+      isAdmin: _isAdmin,
+      onDeleteBook: _handleDeleteBook,
+      showAdminControls: true,
+    );
   }
 
   @override
@@ -119,14 +123,6 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
     _adminStreamSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _toggleViewType() {
-    setState(() {
-      _viewType = _viewType == BookViewType.desktop 
-          ? BookViewType.table 
-          : BookViewType.desktop;
-    });
   }
 
   @override
@@ -164,12 +160,6 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
                   context.read<BooksBloc>().add(SearchBooks(query));
                 }
               },
-              actions: [
-                IconButton(
-                  icon: Icon(_getViewTypeIcon()),
-                  onPressed: _toggleViewType,
-                ),
-              ],
             ),
             body: _buildBooksList(state),
             floatingActionButton: _buildFAB(context.read<AuthBloc>().state),
@@ -187,52 +177,9 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
       return Center(child: Text(state.message));
     }
     if (state is BooksLoaded) {
-      return _buildBooksContent(state.books);
+      return _buildBookGrid(state.books);
     }
     return const SizedBox.shrink();
-  }
-
-  Widget _buildBooksContent(List<Book> books) {
-    if (books.isEmpty) {
-      return const Center(
-        child: Text('No books available'),
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (_viewType == BookViewType.table) {
-          return TableBooksView(
-            books: books,
-            userId: _userId ?? '',
-            isAdmin: _isAdmin,
-            onDeleteBook: _handleDeleteBook,
-          );
-        }
-
-        return Container(
-          constraints: const BoxConstraints(
-            minHeight: 0,
-            maxHeight: double.infinity,
-          ),
-          child: _isSmallScreen || _isPortrait
-            ? MobileBooksGrid(
-                books: books,
-                userId: _userId ?? '',
-                isAdmin: _isAdmin,
-                onDeleteBook: _handleDeleteBook,
-                showAdminControls: true,
-              )
-            : DesktopBooksGrid(
-                books: books,
-                userId: _userId ?? '',
-                isAdmin: _isAdmin,
-                onDeleteBook: _handleDeleteBook,
-                showAdminControls: true,
-              ),
-        );
-      },
-    );
   }
 
   Widget _buildFAB(AuthState authState) {
@@ -258,17 +205,5 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
       context: context,
       builder: (context) => const AddBookDialog(),
     );
-  }
-
-  IconData _getViewTypeIcon() {
-    switch (_viewType) {
-      case BookViewType.mobile:
-        return Icons.grid_view;
-      case BookViewType.table:
-        return Icons.table_rows;
-      case BookViewType.desktop:
-      default:
-        return Icons.dashboard;
-    }
   }
 }

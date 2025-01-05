@@ -1,43 +1,44 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
 import 'base_firestore_service.dart';
 import '../../../features/books/models/book.dart';
 import '../../../features/dashboard/models/borrowing_trend_point.dart';
 import '../../../features/reservation/models/reservation.dart';
+import 'package:logger/logger.dart';
 
 class BooksFirestoreService extends BaseFirestoreService {
-  static const String COLLECTION = 'books';
+  static const String collectionPath = 'books';
   final _favoriteCache = <String, Stream<bool>>{};
+  final _logger = Logger();
 
-  CollectionReference<Map<String, dynamic>> collection(String path) {
+  CollectionReference<Map<String, dynamic>> getCollection(String path) {
     return firestore.collection(path);
   }
 
   Stream<DocumentSnapshot<Map<String, dynamic>>> getDocumentStream(String bookId) {
     return firestore
-        .collection(COLLECTION)
+        .collection(collectionPath)
         .doc(bookId)
         .snapshots();
   }
 
   Future<void> addBook(Book book) async {
     final bookData = book.toMap();
-    await addDocument(COLLECTION, bookData);
+    await addDocument(collectionPath, bookData);
   }
 
   Stream<List<Book>> getAllBooks() {
     return getCollectionStream(
-      collection: COLLECTION,
+      collection: collectionPath,
       fromMap: (data, id) => Book.fromMap(data, id),
     );
   }
 
   Future<void> updateBookQuantity(String bookId, int quantity) async {
-    await updateDocument(COLLECTION, bookId, {'booksQuantity': quantity});
+    await updateDocument(collectionPath, bookId, {'booksQuantity': quantity});
   }
 
   Future<void> rateBook(String bookId, String userId, double rating) async {
-    await updateDocument(COLLECTION, bookId, {
+    await updateDocument(collectionPath, bookId, {
       'ratings.$userId': rating,
     });
   }
@@ -68,7 +69,7 @@ class BooksFirestoreService extends BaseFirestoreService {
     }
     
     final bookData = book.toMap();
-    await updateDocument(COLLECTION, book.id!, bookData);
+    await updateDocument(collectionPath, book.id!, bookData);
   }
 
   @override
@@ -77,7 +78,7 @@ class BooksFirestoreService extends BaseFirestoreService {
   }
 
   Future<Map<String, int>> getDashboardStats() async {
-    final booksSnapshot = await collection(COLLECTION).get();
+    final booksSnapshot = await getCollection(collectionPath).get();
     final reservationsSnapshot = await firestore.collection('books_reservation').get();
 
     int uniqueBooks = booksSnapshot.size;
@@ -167,7 +168,7 @@ class BooksFirestoreService extends BaseFirestoreService {
           .toList()
         ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
     } catch (e) {
-      print('Error getting borrowing trends: $e');
+      _logger.e('Error getting borrowing trends: $e');
       return [];
     }
   }

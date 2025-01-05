@@ -1,4 +1,3 @@
-import 'package:equatable/equatable.dart';
 import '../enums/sort_type.dart';
 
 abstract class BooksEvent {
@@ -16,7 +15,6 @@ class SearchBooks extends BooksEvent {
   
   const SearchBooks(this.query);
   
-  @override
   List<Object?> get props => [query];
 }
 
@@ -25,6 +23,5 @@ class DeleteBook extends BooksEvent {
   
   const DeleteBook(this.bookId);
   
-  @override
   List<Object?> get props => [bookId];
 } 

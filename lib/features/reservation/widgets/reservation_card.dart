@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/reservation.dart';
 import '../../../core/theme/app_theme.dart';
-import '../widgets/delete_reservation_dialog.dart';
 import '../bloc/reservation_card_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -45,7 +44,7 @@ class ReservationCard extends StatelessWidget {
           child: Card(
             elevation: isSelected ? 4 : 1,
             color: isSelected 
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+              ? Theme.of(context).colorScheme.primary.withAlpha(26)
               : null,
             child: BlocProvider(
               create: (context) => ReservationCardBloc(
@@ -403,10 +402,10 @@ class ReservationCard extends StatelessWidget {
         vertical: isSmallScreen ? 2 : 4,
       ),
       decoration: BoxDecoration(
-        color: (isDarkMode ? AppTheme.dark.primary : AppTheme.light.primary).withOpacity(0.1),
+        color: (isDarkMode ? AppTheme.dark.primary : AppTheme.light.primary).withAlpha(26),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: (isDarkMode ? AppTheme.dark.primary : AppTheme.light.primary).withOpacity(0.3),
+          color: (isDarkMode ? AppTheme.dark.primary : AppTheme.light.primary).withAlpha(77),
           width: 1,
         ),
       ),
@@ -442,7 +441,7 @@ class ReservationCard extends StatelessWidget {
         vertical: isSmallScreen ? 4 : 6,
       ),
       decoration: BoxDecoration(
-        color: colors[reservation.status.toLowerCase()]?.withOpacity(0.8) ?? Colors.grey,
+        color: colors[reservation.status.toLowerCase()]?.withAlpha(204) ?? Colors.grey,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -465,10 +464,10 @@ class ReservationCard extends StatelessWidget {
         vertical: isSmallScreen ? 2 : 4,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.light.error.withOpacity(0.1),
+        color: AppTheme.light.error.withAlpha(26),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
-          color: AppTheme.light.error.withOpacity(0.3),
+          color: AppTheme.light.error.withAlpha(77),
           width: 1,
         ),
       ),
