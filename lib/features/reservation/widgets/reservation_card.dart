@@ -268,7 +268,7 @@ class ReservationCard extends StatelessWidget {
                                     ),
                                   ] : reservation.status.toLowerCase() == 'returned' || 
                                       reservation.status.toLowerCase() == 'expired' || 
-                                      reservation.status.toLowerCase() == 'cancelled' ? [
+                                      reservation.status.toLowerCase() == 'canceled' ? [
                                     TextButton.icon(
                                       onPressed: () => _showDeleteDialog(context),
                                       icon: const Icon(Icons.delete_outline),
@@ -282,7 +282,7 @@ class ReservationCard extends StatelessWidget {
                                   TextButton.icon(
                                     onPressed: () {
                                       context.read<ReservationCardBloc>().add(
-                                        UpdateCardStatus('cancelled'),
+                                        UpdateCardStatus('canceled'),
                                       );
                                     },
                                     icon: const Icon(Icons.cancel_outlined),
@@ -431,8 +431,7 @@ class ReservationCard extends StatelessWidget {
       'rejected': AppTheme.reservationStatus.rejected,
       'overdue': AppTheme.reservationStatus.overdue,
       'expired': AppTheme.reservationStatus.expired,
-      'cancelled': AppTheme.reservationStatus.cancelled,
-      'canceled': AppTheme.reservationStatus.cancelled,
+      'canceled': AppTheme.reservationStatus.canceled,
     };
 
     return Container(

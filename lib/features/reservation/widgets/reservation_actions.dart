@@ -28,7 +28,7 @@ class ReservationActions extends StatelessWidget {
   }
 
   Widget _buildDesktopActions(BuildContext context) {
-    if (!isAdmin || reservation.id == null) return const SizedBox.shrink();
+    if (reservation.id == null) return const SizedBox.shrink();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final coreColors = isDark ? AppTheme.dark : AppTheme.light;
@@ -37,6 +37,17 @@ class ReservationActions extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if ((currentStatus == 'reserved' || currentStatus == 'borrowed') && 
+            !isAdmin)
+          Expanded(
+            child: _buildActionButton(
+              context: context,
+              icon: Icons.cancel_outlined,
+              label: 'Cancel',
+              onPressed: () => onStatusChange(reservation.id!, 'canceled'),
+              backgroundColor: coreColors.error,
+            ),
+          ),
         if (currentStatus != 'borrowed' && currentStatus != 'returned')
           _buildIconButton(
             context: context,

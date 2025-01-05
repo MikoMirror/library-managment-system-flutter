@@ -179,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
             usersService: _usersService,
           ),
         );
-      case 3:
+      case 4:
         return const SettingsScreen();
       default:
         return const SizedBox.shrink();
@@ -220,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
         case 2:
           context.read<NavigationCubit>().navigateToBookings();
           break;
-        case 3:
+        case 4:
           context.read<NavigationCubit>().navigateToSettings();
           break;
       }
@@ -297,7 +297,7 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() => _selectedIndex = 2);
               break;
             case RouteNames.settings:
-              setState(() => _selectedIndex = 3);
+              setState(() => _selectedIndex = 4);
               break;
             case RouteNames.bookDetails:
               final bookId = state.params?['bookId'] as String;

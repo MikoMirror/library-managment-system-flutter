@@ -74,7 +74,7 @@ class AppTheme {
     overdue: light.error,
     rejected: light.error,
     expired: light.expired,
-    cancelled: Colors.grey[600]!,
+    canceled: Colors.grey[600]!,
   );
 
   static ThemeData getTheme(bool isDarkMode) {
@@ -208,7 +208,7 @@ class ReservationStatusColors {
   final Color overdue;
   final Color rejected;
   final Color expired;
-  final Color cancelled;
+  final Color canceled;
 
   const ReservationStatusColors({
     required this.pending,
@@ -217,7 +217,7 @@ class ReservationStatusColors {
     required this.overdue,
     required this.rejected,
     required this.expired,
-    required this.cancelled,
+    required this.canceled,
   });
 }
 

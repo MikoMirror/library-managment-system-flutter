@@ -296,6 +296,8 @@ class _ReservationsScreenContent extends StatelessWidget {
         return filteredByUser.where((b) => b.isOverdue).toList();
       case ReservationFilter.expired:
         return filteredByUser.where((b) => b.status == 'expired').toList();
+      case ReservationFilter.canceled:
+        return filteredByUser.where((b) => b.status == 'canceled').toList();
       case ReservationFilter.all:
       default:
         return filteredByUser;

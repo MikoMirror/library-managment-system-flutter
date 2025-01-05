@@ -160,10 +160,9 @@ class ReservationBloc extends Bloc<ReservationEvent, ReservationState> {
   }
 
   Future<void> _onUpdateReservationStatus(
-    UpdateReservationStatus event, 
-    Emitter<ReservationState> emit
+    UpdateReservationStatus event,
+    Emitter<ReservationState> emit,
   ) async {
-    emit(ReservationLoading());
     try {
       await repository.updateReservationStatus(
         reservationId: event.reservationId,

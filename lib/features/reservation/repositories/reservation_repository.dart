@@ -147,33 +147,33 @@ class ReservationsRepository implements BaseRepository {
     required String newStatus,
   }) async {
     try {
-      final batch = _reservationsService.batch();
-      
-      // Get the reservation document
       final reservationDoc = await _reservationsService
           .collection('books_reservation')
           .doc(reservationId)
           .get();
+      final reservationData = reservationDoc.data();
       
-      if (!reservationDoc.exists) {
+      if (reservationData == null) {
         throw Exception('Reservation not found');
       }
 
-      final reservationData = reservationDoc.data()!;
-      final bookId = reservationData['bookId'] as String;
-      final quantity = reservationData['quantity'] as int;
-      final oldStatus = reservationData['status'] as String;
-
+      final batch = _reservationsService.batch();
+      
       // Update reservation status
       batch.update(reservationDoc.reference, {
         'status': newStatus,
         'updatedAt': Timestamp.now(),
-        if (newStatus == 'returned') 'returnedDate': Timestamp.now(),
       });
 
-      // Update book quantity when returning a book
-      if (newStatus == 'returned' && oldStatus != 'returned') {
-        final bookRef = _booksService.getDocumentReference('books', bookId);
+      // If canceling, return the book quantity
+      if (newStatus == 'canceled') {
+        final bookId = reservationData['bookId'] as String;
+        final quantity = reservationData['quantity'] as int;
+        
+        final bookRef = _booksService.getDocumentReference(
+          BooksFirestoreService.collectionPath, 
+          bookId
+        );
         batch.update(bookRef, {
           'booksQuantity': FieldValue.increment(quantity),
         });
@@ -181,7 +181,6 @@ class ReservationsRepository implements BaseRepository {
 
       await batch.commit();
     } catch (e) {
-      _logger.e('Error updating reservation status: $e');
       throw Exception('Failed to update reservation status: $e');
     }
   }
@@ -351,6 +350,18 @@ class ReservationsRepository implements BaseRepository {
 
   Future<bool> validateReservationDate(DateTime reservationDate) async {
     return await _reservationsService.validateReservationDate(reservationDate);
+  }
+
+  Future<void> updateBookQuantity(String bookId, int quantity) async {
+    try {
+      await _booksService.updateDocument(
+        BooksFirestoreService.collectionPath,
+        bookId,
+        {'booksQuantity': FieldValue.increment(quantity)}
+      );
+    } catch (e) {
+      throw Exception('Failed to update book quantity: $e');
+    }
   }
 
   @override

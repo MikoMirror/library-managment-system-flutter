@@ -110,10 +110,9 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
   @override
   Widget build(BuildContext context) {
     super.build(context);
-
-    final colors = Theme.of(context).brightness == Brightness.dark 
-        ? AppTheme.dark 
-        : AppTheme.light;
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = isDark ? AppTheme.dark : AppTheme.light;
 
     return BlocBuilder<NavigationCubit, NavigationState>(
       builder: (context, state) {
@@ -276,86 +275,101 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
   }
 
   Widget _buildBookRail(BuildContext context, {required SortType sortType, required String title, required String subtitle}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = isDark ? AppTheme.dark : AppTheme.light;
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          sortType == SortType.rating ? Icons.star : Icons.new_releases,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              TextButton(
-                onPressed: () => _navigateToBooks(context, sortType),
-                child: Row(
-                  children: [
-                    Text(
-                      'View all',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ],
-                ),
+        Container(
+          width: double.infinity,
+          margin: EdgeInsets.symmetric(
+            horizontal: isMobile ? 16 : 24,
+            vertical: 8,
+          ),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: colors.onBackground.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 280,
-          child: ShaderMask(
-            shaderCallback: (Rect bounds) {
-              return const LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  Colors.black,
-                  Colors.transparent,
-                  Colors.transparent,
-                  Colors.black,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: isMobile ? 20 : 24,
+                          fontWeight: FontWeight.bold,
+                          color: colors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: isMobile ? 12 : 14,
+                          color: colors.textSubtle,
+                        ),
+                      ),
+                    ],
+                  ),
+                  TextButton(
+                    onPressed: () => _navigateToBooks(context, sortType),
+                    child: Row(
+                      children: [
+                        Text(
+                          'View All',
+                          style: TextStyle(
+                            color: colors.primary,
+                            fontSize: isMobile ? 12 : 14,
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward,
+                          size: isMobile ? 16 : 20,
+                          color: colors.primary,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
-                stops: [0.0, 0.05, 0.95, 1.0],
-              ).createShader(bounds);
-            },
-            blendMode: BlendMode.dstOut,
-            child: _buildBooksList(context, sortType: sortType),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 280,
+                child: ShaderMask(
+                  shaderCallback: (Rect bounds) {
+                    return const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        Colors.black,
+                        Colors.transparent,
+                        Colors.transparent,
+                        Colors.black,
+                      ],
+                      stops: [0.0, 0.05, 0.95, 1.0],
+                    ).createShader(bounds);
+                  },
+                  blendMode: BlendMode.dstOut,
+                  child: _buildBooksList(context, sortType: sortType),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -403,15 +417,18 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
               separatorBuilder: (context, index) => const SizedBox(width: 16),
               itemBuilder: (context, index) {
                 return SizedBox(
-                  width: 180,
-                  child: BookCard(
-                    book: displayBooks[index],
-                    isMobile: isMobile,
-                    isAdmin: _isAdmin,
-                    userId: _userId,
-                    onDelete: () => _handleBookDelete(context, displayBooks[index]),
-                    showAdminControls: true,
-                    compact: true,
+                  width: isMobile ? 140 : 180,
+                  child: AspectRatio(
+                    aspectRatio: 0.7,
+                    child: BookCard(
+                      book: displayBooks[index],
+                      isMobile: isMobile,
+                      isAdmin: _isAdmin,
+                      userId: _userId,
+                      onDelete: () => _handleBookDelete(context, displayBooks[index]),
+                      showAdminControls: true,
+                      compact: true,
+                    ),
                   ),
                 );
               },
