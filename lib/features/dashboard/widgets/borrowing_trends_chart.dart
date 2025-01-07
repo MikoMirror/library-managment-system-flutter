@@ -43,16 +43,6 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
     super.initState();
     _processDataPoints();
     
-    final now = DateTime.now();
-    final endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
-    final startDate = DateTime(now.year, now.month, now.day - 13, 0, 0, 0);
-    
-    if (widget.startDate != startDate || widget.endDate != endDate) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onDateRangeChanged(startDate, endDate);
-      });
-    }
-    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
@@ -68,7 +58,6 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
   List<FlSpot> _convertToSpots(List<FlSpot> trends) {
     if (trends.isEmpty) return [];
     
-    // Create a map using actual dates as keys
     final Map<DateTime, double> valueMap = {};
     final totalDays = widget.endDate.difference(widget.startDate).inDays + 1;
     
@@ -81,8 +70,7 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
       );
       valueMap[date] = 0;
     }
-    
-    // Fill in actual values
+  
     for (var spot in trends) {
       final date = DateTime(
         widget.startDate.year,

@@ -320,8 +320,6 @@ class _HomeScreenState extends State<HomeScreen> {
             return _buildHomeContentWithUser(_cachedUserModel!);
           }
 
-          _logger.d('Fetching user data for userId: ${state.user.uid}');
-
           return FutureBuilder<DocumentSnapshot>(
             future: _usersService.getDocument('users', state.user.uid),
             builder: (context, snapshot) {
@@ -354,13 +352,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildHomeContentWithUser(UserModel userModel) {
     _cachedNavigationItems ??= _getNavigationItems(userModel.role);
     final isMobile = MediaQuery.of(context).size.width < 600;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(0),
         child: AppBar(
-          backgroundColor: Colors.grey[100],
+          backgroundColor: theme.scaffoldBackgroundColor,
           elevation: 0,
           toolbarHeight: 0,
           automaticallyImplyLeading: false,
@@ -380,6 +379,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= 600;
+        final theme = Theme.of(context);
         
         return Row(
           children: [
@@ -387,10 +387,10 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 width: 80,
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: theme.scaffoldBackgroundColor,
                   border: Border(
                     right: BorderSide(
-                      color: Colors.grey[200]!,
+                      color: theme.dividerColor,
                       width: 1,
                     ),
                   ),

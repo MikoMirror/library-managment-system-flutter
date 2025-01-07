@@ -79,46 +79,63 @@ class BooksFirestoreService extends BaseFirestoreService {
     return firestore.collection(collection).doc(documentId);
   }
 
-  Future<Map<String, int>> getDashboardStats() async {
-    final booksSnapshot = await getCollection(collectionPath).get();
-    final reservationsSnapshot = await firestore.collection('books_reservation').get();
+  Future<Map<String, dynamic>> getBookStats() async {
+    try {
+      final reservationsSnapshot = await firestore
+          .collection('books_reservation')
+          .where('status', whereIn: ['borrowed', 'reserved', 'overdue'])
+          .get();
 
-    int uniqueBooks = booksSnapshot.size;
-    int totalBooks = 0;
-    int reservedBooks = 0;
-    int borrowedBooks = 0;
-    int overdueBooks = 0;
+      int uniqueBooks = 0;
+      int totalBooks = 0;
+      int reservedBooks = 0;
+      int borrowedBooks = 0;
+      int overdueBooks = 0;
+      final now = DateTime.now();
 
-    for (var doc in booksSnapshot.docs) {
-      totalBooks += (doc.data()['booksQuantity'] as int?) ?? 0;
-    }
-    final now = DateTime.now();
-    for (var doc in reservationsSnapshot.docs) {
-      final data = doc.data();
-      final status = data['status'] as String;
-      final quantity = data['quantity'] as int;
-      final dueDate = (data['dueDate'] as Timestamp).toDate();
-
-      switch (status) {
-        case 'reserved':
-          reservedBooks += quantity;
-          break;
-        case 'borrowed':
-          borrowedBooks += quantity;
-          if (dueDate.isBefore(now)) {
-            overdueBooks += quantity;
-          }
-          break;
+      final booksSnapshot = await firestore
+          .collection('books')
+          .get();
+      uniqueBooks = booksSnapshot.docs.length;
+      
+      for (var doc in booksSnapshot.docs) {
+        totalBooks += (doc.data()['booksQuantity'] as num).toInt();
       }
-    }
 
-    return {
-      'uniqueBooks': uniqueBooks,
-      'totalBooks': totalBooks,
-      'reservedBooks': reservedBooks,
-      'borrowedBooks': borrowedBooks,
-      'overdueBooks': overdueBooks,
-    };
+      for (var doc in reservationsSnapshot.docs) {
+        final data = doc.data();
+        final quantity = (data['quantity'] as num).toInt();
+        final status = data['status'] as String;
+
+        switch (status) {
+          case 'reserved':
+            reservedBooks += quantity;
+            break;
+          case 'borrowed':
+            borrowedBooks += quantity;
+            final dueDate = (data['dueDate'] as Timestamp).toDate();
+            if (dueDate.isBefore(now)) {
+              overdueBooks += quantity;
+            }
+            break;
+          case 'overdue':
+            overdueBooks += quantity;
+            borrowedBooks += quantity;
+            break;
+        }
+      }
+
+      return {
+        'uniqueBooks': uniqueBooks,
+        'totalBooks': totalBooks,
+        'reservedBooks': reservedBooks,
+        'borrowedBooks': borrowedBooks,
+        'overdueBooks': overdueBooks,
+      };
+    } catch (e) {
+      _logger.e('Error getting book stats: $e');
+      rethrow;
+    }
   }
 
   Future<List<BorrowingTrendPoint>> getBorrowingTrends({

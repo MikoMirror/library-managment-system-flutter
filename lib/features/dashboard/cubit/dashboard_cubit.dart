@@ -22,18 +22,15 @@ class DashboardCubit extends Cubit<DashboardState> {
 
   Future<void> loadDashboard({DateTime? startDate, DateTime? endDate}) async {
     try {
-      final now = DateTime.now();
-      final effectiveStartDate = startDate ?? 
-          (state is DashboardInitial ? now.subtract(const Duration(days: 29)) : state.selectedStartDate);
-      final effectiveEndDate = endDate ?? 
-          (state is DashboardInitial ? now : state.selectedEndDate);
+      final effectiveStartDate = startDate ?? state.selectedStartDate;
+      final effectiveEndDate = endDate ?? state.selectedEndDate;
 
       emit(DashboardLoading(
         startDate: effectiveStartDate,
         endDate: effectiveEndDate,
       ));
 
-      final stats = await _firestoreService.getDashboardStats();
+      final stats = await _firestoreService.getBookStats();
       final borrowedTrends = await _firestoreService.getBorrowingTrends(
         startDate: effectiveStartDate,
         endDate: effectiveEndDate,
