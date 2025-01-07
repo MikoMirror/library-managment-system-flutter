@@ -59,6 +59,9 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
   Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
     final now = DateTime.now();
     
+    // Read test mode state
+    final isTestMode = context.read<TestModeCubit>().state;
+    
     // Get the max advance days from settings
     final maxAdvanceDays = await context
         .read<LibrarySettingsService>()
@@ -74,12 +77,18 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: now,
-      firstDate: now,
-      lastDate: lastAllowedDate,
-      selectableDayPredicate: (DateTime date) {
-        // Allow selection only up to maxAdvanceDays from now
-        return date.isBefore(lastAllowedDate.add(const Duration(days: 1)));
-      },
+      // In test mode, allow dates from 2 years ago to 2 years in future
+      firstDate: isTestMode 
+          ? DateTime(now.year - 2)
+          : now,
+      lastDate: isTestMode 
+          ? DateTime(now.year + 2)
+          : lastAllowedDate,
+      selectableDayPredicate: isTestMode 
+          ? null  // No restrictions in test mode
+          : (DateTime date) {
+              return date.isBefore(lastAllowedDate.add(const Duration(days: 1)));
+            },
     );
 
     if (picked != null) {
@@ -104,8 +113,22 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (isTestMode)
+                  Container(
+                    color: Colors.red.shade100,
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Test Mode Active',
+                          style: TextStyle(color: Colors.red.shade900),
+                        ),
+                      ],
+                    ),
+                  ),
                 if (widget.isAdmin) ...[
-                  // Admin view with scrollable content
                   Flexible(
                     child: SingleChildScrollView(
                       child: Padding(

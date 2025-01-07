@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SearchService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  SearchService({FirebaseFirestore? firestore}) 
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   Stream<QuerySnapshot> search({
     required String collection,
@@ -13,22 +16,24 @@ class SearchService {
     
     Query baseQuery = _firestore.collection(collection);
     
-    // Apply additional filters if provided
+    // Apply additional filters if any
     if (additionalFilters != null) {
       additionalFilters.forEach((field, value) {
         baseQuery = baseQuery.where(field, isEqualTo: value);
       });
     }
 
-    // If using searchTerms array
+    // If no specific search fields are provided, use searchTerms array
     if (searchFields.isEmpty) {
       return baseQuery
           .where('searchTerms', arrayContains: query)
           .snapshots();
     }
 
-    // If using individual fields
-    return baseQuery.where(searchFields.first, isGreaterThanOrEqualTo: query)
+    // Use the first search field for the query
+    // This could be enhanced to support multiple fields
+    return baseQuery
+        .where(searchFields.first, isGreaterThanOrEqualTo: query)
         .where(searchFields.first, isLessThanOrEqualTo: '$query\uf8ff')
         .snapshots();
   }

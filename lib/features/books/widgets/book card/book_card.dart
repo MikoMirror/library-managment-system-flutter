@@ -350,7 +350,7 @@ class _BookCardState extends State<BookCard> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
+          const Icon(
             Icons.star,
             size: 16,
             color: Colors.amber,

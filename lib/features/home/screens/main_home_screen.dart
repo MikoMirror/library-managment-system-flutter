@@ -13,7 +13,8 @@ import '../../books/screens/books_screen.dart';
 import '../../auth/bloc/auth/auth_bloc.dart';
 import 'dart:async';
 import '../../../core/navigation/cubit/navigation_state.dart';
-import 'package:flutter/gestures.dart' show DragStartBehavior, PointerDeviceKind;
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
+import '../../books/widgets/add_book_dialog.dart';
 
 class MainHomeScreen extends StatefulWidget {
   const MainHomeScreen({super.key});
@@ -33,8 +34,6 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
   String? _userId;
   late final Map<SortType, Widget> _cachedSections;
   bool _initialized = false;
-  final bool _showBooksList = false;
-  SortType? _currentSortType;
 
   @override
   void initState() {
@@ -65,10 +64,10 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
         icon: Icons.star,
         colors: colors,
       ),
-      SortType.date: _buildSection(
+      SortType.createdAt: _buildSection(
         title: 'New books',
         subtitle: '',
-        sortType: SortType.date,
+        sortType: SortType.createdAt,
         icon: Icons.new_releases,
         colors: colors,
       ),
@@ -110,7 +109,6 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isMobile = MediaQuery.of(context).size.width < 600;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colors = isDark ? AppTheme.dark : AppTheme.light;
 
@@ -126,41 +124,60 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
               )
             : null;
         
-        return Container(
+        return Scaffold(
           key: MainHomeScreen.pageStorageKey,
-          color: colors.background,
-          child: showBooks
+          backgroundColor: colors.background,
+          body: showBooks
             ? BooksScreen(
                 sortType: sortType,
               )
-            : SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 32.0),
-                        child: Text(
-                          'Welcome to Library',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: colors.onBackground,
+            : Stack(
+                children: [
+                  SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Welcome to Library',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: colors.onBackground,
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 32),
+                          ...[
+                            _cachedSections[SortType.rating]!,
+                            const SizedBox(height: 32),
+                            _cachedSections[SortType.createdAt]!,
+                          ],
+                        ],
                       ),
-                      ...[
-                        _cachedSections[SortType.rating]!,
-                        const SizedBox(height: 32),
-                        _cachedSections[SortType.date]!,
-                      ],
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
+          floatingActionButton: _buildFAB(),
         );
       },
+    );
+  }
+
+  Widget _buildFAB() {
+    if (!_isAdmin) return const SizedBox.shrink();
+
+    return FloatingActionButton(
+      onPressed: () => _showAddBookDialog(context),
+      child: const Icon(Icons.add),
+    );
+  }
+
+  Future<void> _showAddBookDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (context) => const AddBookDialog(),
     );
   }
 
@@ -173,6 +190,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
   }) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +201,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
             vertical: isMobile ? 8 : 12,
           ),
           decoration: BoxDecoration(
-            color: colors.surface,
+            color: isDark ? colors.surfaceDark : colors.surface,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -258,118 +276,16 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  colors.background,
+                  isDark ? colors.surfaceDark : colors.background,
                   Colors.transparent,
                   Colors.transparent,
-                  colors.background,
+                  isDark ? colors.surfaceDark : colors.background,
                 ],
                 stops: const [0.0, 0.05, 0.95, 1.0],
               ).createShader(bounds);
             },
             blendMode: BlendMode.dstOut,
             child: _buildBooksList(context, sortType: sortType),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBookRail(BuildContext context, {required SortType sortType, required String title, required String subtitle}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colors = isDark ? AppTheme.dark : AppTheme.light;
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: double.infinity,
-          margin: EdgeInsets.symmetric(
-            horizontal: isMobile ? 16 : 24,
-            vertical: 8,
-          ),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: colors.onBackground.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: isMobile ? 20 : 24,
-                          fontWeight: FontWeight.bold,
-                          color: colors.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: isMobile ? 12 : 14,
-                          color: colors.textSubtle,
-                        ),
-                      ),
-                    ],
-                  ),
-                  TextButton(
-                    onPressed: () => _navigateToBooks(context, sortType),
-                    child: Row(
-                      children: [
-                        Text(
-                          'View All',
-                          style: TextStyle(
-                            color: colors.primary,
-                            fontSize: isMobile ? 12 : 14,
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward,
-                          size: isMobile ? 16 : 20,
-                          color: colors.primary,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 280,
-                child: ShaderMask(
-                  shaderCallback: (Rect bounds) {
-                    return const LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [
-                        Colors.black,
-                        Colors.transparent,
-                        Colors.transparent,
-                        Colors.black,
-                      ],
-                      stops: [0.0, 0.05, 0.95, 1.0],
-                    ).createShader(bounds);
-                  },
-                  blendMode: BlendMode.dstOut,
-                  child: _buildBooksList(context, sortType: sortType),
-                ),
-              ),
-            ],
           ),
         ),
       ],
@@ -393,11 +309,20 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
         if (state is BooksLoaded) {
           final books = List<Book>.from(state.books);
 
-          if (sortType == SortType.rating) {
-            books.sort((a, b) => b.averageRating.compareTo(a.averageRating));
-          } else if (sortType == SortType.date) {
-            books.sort((a, b) => (b.publishedDate ?? Timestamp.now())
-                .compareTo(a.publishedDate ?? Timestamp.now()));
+          switch (sortType) {
+            case SortType.rating:
+              books.sort((a, b) => b.averageRating.compareTo(a.averageRating));
+              break;
+            case SortType.date:
+              books.sort((a, b) => (b.publishedDate ?? Timestamp.now())
+                  .compareTo(a.publishedDate ?? Timestamp.now()));
+              break;
+            case SortType.createdAt:
+              books.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+              break;
+            default:
+              // No sorting needed
+              break;
           }
 
           final displayBooks = books.take(10).toList();

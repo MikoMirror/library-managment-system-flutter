@@ -29,6 +29,7 @@ dependencies:
   fl_chart: ^0.70.0
   pdf: ^3.11.1
   open_file: ^3.5.10
+  mobile_scanner: ^3.5.5
  
 
 

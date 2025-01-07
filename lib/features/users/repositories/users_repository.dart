@@ -46,12 +46,6 @@ class UsersRepository implements BaseRepository {
     String? adminPassword,
   }) async {
     try {
-      final currentUser = _auth.currentUser;
-      String? adminToken;
-      if (currentUser != null) {
-        adminToken = await currentUser.getIdToken();
-      }
-
       final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,

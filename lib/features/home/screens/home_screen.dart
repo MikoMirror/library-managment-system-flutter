@@ -24,7 +24,6 @@ import '../../../core/services/firestore/users_firestore_service.dart';
 import '../../../core/services/firestore/reservations_firestore_service.dart';
 import '../screens/main_home_screen.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
-import '../../books/bloc/books_event.dart';
 import 'package:logger/logger.dart';
 
 class HomeScreen extends StatefulWidget {

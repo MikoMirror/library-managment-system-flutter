@@ -1,11 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../features/books/models/book.dart';
-import '../../../features/users/models/user_model.dart';
-import '../../../features/reservation/models/reservation.dart';
-import '../../services/firestore/search_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-enum SearchType { books, users, reservations, favorites }
+import '../../repositories/search_repository.dart';
 
 class SearchState {
   final bool isLoading;
@@ -19,84 +13,57 @@ class SearchState {
     this.error = '',
     required this.type,
   });
+
+  SearchState copyWith({
+    bool? isLoading,
+    List<dynamic>? results,
+    String? error,
+    SearchType? type,
+  }) {
+    return SearchState(
+      isLoading: isLoading ?? this.isLoading,
+      results: results ?? this.results,
+      error: error ?? this.error,
+      type: type ?? this.type,
+    );
+  }
 }
 
 class SearchBloc extends Cubit<SearchState> {
-  final SearchService _searchService;
+  final SearchRepository _searchRepository;
 
-  SearchBloc(this._searchService) : super(SearchState(type: SearchType.books));
+  SearchBloc(this._searchRepository) : super(SearchState(type: SearchType.books));
 
   void search({
     required String query,
     required SearchType type,
     Map<String, dynamic>? filters,
   }) {
-    emit(SearchState(isLoading: true, type: type));
+    emit(state.copyWith(isLoading: true, type: type));
 
-    final collection = _getCollectionName(type);
-    final searchFields = _getSearchFields(type);
-
-    _searchService
+    _searchRepository
         .search(
-          collection: collection,
           query: query,
-          searchFields: searchFields,
-          additionalFilters: filters,
+          type: type,
+          filters: filters,
         )
         .listen(
-          (snapshot) => emit(SearchState(
-            type: type,
-            results: _mapResults(snapshot, type),
+          (results) => emit(state.copyWith(
+            isLoading: false,
+            results: results,
           )),
-          onError: (error) => emit(SearchState(
-            type: type,
+          onError: (error) => emit(state.copyWith(
+            isLoading: false,
             error: error.toString(),
           )),
         );
   }
 
-  String _getCollectionName(SearchType type) {
-    switch (type) {
-      case SearchType.books:
-        return 'books';
-      case SearchType.users:
-        return 'users';
-      case SearchType.reservations:
-        return 'books_reservation';
-      case SearchType.favorites:
-        return 'favorites';
-    }
-  }
-
-  List<String> _getSearchFields(SearchType type) {
-    switch (type) {
-      case SearchType.books:
-        return ['title', 'author', 'isbn'];
-      case SearchType.users:
-        return ['name', 'email', 'libraryNumber'];
-      case SearchType.reservations:
-        return ['bookId', 'userId'];
-      case SearchType.favorites:
-        return ['bookId'];
-    }
-  }
-
-  List<dynamic> _mapResults(QuerySnapshot snapshot, SearchType type) {
-    switch (type) {
-      case SearchType.books:
-        return snapshot.docs
-            .map((doc) => Book.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-            .toList();
-      case SearchType.users:
-        return snapshot.docs
-            .map((doc) => UserModel.fromMap(doc.data() as Map<String, dynamic>))
-            .toList();
-      case SearchType.reservations:
-        return snapshot.docs
-            .map((doc) => Reservation.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-            .toList();
-      case SearchType.favorites:
-        return snapshot.docs.map((doc) => doc.id).toList();
-    }
+  void clearSearch() {
+    emit(state.copyWith(
+      results: [],
+      error: '',
+      isLoading: false,
+    ));
   }
 } 

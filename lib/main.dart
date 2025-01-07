@@ -26,6 +26,7 @@ import 'core/services/firestore/reservations_firestore_service.dart';
 import 'features/books/cubit/book_details_cubit.dart';
 import 'features/settings/services/library_settings_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'core/services/firestore/genres_firestore_service.dart';
 
 
 void main() async {
@@ -89,6 +90,9 @@ void main() async {
           ),
           Provider<LibrarySettingsService>(
             create: (_) => LibrarySettingsService(),
+          ),
+          Provider<GenresFirestoreService>(
+            create: (_) => GenresFirestoreService(),
           ),
         ],
         child: MultiBlocProvider(
@@ -183,11 +187,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   },
                 ),
               )
-            : BlocProvider(
-                create: (context) => NavigationCubit(),
-                child: const NavigationHandler(
-                  child: InitialAdminSetupScreen(),
-                ),
+            : const NavigationHandler(
+                child: InitialAdminSetupScreen(),
               ),
         );
       },

@@ -14,7 +14,9 @@ class BooksRepository implements BaseRepository {
   }) : _firestoreService = firestoreService;
 
   Future<void> addBook(Book book) async {
-    await _firestoreService.addDocument(collectionPath, book.toMap());
+    final bookData = book.toMap();
+    bookData['createdAt'] = FieldValue.serverTimestamp();
+    await _firestoreService.addDocument(collectionPath, bookData);
   }
 
   Stream<List<Book>> getAllBooks() {

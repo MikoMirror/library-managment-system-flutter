@@ -11,6 +11,7 @@ class Book {
   final int pageCount;
   final String? externalImageUrl;
   final Timestamp? publishedDate;
+  final Timestamp createdAt;
   final int booksQuantity;
   final String language;
   final Map<String, double> ratings;
@@ -25,10 +26,11 @@ class Book {
     required this.pageCount,
     this.externalImageUrl,
     this.publishedDate,
+    Timestamp? createdAt,
     this.booksQuantity = 0,
     this.language = 'en',
     this.ratings = const {},
-  });
+  }) : createdAt = createdAt ?? Timestamp.now();
 
   double get averageRating {
     if (ratings.isEmpty) return 0;
@@ -47,6 +49,7 @@ class Book {
       'pageCount': pageCount,
       'externalImageUrl': externalImageUrl,
       'publishedDate': publishedDate,
+      'createdAt': createdAt ?? Timestamp.now(),
       'booksQuantity': booksQuantity,
       'language': language,
       'ratings': ratings,
@@ -64,6 +67,7 @@ class Book {
       pageCount: map['pageCount'] ?? 0,
       externalImageUrl: map['externalImageUrl'],
       publishedDate: map['publishedDate'],
+      createdAt: map['createdAt'] as Timestamp?,
       booksQuantity: map['booksQuantity'] ?? 0,
       language: map['language'] ?? 'en',
       ratings: Map<String, double>.from(map['ratings'] ?? {}),
@@ -80,6 +84,7 @@ class Book {
     int? pageCount,
     String? externalImageUrl,
     Timestamp? publishedDate,
+    Timestamp? createdAt,
     int? booksQuantity,
     String? language,
     Map<String, double>? ratings,
@@ -94,6 +99,7 @@ class Book {
       pageCount: pageCount ?? this.pageCount,
       externalImageUrl: externalImageUrl ?? this.externalImageUrl,
       publishedDate: publishedDate ?? this.publishedDate,
+      createdAt: createdAt ?? this.createdAt,
       booksQuantity: booksQuantity ?? this.booksQuantity,
       language: language ?? this.language,
       ratings: ratings ?? this.ratings,

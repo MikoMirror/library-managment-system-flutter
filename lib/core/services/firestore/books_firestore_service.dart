@@ -4,6 +4,7 @@ import '../../../features/books/models/book.dart';
 import '../../../features/dashboard/models/borrowing_trend_point.dart';
 import '../../../features/reservation/models/reservation.dart';
 import 'package:logger/logger.dart';
+import '../../../features/books/enums/sort_type.dart';
 
 class BooksFirestoreService extends BaseFirestoreService {
   static const String collectionPath = 'books';
@@ -23,6 +24,7 @@ class BooksFirestoreService extends BaseFirestoreService {
 
   Future<void> addBook(Book book) async {
     final bookData = book.toMap();
+    bookData['createdAt'] = FieldValue.serverTimestamp();
     await addDocument(collectionPath, bookData);
   }
 
@@ -128,20 +130,17 @@ class BooksFirestoreService extends BaseFirestoreService {
       final querySnapshot = await firestore
           .collection('books_reservation')
           .where('status', whereIn: status == 'borrowed' 
-              ? ['borrowed', 'returned', 'overdue'] // Include all borrowed books
+              ? ['borrowed', 'returned', 'overdue'] 
               : [status])
           .where('borrowedDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where('borrowedDate', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
           .get();
 
       final trendsMap = <DateTime, int>{};
-      
-      // Sort documents by date to process them chronologically
       final sortedDocs = querySnapshot.docs
         ..sort((a, b) => (a.data()['borrowedDate'] as Timestamp)
             .compareTo(b.data()['borrowedDate'] as Timestamp));
 
-      // Track running total of borrowed books
       int runningTotal = 0;
       
       for (var doc in sortedDocs) {
@@ -151,11 +150,9 @@ class BooksFirestoreService extends BaseFirestoreService {
         final quantity = data['quantity'] as int;
         
         if (status == 'borrowed') {
-          // For borrowed trend, accumulate the total
           runningTotal += quantity;
           trendsMap[dateOnly] = runningTotal;
         } else {
-          // For returned trend, just count daily returns
           trendsMap[dateOnly] = (trendsMap[dateOnly] ?? 0) + quantity;
         }
       }
@@ -189,5 +186,28 @@ class BooksFirestoreService extends BaseFirestoreService {
     return querySnapshot.docs
         .map((doc) => Reservation.fromMap(doc.data(), doc.id))
         .toList();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getBooksStream({SortType? sortType}) {
+    Query<Map<String, dynamic>> query = firestore.collection(collectionPath);
+    
+    switch (sortType) {
+      case SortType.rating:
+        query = query.orderBy('averageRating', descending: true);
+        break;
+      case SortType.date:
+        query = query.orderBy('publishedDate', descending: true);
+        break;
+      case SortType.createdAt:
+        query = query
+            .orderBy('createdAt', descending: true)
+            .orderBy('title');
+        break;
+      case SortType.none:
+      default:
+        break;
+    }
+    
+    return query.snapshots();
   }
 } 

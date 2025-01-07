@@ -421,7 +421,6 @@ class ReservationCard extends StatelessWidget {
   }
 
   Widget _buildStatusChip(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
     
     final colors = {

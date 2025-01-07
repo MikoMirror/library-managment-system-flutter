@@ -279,12 +279,10 @@ class _ReservationsScreenContent extends StatelessWidget {
     bool isAdmin,
     String userId,
   ) {
-    // First filter by user if not admin
     final filteredByUser = isAdmin 
         ? reservations 
         : reservations.where((b) => b.userId == userId).toList();
 
-    // Then apply status filter
     switch (filter) {
       case ReservationFilter.reserved:
         return filteredByUser.where((b) => b.status == 'reserved').toList();
@@ -299,7 +297,6 @@ class _ReservationsScreenContent extends StatelessWidget {
       case ReservationFilter.canceled:
         return filteredByUser.where((b) => b.status == 'canceled').toList();
       case ReservationFilter.all:
-      default:
         return filteredByUser;
     }
   }

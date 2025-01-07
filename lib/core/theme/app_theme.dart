@@ -7,6 +7,7 @@ class AppTheme {
     // Main background colors
     background: Color(0xFFFAFAFA),      
     surface: Colors.white,              
+    surfaceDark: Color(0xFFF5F5F5), 
     surfaceVariant: Color(0xFFF5F5F5), 
     
     // UI Element colors
@@ -39,6 +40,7 @@ class AppTheme {
     // Main background colors
     background: Color(0xFF121212),
     surface: Color(0xFF1E1E1E),
+    surfaceDark: Color(0xFF242424),
     surfaceVariant: Color(0xFF242424),
     
     // UI Element colors
@@ -158,6 +160,7 @@ class AppTheme {
 class CoreColors {
   final Color background;
   final Color surface;
+  final Color surfaceDark;
   final Color surfaceVariant;
   final Color primary;
   final Color primaryContainer;
@@ -180,6 +183,7 @@ class CoreColors {
   const CoreColors({
     required this.background,
     required this.surface,
+    required this.surfaceDark,
     required this.surfaceVariant,
     required this.primary,
     required this.primaryContainer,

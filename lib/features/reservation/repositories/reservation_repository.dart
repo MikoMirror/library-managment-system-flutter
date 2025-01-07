@@ -55,11 +55,25 @@ class ReservationsRepository implements BaseRepository {
             'updatedAt': now,
           });
 
-          // Return books to inventory
-          final bookRef = _booksService.getDocumentReference('books', bookId);
-          batch.update(bookRef, {
-            'booksQuantity': FieldValue.increment(quantity),
-          });
+          // Check if book exists before updating quantity
+          try {
+            final bookDoc = await _booksService.getDocument(
+              BooksFirestoreService.collectionPath,
+              bookId,
+            );
+
+            if (bookDoc.exists) {
+              final bookRef = _booksService.getDocumentReference('books', bookId);
+              batch.update(bookRef, {
+                'booksQuantity': FieldValue.increment(quantity),
+              });
+            } else {
+              _logger.w('Book not found while processing expired reservation: $bookId');
+            }
+          } catch (e) {
+            _logger.w('Error checking book existence: $e');
+            // Continue with reservation update even if book check fails
+          }
 
           hasBatchOperations = true;
         } catch (e) {
@@ -187,33 +201,51 @@ class ReservationsRepository implements BaseRepository {
 
   Future<void> deleteReservation(String reservationId) async {
     try {
-      // Get the reservation before deleting
+      // Get the reservation details first
       final reservationDoc = await _reservationsService
-          .collection('books_reservation')
-          .doc(reservationId)
-          .get();
+          .getDocument(ReservationsFirestoreService.collectionPath, reservationId);
+      final reservationData = reservationDoc.data() as Map<String, dynamic>?;
 
-      if (!reservationDoc.exists) {
+      if (reservationData == null) {
         throw Exception('Reservation not found');
       }
 
-      final reservationData = reservationDoc.data()!;
-      final status = reservationData['status'] as String;
       final bookId = reservationData['bookId'] as String;
       final quantity = reservationData['quantity'] as int;
+      final status = reservationData['status'] as String;
 
       // Start a batch operation
       final batch = _reservationsService.batch();
 
       // Delete the reservation
-      batch.delete(_reservationsService.collection('books_reservation').doc(reservationId));
+      batch.delete(_reservationsService.getDocumentReference(
+        ReservationsFirestoreService.collectionPath,
+        reservationId,
+      ));
 
-      // Only update book quantity for active reservations
-      if (['borrowed', 'reserved', 'overdue'].contains(status)) {
-        final bookRef = _booksService.getDocumentReference('books', bookId);
-        batch.update(bookRef, {
-          'booksQuantity': FieldValue.increment(quantity),
-        });
+      // Only update book quantity if status is 'reserved' or 'borrowed'
+      // and the book still exists in the library
+      if ((status == 'reserved' || status == 'borrowed')) {
+        try {
+          final bookDoc = await _booksService.getDocument(
+            BooksFirestoreService.collectionPath,
+            bookId,
+          );
+
+          // Only update quantity if book exists
+          if (bookDoc.exists) {
+            final bookRef = _booksService.getDocumentReference(
+              BooksFirestoreService.collectionPath,
+              bookId,
+            );
+            batch.update(bookRef, {
+              'booksQuantity': FieldValue.increment(quantity),
+            });
+          }
+        } catch (e) {
+          _logger.w('Book not found while deleting reservation: $bookId');
+          // Continue with reservation deletion even if book is not found
+        }
       }
 
       // Commit the batch

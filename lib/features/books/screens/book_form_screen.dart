@@ -8,8 +8,9 @@ import '../widgets/language_management_dialog.dart';
 import 'dart:async';
 import '../utils/book_cover_utils.dart';
 import '../../../core/services/firestore/books_firestore_service.dart';
-import '../constants/book_genres.dart';
 import '../widgets/genre_management_dialog.dart';
+import '../../../core/services/firestore/genres_firestore_service.dart';
+import '../models/genre.dart';
 
 enum FormMode { add, edit }
 
@@ -32,6 +33,7 @@ class BookFormScreen extends StatefulWidget {
 class BookFormScreenState extends State<BookFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _booksService = BooksFirestoreService();
+  final _genresService = GenresFirestoreService();
   bool _isLoading = false;
 
   late TextEditingController _titleController;
@@ -345,7 +347,7 @@ class BookFormScreenState extends State<BookFormScreen> {
         const SizedBox(height: 16),
         
         // Third row: Categories full width
-        _buildCategoriesField(),
+        _buildGenresField(),
         const SizedBox(height: 16),
         
         // Fourth row: Page Count and Quantity
@@ -393,7 +395,7 @@ class BookFormScreenState extends State<BookFormScreen> {
         const SizedBox(height: 16),
         _buildTextField(_isbnController, 'ISBN'),
         const SizedBox(height: 16),
-        _buildCategoriesField(),
+        _buildGenresField(),
         const SizedBox(height: 16),
         _buildTextField(_pageCountController, 'Page Count', 
             keyboardType: TextInputType.number),
@@ -502,114 +504,77 @@ class BookFormScreenState extends State<BookFormScreen> {
     );
   }
 
-  Widget _buildCategoriesField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Categories', style: Theme.of(context).textTheme.titleMedium),
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.settings),
-                  onPressed: () {
-                    showDialog(
+  Widget _buildGenresField() {
+    return StreamBuilder<List<Genre>>(
+      stream: _genresService.getGenresStream(),
+      builder: (context, AsyncSnapshot<List<Genre>> snapshot) {
+        if (snapshot.hasError) {
+          return const Text('Error loading genres');
+        }
+
+        if (!snapshot.hasData) {
+          return const CircularProgressIndicator();
+        }
+
+        final genres = snapshot.data!;
+        
+        return FormField<List<String>>(
+          initialValue: _selectedCategories,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please select at least one genre';
+            }
+            return null;
+          },
+          builder: (FormFieldState<List<String>> field) {
+            return InputDecorator(
+              decoration: InputDecoration(
+                labelText: 'Genres',
+                errorText: field.errorText,
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.add_circle_outline),
+                  onPressed: () async {
+                    final selectedGenres = await showDialog<List<String>>(
                       context: context,
-                      builder: (context) => const GenreManagementDialog(),
-                    ).then((_) => setState(() {}));
-                  },
-                  tooltip: 'Manage Genres',
-                ),
-                TextButton.icon(
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add'),
-                  onPressed: _showAddCategoryDialog,
-                ),
-              ],
-            ),
-          ],
-        ),
-        Wrap(
-          spacing: 8,
-          children: _selectedCategories.map((categoryId) {
-            final genre = BookGenres.getAllGenres()
-                .firstWhere((g) => g.id == categoryId,
-                    orElse: () => Genre(id: categoryId, name: categoryId));
-            return Chip(
-              label: Text(genre.name),
-              onDeleted: () {
-                setState(() {
-                  _selectedCategories.remove(categoryId);
-                });
-              },
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _showAddCategoryDialog() async {
-    final searchController = TextEditingController();
-    final availableGenres = BookGenres.getAllGenres()
-        .where((genre) => !_selectedCategories.contains(genre.id))
-        .toList();
-    List<Genre> filteredGenres = List.from(availableGenres);
-
-    return showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add Category'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: searchController,
-                decoration: const InputDecoration(
-                  hintText: 'Search categories...',
-                  prefixIcon: Icon(Icons.search),
-                ),
-                onChanged: (value) {
-                  setDialogState(() {
-                    filteredGenres = availableGenres
-                        .where((genre) =>
-                            genre.name.toLowerCase().contains(value.toLowerCase()))
-                        .toList();
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 200,
-                width: double.maxFinite,
-                child: ListView.builder(
-                  itemCount: filteredGenres.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(filteredGenres[index].name),
-                      onTap: () {
-                        setState(() {
-                          _selectedCategories.add(filteredGenres[index].id);
-                        });
-                        Navigator.pop(context);
-                      },
+                      builder: (context) => GenreManagementDialog(
+                        initialSelected: _selectedCategories,
+                      ),
                     );
+                    
+                    if (selectedGenres != null && mounted) {
+                      _selectedCategories.clear();
+                      _selectedCategories.addAll(selectedGenres);
+                      if (mounted) {
+                        field.didChange(_selectedCategories);
+                        setState(() {});
+                      }
+                    }
                   },
+                  tooltip: 'Add Genres',
                 ),
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-          ],
-        ),
-      ),
+              child: Wrap(
+                spacing: 8.0,
+                children: genres
+                    .where((genre) => _selectedCategories.contains(genre.id))
+                    .map((genre) => Chip(
+                          label: Text(genre.name),
+                          onDeleted: () {
+                            if (mounted) {
+                              setState(() {
+                                _selectedCategories.remove(genre.id);
+                                field.didChange(_selectedCategories);
+                              });
+                            }
+                          },
+                        ))
+                    .toList(),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 } 
