@@ -87,19 +87,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
             _searchQuery = query;
           });
         },
-        actions: [
-          if (isDesktop)
-            IconButton(
-              icon: Icon(_viewType.icon),
-              onPressed: () {
-                setState(() {
-                  _viewType = BookViewType.values[
-                    (_viewType.index + 1) % BookViewType.values.length
-                  ];
-                });
-              },
-            ),
-        ],
       ),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
