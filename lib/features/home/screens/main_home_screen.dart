@@ -191,6 +191,9 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final cardWidth = isMobile ? 140.0 : 180.0;
+    final cardHeight = cardWidth * (1 / 0.7);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,7 +272,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: isMobile ? 200 : 240,
+          height: cardHeight,
           child: ShaderMask(
             shaderCallback: (Rect bounds) {
               return LinearGradient(
@@ -295,6 +298,10 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
   Widget _buildBooksList(BuildContext context, {required SortType sortType}) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
+    
+   
+    final cardWidth = isMobile ? 140.0 : 180.0;
+    final cardHeight = cardWidth * (1 / 0.7); 
     
     return BlocBuilder<BooksBloc, BooksState>(
       builder: (context, state) {
@@ -327,37 +334,39 @@ class _MainHomeScreenState extends State<MainHomeScreen> with AutomaticKeepAlive
 
           final displayBooks = books.take(10).toList();
 
-          return ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(
-              dragDevices: {
-                PointerDeviceKind.touch,
-                PointerDeviceKind.mouse,
-              },
-            ),
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              physics: const BouncingScrollPhysics(),
-              itemCount: displayBooks.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 16),
-              itemBuilder: (context, index) {
-                return SizedBox(
-                  width: isMobile ? 140 : 180,
-                  child: AspectRatio(
-                    aspectRatio: 0.7,
-                    child: BookCard(
-                      book: displayBooks[index],
-                      isMobile: isMobile,
-                      isAdmin: _isAdmin,
-                      userId: _userId,
-                      onDelete: () => _handleBookDelete(context, displayBooks[index]),
-                      showAdminControls: true,
-                      compact: true,
-                    ),
-                  ),
-                );
-              },
-            ),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              return ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  dragDevices: {
+                    PointerDeviceKind.touch,
+                    PointerDeviceKind.mouse,
+                  },
+                ),
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: displayBooks.length,
+                  separatorBuilder: (context, index) => const SizedBox(width: 16),
+                  itemBuilder: (context, index) {
+                    return SizedBox(
+                      width: cardWidth,
+                      height: cardHeight,
+                      child: BookCard(
+                        book: displayBooks[index],
+                        isMobile: isMobile,
+                        isAdmin: _isAdmin,
+                        userId: _userId,
+                        onDelete: () => _handleBookDelete(context, displayBooks[index]),
+                        showAdminControls: true,
+                        compact: true,
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
           );
         }
 

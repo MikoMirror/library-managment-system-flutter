@@ -150,7 +150,7 @@ class _GenreManagementDialogState extends State<GenreManagementDialog> {
                           'No genres found matching "$_searchQuery"',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withAlpha(100),
                           ),
                         ),
                       );

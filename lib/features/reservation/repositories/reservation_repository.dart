@@ -4,8 +4,8 @@ import '../../../core/repositories/base_repository.dart';
 import 'dart:async';
 import '../../../core/services/firestore/reservations_firestore_service.dart';
 import '../../../core/services/firestore/books_firestore_service.dart';
-import '../../../core/services/firestore/users_firestore_service.dart';
 import 'package:logger/logger.dart';
+import '../../../core/services/firestore/users_firestore_service.dart';
 
 class ReservationsRepository implements BaseRepository {
   final ReservationsFirestoreService _reservationsService;

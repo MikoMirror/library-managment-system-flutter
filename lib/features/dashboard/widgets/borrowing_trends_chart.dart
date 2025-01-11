@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../core/theme/app_theme.dart';
 import 'package:intl/intl.dart';
-import 'dart:math' show max, min;
+import 'dart:math' show max;
 import 'package:library_management_system/features/dashboard/widgets/date_range_selector.dart';
 
 class BorrowingTrendsChart extends StatefulWidget {
@@ -115,11 +115,6 @@ class _BorrowingTrendsChartState extends State<BorrowingTrendsChart> with Automa
   void dispose() {
     _scrollController.dispose();
     super.dispose();
-  }
-
-  String _getTooltipDate(double x) {
-    final date = widget.startDate.add(Duration(days: x.toInt()));
-    return DateFormat('MMM d, yyyy').format(date);
   }
 
   @override

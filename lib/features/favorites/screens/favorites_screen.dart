@@ -26,11 +26,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
   UserModel? _cachedUserModel;
   final Map<String, Book> _bookCache = {};
   String _searchQuery = '';
-  bool _isSearchVisible = false;
-
-  // Add animation controller
   late final AnimationController _animationController;
-  late final Animation<double> _animation;
 
   @override
   void initState() {
@@ -38,10 +34,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
-    );
-    _animation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
     );
   }
 
@@ -53,25 +45,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
     super.dispose();
   }
 
-  void _toggleSearch() {
-    setState(() {
-      _isSearchVisible = !_isSearchVisible;
-      if (_isSearchVisible) {
-        _animationController.forward();
-      } else {
-        _animationController.reverse();
-        _searchController.clear();
-        setState(() {
-          _searchQuery = '';
-        });
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width >= 1024;
-    
     return Scaffold(
       appBar: UnifiedAppBar(
         title: const Text(
@@ -189,18 +164,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
           isAdmin: isAdmin,
           onDeleteBook: (_, __) {}, // No delete functionality for favorites
         );
-    }
-  }
-
-  IconData get _viewTypeIcon {
-    switch (_viewType) {
-      case BookViewType.mobile:
-        return Icons.grid_view;
-      case BookViewType.table:
-        return Icons.table_rows;
-      case BookViewType.desktop:
-      default:
-        return Icons.dashboard;
     }
   }
 } 

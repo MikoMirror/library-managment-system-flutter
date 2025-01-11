@@ -24,7 +24,7 @@ import '../../../core/services/firestore/users_firestore_service.dart';
 import '../../../core/services/firestore/reservations_firestore_service.dart';
 import '../screens/main_home_screen.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
-import 'package:logger/logger.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,7 +34,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _logger = Logger();
   int _selectedIndex = 0;
   UserModel? _cachedUserModel;
   List<NavigationItem>? _cachedNavigationItems;
@@ -42,8 +41,6 @@ class _HomeScreenState extends State<HomeScreen> {
   late final BooksBloc _booksBloc;
   late final ReservationBloc _reservationBloc;
   Stream<DocumentSnapshot>? _adminCheckStream;
-  bool _isSmallScreen = false;
-  bool _isPortrait = false;
   late final BooksFirestoreService _firestoreService;
   late final UsersFirestoreService _usersService;
   late final ReservationsFirestoreService _reservationsService;
@@ -229,9 +226,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final mediaQuery = MediaQuery.of(context);
-    _isSmallScreen = mediaQuery.size.width < 600;
-    _isPortrait = mediaQuery.orientation == Orientation.portrait;
     
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess && _adminCheckStream == null) {

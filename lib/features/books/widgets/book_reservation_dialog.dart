@@ -44,12 +44,15 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
   }
 
   Future<void> _initializeDates() async {
+    if (!mounted) return;
+    
     final now = DateTime.now();
     _borrowedDateController.text = DateFormat('yyyy-MM-dd').format(now);
 
-    // Get the max advance days from settings
     final settingsService = context.read<LibrarySettingsService>();
     final maxAdvanceDays = await settingsService.getMaxAdvanceReservationDays().first;
+    
+    if (!mounted) return;
     
     // Set due date based on the settings
     final dueDate = now.add(Duration(days: maxAdvanceDays));
@@ -101,7 +104,6 @@ class _BookBookingDialogState extends State<BookBookingDialog> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
     final isDesktop = screenWidth > 600;
 
     return BlocBuilder<TestModeCubit, bool>(

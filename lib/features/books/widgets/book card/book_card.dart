@@ -208,26 +208,40 @@ class _BookCardState extends State<BookCard> {
                     children: [
                       SizedBox(
                         height: 48,
-                        child: Text(
-                          widget.book.title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.book.title,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        widget.book.author,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.white70,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              widget.book.author,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white70,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -290,25 +304,39 @@ class _BookCardState extends State<BookCard> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        widget.book.title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              widget.book.title,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        widget.book.author,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDark ? Colors.white70 : Colors.black54,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              widget.book.author,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isDark ? Colors.white70 : Colors.black54,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       _buildRatingIndicator(isMobile: true),

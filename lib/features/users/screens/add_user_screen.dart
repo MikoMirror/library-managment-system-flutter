@@ -28,7 +28,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
   bool _isLoading = false;
   bool _showPassword = false;
   String? _adminEmail;
-  String? _adminPassword;
 
   @override
   void initState() {
