@@ -13,6 +13,7 @@ class UsersBloc extends Bloc<UsersEvent, UsersState> {
     on<LoadUsers>(_onLoadUsers);
     on<SearchUsers>(_onSearchUsers);
     on<CreateUser>(_onCreateUser);
+    on<UpdateUser>(_onUpdateUser);
   }
 
   Future<void> _onLoadUsers(LoadUsers event, Emitter<UsersState> emit) async {
@@ -53,6 +54,26 @@ class UsersBloc extends Bloc<UsersEvent, UsersState> {
         role: event.role,
       );
       emit(UserCreated());
+      add(LoadUsers()); // Reload the users list
+    } catch (e) {
+      emit(UsersError(e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateUser(UpdateUser event, Emitter<UsersState> emit) async {
+    emit(UserUpdating());
+    try {
+      await _repository.updateUser(
+        userId: event.userId,
+        name: event.name,
+        phoneNumber: event.phoneNumber,
+        pesel: event.pesel,
+        email: event.email,
+        role: event.role,
+        adminEmail: event.adminEmail,
+        adminPassword: event.adminPassword,
+      );
+      emit(UserUpdated());
       add(LoadUsers()); // Reload the users list
     } catch (e) {
       emit(UsersError(e.toString()));

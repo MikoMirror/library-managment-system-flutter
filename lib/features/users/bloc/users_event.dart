@@ -28,4 +28,26 @@ class CreateUser extends UsersEvent {
     this.adminEmail,
     this.adminPassword,
   });
+}
+
+class UpdateUser extends UsersEvent {
+  final String userId;
+  final String name;
+  final String phoneNumber;
+  final String pesel;
+  final String email;
+  final String role;
+  final String? adminEmail;
+  final String? adminPassword;
+
+  UpdateUser({
+    required this.userId,
+    required this.name,
+    required this.phoneNumber,
+    required this.pesel,
+    required this.email,
+    required this.role,
+    this.adminEmail,
+    this.adminPassword,
+  });
 } 

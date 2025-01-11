@@ -20,4 +20,8 @@ class UsersError extends UsersState {
 
 class UserCreating extends UsersState {}
 
-class UserCreated extends UsersState {} 
+class UserCreated extends UsersState {}
+
+class UserUpdating extends UsersState {}
+
+class UserUpdated extends UsersState {} 

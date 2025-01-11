@@ -16,7 +16,7 @@ class BookDescription extends StatelessWidget {
     final defaultCardColor = isDark ? Colors.grey[800]! : Colors.white;
     
     return Card(
-      color: defaultCardColor.withOpacity(0.9),
+      color: defaultCardColor.withAlpha(100),
       elevation: 2,
       shadowColor: Colors.black,
       shape: RoundedRectangleBorder(

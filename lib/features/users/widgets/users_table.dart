@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
+import '../screens/add_user_screen.dart';
 
 class UsersTable extends StatelessWidget {
   final List<UserModel> users;
@@ -134,10 +135,13 @@ class UsersTable extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.edit),
           onPressed: () {
-            // TODO: Implement edit functionality
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Edit functionality coming soon'),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AddUserScreen(
+                  isAdmin: false,
+                  userToEdit: user,
+                ),
               ),
             );
           },
@@ -212,9 +216,13 @@ class _UsersDataSource extends DataTableSource {
             IconButton(
               icon: const Icon(Icons.edit),
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Edit functionality coming soon'),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AddUserScreen(
+                      isAdmin: false,
+                      userToEdit: user,
+                    ),
                   ),
                 );
               },

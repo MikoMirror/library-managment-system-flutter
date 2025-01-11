@@ -4,13 +4,16 @@ import '../../../core/widgets/custom_text_field.dart';
 import '../bloc/users_bloc.dart';
 import '../bloc/users_event.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../models/user_model.dart';
 
 class AddUserScreen extends StatefulWidget {
   final bool isAdmin;
+  final UserModel? userToEdit;
 
   const AddUserScreen({
     super.key,
     required this.isAdmin,
+    this.userToEdit,
   });
 
   @override
@@ -29,11 +32,21 @@ class _AddUserScreenState extends State<AddUserScreen> {
   bool _showPassword = false;
   String? _adminEmail;
 
+  bool get isEditing => widget.userToEdit != null;
+
   @override
   void initState() {
     super.initState();
     _loadAdminCredentials();
     _selectedRole = widget.isAdmin ? 'admin' : 'member';
+    
+    if (isEditing) {
+      _nameController.text = widget.userToEdit!.name;
+      _emailController.text = widget.userToEdit!.email;
+      _phoneController.text = widget.userToEdit!.phoneNumber;
+      _peselController.text = widget.userToEdit!.pesel;
+      _selectedRole = widget.userToEdit!.role;
+    }
   }
 
   Future<void> _loadAdminCredentials() async {
@@ -99,7 +112,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
     super.dispose();
   }
 
-  Future<void> _createUser() async {
+  Future<void> _saveUser() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
       try {
@@ -116,16 +129,29 @@ class _AddUserScreenState extends State<AddUserScreen> {
           return;
         }
 
-        context.read<UsersBloc>().add(CreateUser(
-          name: _nameController.text.trim(),
-          phoneNumber: _phoneController.text.trim(),
-          pesel: _peselController.text.trim(),
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          role: _selectedRole,
-          adminEmail: _adminEmail,
-          adminPassword: adminPassword,
-        ));
+        if (isEditing) {
+          context.read<UsersBloc>().add(UpdateUser(
+            userId: widget.userToEdit!.userId,
+            name: _nameController.text.trim(),
+            phoneNumber: _phoneController.text.trim(),
+            pesel: _peselController.text.trim(),
+            email: _emailController.text.trim(),
+            role: _selectedRole,
+            adminEmail: _adminEmail,
+            adminPassword: adminPassword,
+          ));
+        } else {
+          context.read<UsersBloc>().add(CreateUser(
+            name: _nameController.text.trim(),
+            phoneNumber: _phoneController.text.trim(),
+            pesel: _peselController.text.trim(),
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            role: _selectedRole,
+            adminEmail: _adminEmail,
+            adminPassword: adminPassword,
+          ));
+        }
 
         if (mounted) {
           Navigator.of(context).pop();
@@ -151,7 +177,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isAdmin ? 'Add Admin' : 'Add User'),
+        title: Text(isEditing 
+          ? 'Edit User' 
+          : (widget.isAdmin ? 'Add Admin' : 'Add User')),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -188,31 +216,33 @@ class _AddUserScreenState extends State<AddUserScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              CustomTextField(
-                label: 'Password',
-                controller: _passwordController,
-                prefixIcon: const Icon(Icons.lock),
-                obscureText: !_showPassword,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _showPassword ? Icons.visibility_off : Icons.visibility,
+              if (!isEditing) ...[
+                CustomTextField(
+                  label: 'Password',
+                  controller: _passwordController,
+                  prefixIcon: const Icon(Icons.lock),
+                  obscureText: !_showPassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _showPassword ? Icons.visibility_off : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _showPassword = !_showPassword;
+                      });
+                    },
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _showPassword = !_showPassword;
-                    });
+                  validator: (value) {
+                    if (value?.isEmpty ?? true) {
+                      return 'Please enter password';
+                    }
+                    if (value!.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
                   },
                 ),
-                validator: (value) {
-                  if (value?.isEmpty ?? true) {
-                    return 'Please enter password';
-                  }
-                  if (value!.length < 6) {
-                    return 'Password must be at least 6 characters';
-                  }
-                  return null;
-                },
-              ),
+              ],
               const SizedBox(height: 16),
               CustomTextField(
                 label: 'Phone Number',
@@ -265,10 +295,10 @@ class _AddUserScreenState extends State<AddUserScreen> {
                 ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _isLoading ? null : _createUser,
+                onPressed: _isLoading ? null : _saveUser,
                 child: _isLoading
                     ? const CircularProgressIndicator()
-                    : Text('Add ${widget.isAdmin ? 'Admin' : 'User'}'),
+                    : Text(isEditing ? 'Save Changes' : 'Add ${widget.isAdmin ? 'Admin' : 'User'}'),
               ),
             ],
           ),

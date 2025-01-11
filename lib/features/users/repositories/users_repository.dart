@@ -124,6 +124,52 @@ class UsersRepository implements BaseRepository {
     }
   }
 
+  Future<void> updateUser({
+    required String userId,
+    required String name,
+    required String phoneNumber,
+    required String pesel,
+    required String email,
+    required String role,
+    String? adminEmail,
+    String? adminPassword,
+  }) async {
+    try {
+      // Re-authenticate admin if credentials provided
+      if (adminEmail != null && adminPassword != null) {
+        await _auth.signInWithEmailAndPassword(
+          email: adminEmail,
+          password: adminPassword,
+        );
+      }
+
+      // Update user data in Firestore
+      final userData = {
+        'name': name,
+        'phoneNumber': phoneNumber,
+        'pesel': pesel,
+        'email': email,
+        'role': role,
+      };
+
+      await _firestoreService.updateDocument(
+        UsersFirestoreService.collectionPath,
+        userId,
+        userData,
+      );
+
+      // Re-authenticate admin after update
+      if (adminEmail != null && adminPassword != null) {
+        await _auth.signInWithEmailAndPassword(
+          email: adminEmail,
+          password: adminPassword,
+        );
+      }
+    } catch (e) {
+      throw Exception('Failed to update user: $e');
+    }
+  }
+
   @override
   void dispose() {
     // Clean up any resources if needed
