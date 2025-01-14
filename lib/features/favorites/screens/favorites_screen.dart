@@ -10,6 +10,8 @@ import '../../books/widgets/book card/mobile_books_grid.dart';
 import '../../books/widgets/book card/table_books_view.dart';
 import '../../../features/users/models/user_model.dart';
 import '../repositories/favorites_repository.dart';
+import '../../../core/widgets/filter_dialog.dart';
+import '../../../core/widgets/filter_button.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -62,6 +64,24 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
             _searchQuery = query;
           });
         },
+        actions: [
+          FilterButton(
+            onPressed: () async {
+              final result = await showModalBottomSheet<Map<String, List<String>>>(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => const FilterDialog(),
+              );
+              
+              if (result != null) {
+                // Handle the filter results
+                // TODO: Implement filter logic
+                debugPrint('Selected filters: $result');
+              }
+            },
+          ),
+        ],
       ),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {

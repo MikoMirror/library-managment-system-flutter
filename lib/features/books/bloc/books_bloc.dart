@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/foundation.dart';
 import '../repositories/books_repository.dart';
 import 'books_event.dart';
 import 'books_state.dart';
@@ -25,7 +26,13 @@ class BooksBloc extends Bloc<BooksEvent, BooksState> {
     try {
       await emit.forEach(
         _repository.getAllBooks(),
-        onData: (List<Book> books) => BooksLoaded(books, sortType: event.sortType),
+        onData: (List<Book> books) {
+          if (state is BooksLoaded && 
+              listEquals((state as BooksLoaded).books, books)) {
+            return state;
+          }
+          return BooksLoaded(books: books, sortType: event.sortType);
+        },
         onError: (error, stackTrace) => BooksError(error.toString()),
       );
     } catch (e) {
@@ -41,7 +48,7 @@ class BooksBloc extends Bloc<BooksEvent, BooksState> {
     try {
       await emit.forEach(
         _repository.searchBooks(event.query),
-        onData: (List<Book> books) => BooksLoaded(books),
+        onData: (List<Book> books) => BooksLoaded(books: books),
         onError: (error, stackTrace) => BooksError(error.toString()),
       );
     } catch (e) {

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/book.dart';
@@ -13,6 +14,10 @@ import '../widgets/book card/desktop_books_grid.dart';
 import '../../../core/widgets/app_bar.dart';
 import '../../../core/navigation/cubit/navigation_cubit.dart';
 import '../../books/enums/sort_type.dart';
+import '../../../core/widgets/filter_dialog.dart';
+import '../../../core/widgets/filter_button.dart';
+import '../bloc/filter/filter_bloc.dart';
+import '../../../core/services/firestore/books_firestore_service.dart';
 
 class BooksScreen extends StatefulWidget {
   final SortType? sortType;
@@ -93,28 +98,34 @@ class _BooksScreenState extends State<BooksScreen> {
   }
 
   Widget _buildBookGrid(List<Book> books) {
-    final mediaQuery = MediaQuery.of(context);
-    final isPortrait = mediaQuery.orientation == Orientation.portrait;
-    final isSmallScreen = mediaQuery.size.width < 600;
+    return BlocBuilder<FilterBloc, FilterState>(
+      builder: (context, filterState) {
+        final displayBooks = filterState.filteredBooks.isEmpty 
+            ? books 
+            : filterState.filteredBooks;
 
-    // Use mobile grid for portrait orientation or small screens
-    if (isPortrait || isSmallScreen) {
-      return MobileBooksGrid(
-        books: books,
-        userId: _userId ?? '',
-        isAdmin: _isAdmin,
-        onDeleteBook: _handleDeleteBook,
-        showAdminControls: true,
-      );
-    }
+        final mediaQuery = MediaQuery.of(context);
+        final isPortrait = mediaQuery.orientation == Orientation.portrait;
+        final isSmallScreen = mediaQuery.size.width < 600;
 
-    // Use desktop grid for landscape orientation on larger screens
-    return DesktopBooksGrid(
-      books: books,
-      userId: _userId ?? '',
-      isAdmin: _isAdmin,
-      onDeleteBook: _handleDeleteBook,
-      showAdminControls: true,
+        if (isPortrait || isSmallScreen) {
+          return MobileBooksGrid(
+            books: displayBooks,
+            userId: _userId ?? '',
+            isAdmin: _isAdmin,
+            onDeleteBook: _handleDeleteBook,
+            showAdminControls: true,
+          );
+        }
+
+        return DesktopBooksGrid(
+          books: displayBooks,
+          userId: _userId ?? '',
+          isAdmin: _isAdmin,
+          onDeleteBook: _handleDeleteBook,
+          showAdminControls: true,
+        );
+      },
     );
   }
 
@@ -127,14 +138,12 @@ class _BooksScreenState extends State<BooksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<BooksBloc, BooksState>(
-      buildWhen: (previous, current) {
-        return previous.runtimeType != current.runtimeType ||
-            (current is BooksLoaded && previous is BooksLoaded &&
-             current.books != previous.books);
-      },
-      builder: (context, state) {
-        return WillPopScope(
+    return BlocProvider(
+      create: (context) => FilterBloc(
+        booksService: context.read<BooksFirestoreService>(),
+      ),
+      child: Builder(
+        builder: (context) => WillPopScope(
           onWillPop: () async {
             context.read<NavigationCubit>().navigateToHome();
             return false;
@@ -160,26 +169,30 @@ class _BooksScreenState extends State<BooksScreen> {
                   context.read<BooksBloc>().add(SearchBooks(query));
                 }
               },
+              actions: [
+                FilterButton(
+                  onPressed: () => _showFilterDialog(context),
+                ),
+              ],
             ),
-            body: _buildBooksList(state),
+            body: BlocBuilder<BooksBloc, BooksState>(
+              builder: (context, state) {
+                if (state is BooksLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                
+                if (state is BooksLoaded) {
+                  return _buildBookGrid(state.books);
+                }
+                
+                return const Center(child: CircularProgressIndicator());
+              },
+            ),
             floatingActionButton: _buildFAB(context.read<AuthBloc>().state),
           ),
-        );
-      },
+        ),
+      ),
     );
-  }
-
-  Widget _buildBooksList(BooksState state) {
-    if (state is BooksLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (state is BooksError) {
-      return Center(child: Text(state.message));
-    }
-    if (state is BooksLoaded) {
-      return _buildBookGrid(state.books);
-    }
-    return const SizedBox.shrink();
   }
 
   Widget _buildFAB(AuthState authState) {
@@ -205,5 +218,22 @@ class _BooksScreenState extends State<BooksScreen> {
       context: context,
       builder: (context) => const AddBookDialog(),
     );
+  }
+
+  Future<void> _showFilterDialog(BuildContext context) async {
+    final result = await showModalBottomSheet<Map<String, List<String>>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const FilterDialog(),
+    );
+    
+    if (result != null) {
+      context.read<FilterBloc>().add(ApplyFilters(
+        genres: result['genres'] ?? [],
+        availability: result['availability'] ?? [],
+        languages: result['languages'] ?? [],
+      ));
+    }
   }
 }

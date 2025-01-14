@@ -17,7 +17,10 @@ class BooksLoaded extends BooksState {
   final List<Book> books;
   final SortType? sortType;
 
-  const BooksLoaded(this.books, {this.sortType});
+  const BooksLoaded({
+    required this.books,
+    this.sortType,
+  });
 
   @override
   List<Object?> get props => [books, sortType];
@@ -25,8 +28,9 @@ class BooksLoaded extends BooksState {
 
 class BooksError extends BooksState {
   final String message;
+
   const BooksError(this.message);
-  
+
   @override
-  List<Object?> get props => [message];
+  List<Object> get props => [message];
 } 
