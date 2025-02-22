@@ -30,14 +30,20 @@ dependencies:
   pdf: ^3.11.1
   open_file: ^3.5.10
   mobile_scanner: ^3.5.5
- 
-
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   flutter_lints: ^4.0.0
+  bloc_test: ^9.0.0
+  mockito: ^5.4.2
+  build_runner: ^2.4.7
+  firebase_core_platform_interface: ^5.4.0
+  plugin_platform_interface: ^2.1.8
   
+ 
 
 flutter:
   uses-material-design: true

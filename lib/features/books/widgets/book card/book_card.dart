@@ -9,6 +9,8 @@ import 'dart:ui';
 import '../../../../core/theme/app_theme.dart';
 import '../delete_book_dialog.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/navigation/cubit/navigation_cubit.dart';
+import '../../../../core/navigation/routes/route_names.dart';
 
 
 class BookCard extends StatefulWidget {
@@ -45,7 +47,6 @@ class _BookCardState extends State<BookCard> {
   }
 
   void _initializeBloc() {
-    // Initialize bloc only for non-admin users when controls should be shown
     if (!widget.isAdmin && 
         widget.showAdminControls && 
         widget.userId != null) {
@@ -65,12 +66,9 @@ class _BookCardState extends State<BookCard> {
     return RepaintBoundary(
       child: GestureDetector(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => BookDetailsScreen(bookId: widget.book.id),
-            ),
-          );
+          if (widget.book.id != null) {
+            context.read<NavigationCubit>().navigateToBookDetails(widget.book.id!);
+          }
         },
         child: widget.isMobile ? _buildMobileCard() : _buildDesktopCard(),
       ),
@@ -83,8 +81,6 @@ class _BookCardState extends State<BookCard> {
 
     Widget icon;
     VoidCallback? onPressed;
-
-    // Early return for admin with delete button
     if (widget.isAdmin) {
       icon = const Icon(Icons.delete, color: Colors.red, size: 20);
       onPressed = () {
@@ -94,7 +90,6 @@ class _BookCardState extends State<BookCard> {
         );
       };
     } 
-    // Only initialize favorite functionality for non-admin users
     else if (!widget.isAdmin && widget.showAdminControls && widget.userId != null) {
       return BlocBuilder<BookCardBloc, BookCardState>(
         bloc: _bookCardBloc,

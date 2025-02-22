@@ -104,11 +104,11 @@ class ReservationsRepository implements BaseRepository {
             .get();
         final bookData = bookDoc.data();
         
-        // Get user details
-        final userDoc = await _reservationsService
+        // Get user details using _usersService
+        final userDoc = await _usersService
             .getDocumentReference('users', data['userId'] as String)
             .get();
-        final userData = userDoc.data() as Map<String, dynamic>?;
+        final userData = userDoc.data();
 
         return Reservation.fromMap({
           ...data,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class AppTheme {
-  // Core UI Colors
+ 
   static CoreColors light = const CoreColors(
     // Main background colors
     background: Color(0xFFFAFAFA),      

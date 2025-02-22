@@ -145,7 +145,7 @@ class _BooksScreenState extends State<BooksScreen> {
       child: Builder(
         builder: (context) => WillPopScope(
           onWillPop: () async {
-            context.read<NavigationCubit>().navigateToHome();
+            context.read<NavigationCubit>().goBack();
             return false;
           },
           child: Scaffold(

@@ -1,7 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:meta/meta.dart';
 
 abstract class BaseFirestoreService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  BaseFirestoreService() : _firestore = FirebaseFirestore.instance;
+  
+  @visibleForTesting
+  BaseFirestoreService.withFirestore(FirebaseFirestore firestore) 
+      : _firestore = firestore;
 
   Future<void> addDocument(String collection, Map<String, dynamic> data) async {
     await _firestore.collection(collection).add(data);

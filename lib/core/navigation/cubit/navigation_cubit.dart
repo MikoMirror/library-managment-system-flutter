@@ -12,33 +12,43 @@ class NavigationCubit extends Cubit<NavigationState> {
 
   // Basic navigation methods
   void navigateToHome({bool showBooks = false}) {
-    emit(NavigationState(
+    _navigate(NavigationState(
       route: RouteNames.home,
       params: showBooks ? {'showBooks': true} : null,
     ));
   }
-  void navigateToUsers() => _navigate(RouteNames.users);
-  void navigateToFavorites() => _navigate(RouteNames.favorites);
-  void navigateToBookings() => _navigate(RouteNames.bookings);
-  void navigateToSettings() => _navigate(RouteNames.settings);
-  void navigateToLogin() => _navigate(RouteNames.login);
-  void navigateToInitialSetup() => _navigate(RouteNames.initialSetup);
-  void navigateToAddUser() => _navigate(RouteNames.addUser);
-  void navigateToDashboard() => _navigate(RouteNames.dashboard);
+  void navigateToUsers() => _navigate(NavigationState(route: RouteNames.users));
+  void navigateToFavorites() => _navigate(NavigationState(route: RouteNames.favorites));
+  void navigateToBookings() => _navigate(NavigationState(route: RouteNames.bookings));
+  void navigateToSettings() => _navigate(NavigationState(route: RouteNames.settings));
+  void navigateToLogin() => _navigate(NavigationState(route: RouteNames.login));
+  void navigateToInitialSetup() => _navigate(NavigationState(route: RouteNames.initialSetup));
+  void navigateToAddUser() => _navigate(NavigationState(route: RouteNames.addUser));
+  void navigateToDashboard() => _navigate(NavigationState(route: RouteNames.dashboard));
   
   // Navigation with parameters
-  void navigateToBookDetails(String bookId) => _navigate(
-    RouteNames.bookDetails,
-    {'bookId': bookId},
-  );
+  void navigateToBookDetails(String bookId) {
+    final currentRoute = state.route;
+    print('Navigating from: $currentRoute to book details'); // Debug
+
+    _navigate(NavigationState(
+      route: RouteNames.bookDetails,
+      params: {
+        'bookId': bookId,
+        'previousRoute': currentRoute, // Already stores previous route
+      },
+    ));
+  }
 
   void navigateToEditBook(String bookId) => _navigate(
-    RouteNames.editBook,
-    {'bookId': bookId},
+    NavigationState(
+      route: RouteNames.editBook,
+      params: {'bookId': bookId},
+    ),
   );
 
   void navigateToSortedBooks(SortType sortType) {
-    emit(NavigationState(
+    _navigate(NavigationState(
       route: RouteNames.home,
       params: {
         'showBooks': true,
@@ -48,13 +58,9 @@ class NavigationCubit extends Cubit<NavigationState> {
   }
 
   void navigateToBooks(SortType sortType) {
-    // Instead of navigating to a new route, update the home state with parameters
-    emit(NavigationState(
-      route: RouteNames.home,
-      params: {
-        'showBooks': true,
-        'sortType': sortType.toString(),
-      },
+    _navigate(NavigationState(
+      route: RouteNames.books,
+      params: {'sortType': sortType.toString()},
     ));
   }
 
@@ -68,8 +74,17 @@ class NavigationCubit extends Cubit<NavigationState> {
 
   bool canGoBack() => _navigationStack.length > 1;
 
-  // Private helper method for navigation
-  void _navigate(String route, [Map<String, dynamic>? params]) {
-    emit(NavigationState(route: route, params: params));
+  // Private helper method for navigation     
+  void _navigate(NavigationState newState) {
+    _navigationStack.add(newState);
+    emit(newState);
+  }
+
+  // Helper method to get the previous route
+  String? getPreviousRoute() {
+    if (_navigationStack.length > 1) {
+      return _navigationStack[_navigationStack.length - 2].route;
+    }
+    return null;
   }
 } 

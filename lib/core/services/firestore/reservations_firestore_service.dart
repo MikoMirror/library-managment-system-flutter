@@ -2,11 +2,26 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'base_firestore_service.dart';
 import '../../../features/reservation/models/reservation.dart';
 import 'package:logger/logger.dart';
+import 'package:meta/meta.dart';
 
 class ReservationsFirestoreService extends BaseFirestoreService {
   static const String collectionPath = 'books_reservation';
 
-  final _logger = Logger();
+  final Logger _logger;
+
+  // Default constructor
+  ReservationsFirestoreService() : 
+    _logger = Logger(),
+    super();
+  
+  // Test constructor with Firestore instance and optional logger
+  @visibleForTesting
+  ReservationsFirestoreService.withFirestore(
+    FirebaseFirestore firestore, {
+    Logger? logger,
+  }) : 
+    _logger = logger ?? Logger(),
+    super.withFirestore(firestore);
 
   CollectionReference<Map<String, dynamic>> collection(String path) {
     return firestore.collection(path);

@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/reservation.dart';
 import '../repositories/reservation_repository.dart';
+import 'package:equatable/equatable.dart';
 
 // Events
 abstract class ReservationEvent {}
@@ -56,19 +57,36 @@ class SearchReservations extends ReservationEvent {
 }
 
 // States
-abstract class ReservationState {}
+abstract class ReservationState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class ReservationInitial extends ReservationState {}
+
 class ReservationLoading extends ReservationState {}
-class ReservationSuccess extends ReservationState {}
-class ReservationError extends ReservationState {
-  final String message;
-  ReservationError(this.message);
-}
 
 class ReservationsLoaded extends ReservationState {
   final List<Reservation> reservations;
+
   ReservationsLoaded(this.reservations);
+
+  @override
+  List<Object?> get props => [reservations];
+}
+
+class ReservationSuccess extends ReservationState {
+  @override
+  List<Object?> get props => [];
+}
+
+class ReservationError extends ReservationState {
+  final String message;
+  
+  ReservationError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class ReservationBloc extends Bloc<ReservationEvent, ReservationState> {
@@ -116,15 +134,10 @@ class ReservationBloc extends Bloc<ReservationEvent, ReservationState> {
         return;
       }
 
-      final searchQuery = event.query.toLowerCase();
+      final searchQuery = event.query.toLowerCase().trim();
       final filteredReservations = _allReservations.where((reservation) {
-        final bookTitle = reservation.bookTitle?.toLowerCase() ?? '';
-        final userName = reservation.userName?.toLowerCase() ?? '';
-        final userLibraryNumber = reservation.userLibraryNumber?.toLowerCase() ?? '';
-        
-        return bookTitle.contains(searchQuery) ||
-               userName.contains(searchQuery) ||
-               userLibraryNumber.contains(searchQuery);
+        final title = reservation.bookTitle?.toLowerCase() ?? '';
+        return title.contains(searchQuery);
       }).toList();
 
       emit(ReservationsLoaded(filteredReservations));
@@ -194,6 +207,20 @@ class ReservationBloc extends Bloc<ReservationEvent, ReservationState> {
       emit(ReservationsLoaded(_currentReservations));
     } catch (e) {
       emit(ReservationError(e.toString()));
+    }
+  }
+
+  void _onSearchReservations(SearchReservations event, Emitter<ReservationState> emit) {
+    if (state is ReservationsLoaded) {
+      final reservations = (state as ReservationsLoaded).reservations;
+      final query = event.query.toLowerCase().trim();
+      
+      final filtered = reservations.where((reservation) {
+        final title = reservation.bookTitle?.toLowerCase() ?? '';
+        return title.contains(query);
+      }).toList();
+
+      emit(ReservationsLoaded(filtered));
     }
   }
 } 

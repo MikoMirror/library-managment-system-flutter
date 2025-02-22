@@ -9,7 +9,7 @@ class Reservation {
   final Timestamp dueDate;
   final Timestamp? returnedDate;
   final int quantity;
-  final String? bookTitle;
+  final String bookTitle;
   final String? userName;
   final String? userLibraryNumber;
 
@@ -22,7 +22,7 @@ class Reservation {
     required this.dueDate,
     this.returnedDate,
     required this.quantity,
-    this.bookTitle,
+    required this.bookTitle,
     this.userName,
     this.userLibraryNumber,
   });

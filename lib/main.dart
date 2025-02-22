@@ -100,7 +100,9 @@ void main() async {
             BlocProvider(
               create: (context) => AuthBloc()..add(CheckAuthStatus()),
             ),
-            BlocProvider(create: (context) => NavigationCubit()),
+            BlocProvider(
+              create: (context) => NavigationCubit(),
+            ),
             BlocProvider(
               create: (context) => ReservationBloc(
                 repository: context.read<ReservationsRepository>(),

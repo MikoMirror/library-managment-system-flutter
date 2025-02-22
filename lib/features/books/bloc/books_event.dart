@@ -1,4 +1,5 @@
 import '../enums/sort_type.dart';
+import '../models/book.dart';
 
 abstract class BooksEvent {
   const BooksEvent();

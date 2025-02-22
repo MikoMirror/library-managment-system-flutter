@@ -33,7 +33,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin {
   int _selectedIndex = 0;
   UserModel? _cachedUserModel;
   List<NavigationItem>? _cachedNavigationItems;
@@ -44,6 +44,9 @@ class _HomeScreenState extends State<HomeScreen> {
   late final BooksFirestoreService _firestoreService;
   late final UsersFirestoreService _usersService;
   late final ReservationsFirestoreService _reservationsService;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -130,7 +133,10 @@ class _HomeScreenState extends State<HomeScreen> {
         case 0:
           return BlocProvider.value(
             value: _booksBloc,
-            child: const MainHomeScreen(),
+            child: KeyedSubtree(
+              key: ValueKey('main_home_$index'),
+              child: const MainHomeScreen(),
+            ),
           );
         case 1:
           return BlocProvider.value(
@@ -157,26 +163,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
     switch (index) {
       case 0:
-        return PageStorage(
-          bucket: PageStorageBucket(),
-          child: BlocProvider.value(
-            value: _booksBloc,
+        return BlocProvider.value(
+          value: _booksBloc,
+          child: KeyedSubtree(
+            key: ValueKey('main_home_$index'),
             child: const MainHomeScreen(),
           ),
         );
       case 1:
-        return const FavoritesScreen();
+        return KeyedSubtree(
+          key: ValueKey('favorites_$index'),
+          child: const FavoritesScreen(),
+        );
       case 2:
         return BlocProvider.value(
           value: _reservationBloc..add(LoadReservations()),
           child: ReservationsScreen(
+            key: const PageStorageKey('reservations'),
             reservationsService: _reservationsService,
             booksService: _firestoreService,
             usersService: _usersService,
           ),
         );
       case 4:
-        return const SettingsScreen();
+        return const SettingsScreen(key: PageStorageKey('settings'));
       default:
         return const SizedBox.shrink();
     }
@@ -237,6 +247,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     return BlocListener<NavigationCubit, NavigationState>(
       listener: (context, state) {
         if (_cachedUserModel?.role == 'admin') {
@@ -376,6 +388,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final theme = Theme.of(context);
         
         return Row(
+          key: ValueKey('layout_$_selectedIndex'),
           children: [
             if (isDesktop)
               Container(

@@ -1,9 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:meta/meta.dart';
 import 'base_firestore_service.dart';
 import '../../../features/users/models/user_model.dart';
 
 class UsersFirestoreService extends BaseFirestoreService {
   static const String collectionPath = 'users';
+
+  UsersFirestoreService() : super();
+  
+  @visibleForTesting
+  UsersFirestoreService.withFirestore(FirebaseFirestore firestore) 
+      : super.withFirestore(firestore);
 
   Future<void> createUser(UserModel user) async {
     await firestore

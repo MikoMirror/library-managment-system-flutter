@@ -18,6 +18,9 @@ import '../../../core/services/image/image_cache_service.dart';
 import '../cubit/book_details_cubit.dart';
 import '../widgets/book_reservation_dialog.dart';
 import '../../../core/services/firestore/users_firestore_service.dart';
+import '../../../core/navigation/cubit/navigation_cubit.dart';
+import '../../../core/navigation/routes/route_names.dart';
+import '../enums/sort_type.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final String? bookId;
@@ -114,7 +117,28 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => Navigator.of(context).pop(),
+        onPressed: () {
+          final navigationCubit = context.read<NavigationCubit>();
+          final previousRoute = navigationCubit.state.params?['previousRoute'];
+          
+          switch (previousRoute) {
+            case RouteNames.books:
+              navigationCubit.navigateToBooks(SortType.none);
+              break;
+            case RouteNames.favorites:
+              navigationCubit.navigateToFavorites();
+              break;
+            case RouteNames.dashboard:
+              navigationCubit.navigateToDashboard();
+              break;
+            default:
+              if (navigationCubit.canGoBack()) {
+                navigationCubit.goBack();
+              } else {
+                navigationCubit.navigateToHome();
+              }
+          }
+        },
       ),
       actions: [
         if (userModel != null) ...[

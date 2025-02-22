@@ -5,11 +5,18 @@ import '../../../features/dashboard/models/borrowing_trend_point.dart';
 import '../../../features/reservation/models/reservation.dart';
 import 'package:logger/logger.dart';
 import '../../../features/books/enums/sort_type.dart';
+import 'package:meta/meta.dart';
 
 class BooksFirestoreService extends BaseFirestoreService {
   static const String collectionPath = 'books';
   final _favoriteCache = <String, Stream<bool>>{};
   final _logger = Logger();
+
+  BooksFirestoreService() : super();
+  
+  @visibleForTesting
+  BooksFirestoreService.withFirestore(FirebaseFirestore firestore) 
+      : super.withFirestore(firestore);
 
   CollectionReference<Map<String, dynamic>> getCollection(String path) {
     return firestore.collection(path);
